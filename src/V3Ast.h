@@ -1461,12 +1461,12 @@ class VNRelinker final {
 protected:
     friend class AstNode;
     enum RelinkWhatEn : uint8_t {
-        RELINK_BAD,
-        RELINK_NEXT,
-        RELINK_OP1,
-        RELINK_OP2,
-        RELINK_OP3,
-        RELINK_OP4
+        RELINK_NEXT = 0,  // AstNode::NEXTP,
+        RELINK_OP1 = 1,  // AstNode::OP1P,
+        RELINK_OP2 = 2,  // AstNode::OP2P,
+        RELINK_OP3 = 3,  // AstNode::OP3P,
+        RELINK_OP4 = 4,  // AstNode::OP4P,
+        RELINK_BAD = 5,  // not used
     };
     AstNode* m_oldp = nullptr;  // The old node that was linked to this point in the tree
     AstNode* m_backp = nullptr;
@@ -1515,16 +1515,31 @@ public:
     } while (false)
 
 class AstNode VL_NOT_FINAL {
+    enum SubPointerType : uint8_t {
+        SUBP_NEXTP = 0,
+        SUBP_OP1P = 1,
+        SUBP_OP2P = 2,
+        SUBP_OP3P = 3,
+        SUBP_OP4P = 4,
+        SUBP_COUNT = 5,
+        SUBP_INVALID = 5,
+    };
     // v ASTNODE_PREFETCH depends on below ordering of members
-    AstNode* m_nextp = nullptr;  // Next peer in the parent's list
     AstNode* m_backp = nullptr;  // Node that points to this one (via next/op1/op2/...)
-    AstNode* m_op1p = nullptr;  // Generic pointer 1
-    AstNode* m_op2p = nullptr;  // Generic pointer 2
-    AstNode* m_op3p = nullptr;  // Generic pointer 3
-    AstNode* m_op4p = nullptr;  // Generic pointer 4
+    union {
+        struct {
+            AstNode* m_nextp;  // Next peer in the parent's list
+            AstNode* m_op1p;  // Generic pointer 1
+            AstNode* m_op2p;  // Generic pointer 2
+            AstNode* m_op3p;  // Generic pointer 3
+            AstNode* m_op4p;  // Generic pointer 4
+        };
+        AstNode* m_subp[SUBP_COUNT] = {};  // Child pointers
+    };
     AstNode** m_iterpp
         = nullptr;  // Pointer to node iterating on, change it if we replace this node.
     const VNType m_type;  // Node sub-type identifier
+    SubPointerType m_backSubpType = SUBP_INVALID;
     // ^ ASTNODE_PREFETCH depends on above ordering of members
 
     // VNType is 2 bytes, so we can stick another 6 bytes after it to utilize what would
@@ -1583,19 +1598,31 @@ class AstNode VL_NOT_FINAL {
     // METHODS
     void op1p(AstNode* nodep) {
         m_op1p = nodep;
-        if (nodep) nodep->m_backp = this;
+        if (nodep) {
+            nodep->m_backSubpType = SUBP_OP1P;
+            nodep->m_backp = this;
+        }
     }
     void op2p(AstNode* nodep) {
         m_op2p = nodep;
-        if (nodep) nodep->m_backp = this;
+        if (nodep) {
+            nodep->m_backSubpType = SUBP_OP2P;
+            nodep->m_backp = this;
+        }
     }
     void op3p(AstNode* nodep) {
         m_op3p = nodep;
-        if (nodep) nodep->m_backp = this;
+        if (nodep) {
+            nodep->m_backSubpType = SUBP_OP3P;
+            nodep->m_backp = this;
+        }
     }
     void op4p(AstNode* nodep) {
         m_op4p = nodep;
-        if (nodep) nodep->m_backp = this;
+        if (nodep) {
+            nodep->m_backSubpType = SUBP_OP4P;
+            nodep->m_backp = this;
+        }
     }
 
 private:

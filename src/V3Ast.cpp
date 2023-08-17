@@ -341,6 +341,7 @@ AstNode* AstNode::addNext<AstNode, AstNode>(AstNode* nodep, AstNode* newp) {
             }
         }
         // Link it in
+        newp->m_backSubpType = SUBP_NEXTP;
         oldtailp->m_nextp = newp;
         newp->m_backp = oldtailp;
         // New tail needs the head
@@ -373,6 +374,8 @@ void AstNode::addNextHere(AstNode* newp) {
 
     // Forward links
     AstNode* const oldnextp = this->m_nextp;
+    if (oldnextp) oldnextp->m_backSubpType = SUBP_NEXTP;
+    newp->m_backSubpType = SUBP_NEXTP;
     this->m_nextp = newp;
     addlastp->m_nextp = oldnextp;  // Perhaps null if 'this' is not list
 
@@ -416,6 +419,7 @@ void AstNode::setOp1p(AstNode* newp) {
     debugTreeChange(newp, "-setOp1pNew: ", __LINE__, true);
     m_op1p = newp;
     newp->editCountInc();
+    newp->m_backSubpType = SUBP_OP1P;
     newp->m_backp = this;
     debugTreeChange(this, "-setOp1pOut: ", __LINE__, false);
 }
@@ -429,6 +433,7 @@ void AstNode::setOp2p(AstNode* newp) {
     debugTreeChange(newp, "-setOp2pNew: ", __LINE__, true);
     m_op2p = newp;
     newp->editCountInc();
+    newp->m_backSubpType = SUBP_OP2P;
     newp->m_backp = this;
     debugTreeChange(this, "-setOp2pOut: ", __LINE__, false);
 }
@@ -442,6 +447,7 @@ void AstNode::setOp3p(AstNode* newp) {
     debugTreeChange(newp, "-setOp3pNew: ", __LINE__, true);
     m_op3p = newp;
     newp->editCountInc();
+    newp->m_backSubpType = SUBP_OP3P;
     newp->m_backp = this;
     debugTreeChange(this, "-setOp3pOut: ", __LINE__, false);
 }
@@ -455,6 +461,7 @@ void AstNode::setOp4p(AstNode* newp) {
     debugTreeChange(newp, "-setOp4pNew: ", __LINE__, true);
     m_op4p = newp;
     newp->editCountInc();
+    newp->m_backSubpType = SUBP_OP4P;
     newp->m_backp = this;
     debugTreeChange(this, "-setOp4pOut: ", __LINE__, false);
 }
@@ -527,22 +534,12 @@ AstNode* AstNode::unlinkFrBackWithNext(VNRelinker* linkerp) {
         linkerp->m_oldp = oldp;
         linkerp->m_backp = backp;
         linkerp->m_iterpp = oldp->m_iterpp;
-        if (backp->m_nextp == oldp) {
-            linkerp->m_chg = VNRelinker::RELINK_NEXT;
-        } else if (backp->m_op1p == oldp) {
-            linkerp->m_chg = VNRelinker::RELINK_OP1;
-        } else if (backp->m_op2p == oldp) {
-            linkerp->m_chg = VNRelinker::RELINK_OP2;
-        } else if (backp->m_op3p == oldp) {
-            linkerp->m_chg = VNRelinker::RELINK_OP3;
-        } else if (backp->m_op4p == oldp) {
-            linkerp->m_chg = VNRelinker::RELINK_OP4;
-        } else {
-            oldp->v3fatalSrc("Unlink of node with back not pointing to it.");
-        }
+        UASSERT(oldp->m_backSubpType <= 4, "Invalid m_backSubpType");
+        linkerp->m_chg = static_cast<VNRelinker::RelinkWhatEn>(oldp->m_backSubpType);
     }
-    if (backp->m_nextp == oldp) {
-        backp->m_nextp = nullptr;
+    UASSERT(m_backSubpType <= 4, "Invalid m_backSubpType");
+    backp->m_subp[m_backSubpType] = nullptr;
+    if (m_backSubpType == SUBP_NEXTP) {
         // Old list gets truncated
         // New list becomes a list upon itself
         // Most common case is unlinking a entire operand tree
@@ -557,16 +554,6 @@ AstNode* AstNode::unlinkFrBackWithNext(VNRelinker* linkerp) {
         // Create new head/tail of extracted list
         oldp->m_headtailp = oldtailp;
         oldp->m_headtailp->m_headtailp = oldp;
-    } else if (backp->m_op1p == oldp) {
-        backp->m_op1p = nullptr;
-    } else if (backp->m_op2p == oldp) {
-        backp->m_op2p = nullptr;
-    } else if (backp->m_op3p == oldp) {
-        backp->m_op3p = nullptr;
-    } else if (backp->m_op4p == oldp) {
-        backp->m_op4p = nullptr;
-    } else {
-        this->v3fatalSrc("Unlink of node with back not pointing to it.");
     }
     // Relink
     oldp->m_backp = nullptr;
@@ -593,44 +580,25 @@ AstNode* AstNode::unlinkFrBack(VNRelinker* linkerp) {
             *(oldp->m_iterpp) = nullptr;
             oldp->m_iterpp = nullptr;
         }
-        if (backp->m_nextp == oldp) {
-            linkerp->m_chg = VNRelinker::RELINK_NEXT;
-        } else if (backp->m_op1p == oldp) {
-            linkerp->m_chg = VNRelinker::RELINK_OP1;
-        } else if (backp->m_op2p == oldp) {
-            linkerp->m_chg = VNRelinker::RELINK_OP2;
-        } else if (backp->m_op3p == oldp) {
-            linkerp->m_chg = VNRelinker::RELINK_OP3;
-        } else if (backp->m_op4p == oldp) {
-            linkerp->m_chg = VNRelinker::RELINK_OP4;
-        } else {
-            this->v3fatalSrc("Unlink of node with back not pointing to it.");
-        }
+        UASSERT(oldp->m_backSubpType <= 4, "Invalid m_backSubpType");
+        linkerp->m_chg = static_cast<VNRelinker::RelinkWhatEn>(oldp->m_backSubpType);
     }
-    if (backp->m_nextp == oldp) {
+    UASSERT(m_backSubpType <= 4, "Invalid m_backSubpType");
+    backp->m_subp[m_backSubpType] = oldp->m_nextp;
+    if (m_backSubpType == SUBP_NEXTP) {  // from nextp
         // This node gets removed from middle (or tail) of list
         // Not head, since then oldp wouldn't be a next of backp...
-        backp->m_nextp = oldp->m_nextp;
-        if (backp->m_nextp) backp->m_nextp->m_backp = backp;
+        if (oldp->m_nextp)
+            backp->m_nextp->m_backp = backp;  // backp->m_nextp.m_backSubpType unchanged
         // If it was a tail, back becomes new tail
         if (oldp->m_headtailp) {
             backp->m_headtailp = oldp->m_headtailp;
             backp->m_headtailp->m_headtailp = backp;
         }
-    } else {
-        if (backp->m_op1p == oldp) {
-            backp->m_op1p = oldp->m_nextp;
-        } else if (backp->m_op2p == oldp) {
-            backp->m_op2p = oldp->m_nextp;
-        } else if (backp->m_op3p == oldp) {
-            backp->m_op3p = oldp->m_nextp;
-        } else if (backp->m_op4p == oldp) {
-            backp->m_op4p = oldp->m_nextp;
-        } else {
-            this->v3fatalSrc("Unlink of node with back not pointing to it.");
-        }
-        if (oldp->m_nextp) {
+    } else {  // from op*p
+        if (oldp->m_nextp) {  // first in the list
             AstNode* const newheadp = oldp->m_nextp;
+            newheadp->m_backSubpType = oldp->m_backSubpType;
             newheadp->m_backp = backp;
             newheadp->m_headtailp = oldp->m_headtailp;
             newheadp->m_headtailp->m_headtailp = newheadp;
@@ -669,17 +637,14 @@ void AstNode::relink(VNRelinker* linkerp) {
     debugTreeChange(this, "-relinkNew: ", __LINE__, true);
     debugTreeChange(backp, "-relinkTre: ", __LINE__, true);
 
-    switch (linkerp->m_chg) {
-    case VNRelinker::RELINK_NEXT: backp->addNextHere(newp); break;
-    case VNRelinker::RELINK_OP1: relinkOneLink(backp->m_op1p /*ref*/, newp); break;
-    case VNRelinker::RELINK_OP2: relinkOneLink(backp->m_op2p /*ref*/, newp); break;
-    case VNRelinker::RELINK_OP3: relinkOneLink(backp->m_op3p /*ref*/, newp); break;
-    case VNRelinker::RELINK_OP4: relinkOneLink(backp->m_op4p /*ref*/, newp); break;
-    default: this->v3fatalSrc("Relink of node without any link to change."); break;
+    if (linkerp->m_chg == VNRelinker::RELINK_NEXT) {
+        backp->addNextHere(newp);
+    } else {
+        relinkOneLink(backp->m_subp[linkerp->m_chg] /*ref*/, newp);
     }
     // Relink
+    newp->m_backSubpType = static_cast<SubPointerType>(linkerp->m_chg);
     newp->m_backp = backp;
-    linkerp->m_backp = nullptr;
     // Iterator fixup
     if (linkerp->m_iterpp) {
         // If we're iterating over a next() link, we need to follow links off the
@@ -712,6 +677,7 @@ void AstNode::relinkOneLink(AstNode*& pointpr,  // Ref to pointer that gets set 
                     "Old headtailp tail isn't at the tail");
         // Next links
         newlistlastp->m_nextp = pointpr;
+        pointpr->m_backSubpType = SUBP_NEXTP;
         pointpr->m_backp = newlistlastp;
         // Head/tail
         pointpr->m_headtailp = nullptr;  // Old head
@@ -744,20 +710,15 @@ void AstNode::addHereThisAsNext(AstNode* newp) {
         // If 'this' is not at the head of a list, then the new node will also not be at the head
         // of a list, so we can just link in the new node in the middle.
         backp->m_nextp = newp;
+        newp->m_backSubpType = SUBP_NEXTP;
         newp->m_headtailp = nullptr;
     } else {
         // If 'this' is at the head of a list, then the new node becomes the head of that list.
         if (backp) {
-            if (backp->m_op1p == this) {
-                backp->m_op1p = newp;
-            } else if (backp->m_op2p == this) {
-                backp->m_op2p = newp;
-            } else if (backp->m_op3p == this) {
-                backp->m_op3p = newp;
-            } else {
-                UASSERT_OBJ(backp->m_op4p == this, this, "Don't know where newp should go");
-                backp->m_op4p = newp;
-            }
+            UASSERT(m_backSubpType <= 4, "Invalid m_backSubpType");
+            newp->m_backSubpType = m_backSubpType;
+            backp->m_subp[m_backSubpType] = newp;
+            m_backSubpType = SUBP_NEXTP;
         }
         // We also need to update m_headtailp.
         AstNode* const tailp = this->m_headtailp;
@@ -1028,19 +989,8 @@ AstNode* AstNode::iterateSubtreeReturnEdits(VNVisitor& v) {
     } else {
         // Use back to determine who's pointing at us (IE assume new node
         // grafts into same place as old one)
-        AstNode** nextnodepp = nullptr;
-        if (this->m_backp->m_op1p == this) {
-            nextnodepp = &(this->m_backp->m_op1p);
-        } else if (this->m_backp->m_op2p == this) {
-            nextnodepp = &(this->m_backp->m_op2p);
-        } else if (this->m_backp->m_op3p == this) {
-            nextnodepp = &(this->m_backp->m_op3p);
-        } else if (this->m_backp->m_op4p == this) {
-            nextnodepp = &(this->m_backp->m_op4p);
-        } else if (this->m_backp->m_nextp == this) {
-            nextnodepp = &(this->m_backp->m_nextp);
-        }
-        UASSERT_OBJ(nextnodepp, this, "Node's back doesn't point to forward to node itself");
+        UASSERT(m_backSubpType <= 4, "Invalid m_backSubpType");
+        AstNode** nextnodepp = &m_backp->m_subp[m_backSubpType];
         {
             VL_DO_DANGLING(nodep->accept(v), nodep);  // nodep to null as may be replaced
         }
@@ -1102,6 +1052,9 @@ bool AstNode::sameTreeIter(const AstNode* node1p, const AstNode* node2p, bool ig
 void AstNode::checkTreeIter(const AstNode* prevBackp) const VL_MT_STABLE {
     // private: Check a tree and children
     UASSERT_OBJ(prevBackp == this->backp(), this, "Back node inconsistent");
+    if (prevBackp)
+        UASSERT_OBJ(prevBackp->m_subp[this->m_backSubpType] == this, this,
+                    "Back node inconsistent");
     const VNTypeInfo& typeInfo = *type().typeInfo();
     for (int i = 1; i <= 4; i++) {
         AstNode* nodep = nullptr;
