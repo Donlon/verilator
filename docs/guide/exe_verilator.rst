@@ -125,8 +125,11 @@ Summary:
 
    After generating the SystemC/C++ code, Verilator will invoke the
    toolchain to build the model library (and executable when :vlopt:`--exe`
-   is also used). Verilator manages the build itself, and for this --build
+   is also used).  Verilator manages the build itself, and for this --build
    requires GNU Make to be available on the platform.
+
+   :vlopt:`--build` cannot be specified when using :vlopt:`-E`,
+   :vlopt:`--dpi-hdr-only`, :vlopt:`--lint-only`, or :vlopt:`--xml-only`.
 
 .. option:: --build-dep-bin <filename>
 
@@ -1314,6 +1317,7 @@ Summary:
    This is not needed with standard designs with only one top.  See also
    :option:`MULTITOP` warning.
 
+
 .. option:: --trace
 
    Adds waveform tracing code to the model using VCD format. This overrides
@@ -1391,6 +1395,17 @@ Summary:
 
    This option is accepted, but has absolutely no effect with
    :vlopt:`--trace`, which respects :vlopt:`--threads` instead.
+
+.. option:: --no-trace-top
+
+   Disables tracing for the input and output signals in the top wrapper which
+   Verilator adds to the design. The signals are still traced in the original
+   verilog top modules.
+
+   When combined with :option:`--main-top-name` set to "-" or when the name of
+   the top module is set to "" in its constructor, the generated trace file
+   will have the verilog top module as its root, rather than another module
+   added by Verilator.
 
 .. option:: --trace-underscore
 

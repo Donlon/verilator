@@ -148,13 +148,14 @@ public:
             AstVar* const nodep = createVariable(fileline, name, rangelistp, nullptr);
             return nodep;
         }
-        AstCell* const nodep = new AstCell{fileline,
-                                           GRAMMARP->m_instModuleFl,
-                                           name,
-                                           GRAMMARP->m_instModule,
-                                           pinlistp,
-                                           AstPin::cloneTreeNull(GRAMMARP->m_instParamp, true),
-                                           GRAMMARP->scrubRange(rangelistp)};
+        AstCell* const nodep = new AstCell{
+            fileline,
+            GRAMMARP->m_instModuleFl,
+            name,
+            GRAMMARP->m_instModule,
+            pinlistp,
+            (GRAMMARP->m_instParamp ? GRAMMARP->m_instParamp->cloneTree(true) : nullptr),
+            GRAMMARP->scrubRange(rangelistp)};
         nodep->trace(GRAMMARP->allTracingOn(fileline));
         return nodep;
     }
@@ -284,7 +285,9 @@ public:
         setScopedSigAttr(new AstAttrOf{PARSEP->lexFileline(), vattrT});
     }
 
-    AstNode* cloneScopedSigAttr() const { return AstNode::cloneTreeNull(m_scopedSigAttr, true); }
+    AstNode* cloneScopedSigAttr() const {
+        return m_scopedSigAttr ? m_scopedSigAttr->cloneTree(true) : nullptr;
+    }
 };
 
 const VBasicDTypeKwd LOGIC = VBasicDTypeKwd::LOGIC;  // Shorthand "LOGIC"
@@ -2194,13 +2197,17 @@ member_decl_assignment<memberDTypep>:   // Derived from IEEE: variable_decl_assi
         //                      // So this is different from variable_decl_assignment
                 id variable_dimensionListE
                         { $$ = new AstMemberDType{$<fl>1, *$1, VFlagChildDType{},
-                                                  GRAMMARP->createArray(AstNodeDType::cloneTreeNull(GRAMMARP->m_memDTypep, true), $2, false),
+                                                  GRAMMARP->createArray((GRAMMARP->m_memDTypep
+                                                                         ? GRAMMARP->m_memDTypep->cloneTree(true) : nullptr),
+                                                                        $2, false),
                                                   nullptr};
                           PARSEP->tagNodep($$);
                         }
         |       id variable_dimensionListE '=' variable_declExpr
                         { $$ = new AstMemberDType{$<fl>1, *$1, VFlagChildDType{},
-                                                  GRAMMARP->createArray(AstNodeDType::cloneTreeNull(GRAMMARP->m_memDTypep, true), $2, false),
+                                                  GRAMMARP->createArray((GRAMMARP->m_memDTypep
+                                                                         ? GRAMMARP->m_memDTypep->cloneTree(true) : nullptr),
+                                                                        $2, false),
                                                   $4};
                           PARSEP->tagNodep($$);
                         }
@@ -4254,11 +4261,13 @@ system_f_call_or_t<nodeExprp>:      // IEEE: part of system_tf_call (can be task
         |       yD_ONEHOT '(' expr ')'                  { $$ = new AstOneHot{$1, $3}; }
         |       yD_ONEHOT0 '(' expr ')'                 { $$ = new AstOneHot0{$1, $3}; }
         |       yD_PAST '(' expr ')'                    { $$ = new AstPast{$1, $3, nullptr}; }
-        |       yD_PAST '(' expr ',' expr ')'           { $$ = new AstPast{$1, $3, $5}; }
-        |       yD_PAST '(' expr ',' expr ',' expr ')'
-                        { $$ = $3; BBUNSUP($1, "Unsupported: $past expr2 and clock arguments"); }
-        |       yD_PAST '(' expr ',' expr ',' expr ',' expr')'
-                        { $$ = $3; BBUNSUP($1, "Unsupported: $past expr2 and clock arguments"); }
+        |       yD_PAST '(' expr ',' exprE ')'          { $$ = new AstPast{$1, $3, $5}; }
+        |       yD_PAST '(' expr ',' exprE ',' exprE ')'
+                        { if ($7) BBUNSUP($1, "Unsupported: $past expr2 and/or clock arguments");
+                          $$ = new AstPast{$1, $3, $5}; }
+        |       yD_PAST '(' expr ',' exprE ',' exprE ',' clocking_eventE ')'
+                        { if ($7 || $9) BBUNSUP($1, "Unsupported: $past expr2 and/or clock arguments");
+                          $$ = new AstPast{$1, $3, $5}; }
         |       yD_POW '(' expr ',' expr ')'            { $$ = new AstPowD{$1, $3, $5}; }
         |       yD_RANDOM '(' expr ')'                  { $$ = new AstRand{$1, $3, false}; }
         |       yD_RANDOM parenE                        { $$ = new AstRand{$1, nullptr, false}; }
@@ -4681,6 +4690,11 @@ exprOrDataTypeEqE<nodep>:       // IEEE: optional '=' expression (part of param_
 
 constExpr<nodeExprp>:
                 expr                                    { $$ = $1; }
+        ;
+
+exprE<nodep>:                   // IEEE: optional expression
+                /*empty*/                               { $$ = nullptr; }
+        |       expr                                    { $$ = $1; }
         ;
 
 expr<nodeExprp>:                // IEEE: part of expression/constant_expression/primary
@@ -5663,6 +5677,11 @@ clocking_declaration<nodep>:            // IEEE: clocking_declaration
                         { $$ = new AstClocking{$<fl>2, "", $3, $5, false, true}; }
         |       yGLOBAL__CLOCKING yCLOCKING idAny clocking_event ';' clocking_itemListE yENDCLOCKING endLabelE
                         { $$ = new AstClocking{$<fl>3, *$3, $4, $6, false, true}; }
+        ;
+
+clocking_eventE<senItemp>:      // IEEE: optional clocking_event
+                /* empty */                             { $$ = nullptr; }
+        |       clocking_event                          { $$ = $1; }
         ;
 
 clocking_event<senItemp>:       // IEEE: clocking_event

@@ -121,12 +121,11 @@ std::ostream& operator<<(std::ostream& str, const Castable& rhs) {
 }
 
 #define v3widthWarn(lhs, rhs, msg) \
-    v3errorEnd((V3Error::s().m_mutex.lock(), \
-                V3Error::s().v3errorPrep((lhs) < (rhs)   ? V3ErrorCode::WIDTHTRUNC \
-                                         : (lhs) > (rhs) ? V3ErrorCode::WIDTHEXPAND \
-                                                         : V3ErrorCode::WIDTH), \
-                (V3Error::s().v3errorStr() << msg), V3Error::s().v3errorStr())), \
-        V3Error::s().m_mutex.unlock()
+    v3errorEnd( \
+        v3errorBuildMessage(V3Error::v3errorPrep((lhs) < (rhs)   ? V3ErrorCode::WIDTHTRUNC \
+                                                 : (lhs) > (rhs) ? V3ErrorCode::WIDTHEXPAND \
+                                                                 : V3ErrorCode::WIDTH), \
+                            msg))
 
 //######################################################################
 // Width state, as a visitor of each AstNode
@@ -840,9 +839,13 @@ private:
             } else {
                 nodep->v3error("Slice size isn't a constant or basic data type.");
             }
-            if (VN_IS(nodep->lhsp()->dtypep(), DynArrayDType)
-                || VN_IS(nodep->lhsp()->dtypep(), QueueDType)
-                || VN_IS(nodep->lhsp()->dtypep(), UnpackArrayDType)) {
+            const AstNodeDType* const lhsDtypep = nodep->lhsp()->dtypep();
+            if (VN_IS(lhsDtypep, DynArrayDType) || VN_IS(lhsDtypep, QueueDType)) {
+                nodep->dtypeSetStream();
+            } else if (VN_IS(lhsDtypep, UnpackArrayDType) || lhsDtypep->isCompound()) {
+                nodep->v3warn(E_UNSUPPORTED,
+                              "Unsupported: Stream operation on a variable of a type "
+                                  << lhsDtypep->prettyDTypeNameQ());
                 nodep->dtypeSetStream();
             } else {
                 nodep->dtypeSetLogicUnsized(nodep->lhsp()->width(), nodep->lhsp()->widthMin(),
@@ -7200,6 +7203,7 @@ private:
                                         "__Venumtab_" + VString::downcase(attrType.ascii())
                                             + cvtToStr(m_dtTables++),
                                         vardtypep};
+        varp->lifetime(VLifetime::STATIC);
         varp->isConst(true);
         varp->isStatic(true);
         varp->valuep(initp);
