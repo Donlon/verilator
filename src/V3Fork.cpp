@@ -122,17 +122,19 @@ private:
 
         if (AstBegin* beginp = VN_CAST(nodep, Begin)) {
             UASSERT(beginp->stmtsp(), "No stmtsp\n");
-            const std::string taskName = generateTaskName(beginp, "__FORK_BEGIN_");
+            const std::string taskName = generateTaskName(beginp, "__VForkBegin_");
             taskp
                 = makeTask(beginp->fileline(), beginp->stmtsp()->unlinkFrBackWithNext(), taskName);
             beginp->unlinkFrBack(&handle);
             VL_DO_DANGLING(beginp->deleteTree(), beginp);
         } else if (AstNodeStmt* stmtp = VN_CAST(nodep, NodeStmt)) {
-            const std::string taskName = generateTaskName(stmtp, "__FORK_STMT_");
+            const std::string taskName = generateTaskName(stmtp, "__VForkStmt_");
             taskp = makeTask(stmtp->fileline(), stmtp->unlinkFrBack(&handle), taskName);
         } else if (AstFork* forkp = VN_CAST(nodep, Fork)) {
-            const std::string taskName = generateTaskName(forkp, "__FORK_NESTED_");
+            const std::string taskName = generateTaskName(forkp, "__VForkNested_");
             taskp = makeTask(forkp->fileline(), forkp->unlinkFrBack(&handle), taskName);
+        } else {
+            v3fatalSrc("Bad case");
         }
 
         m_modp->addStmtsp(taskp);
@@ -140,6 +142,7 @@ private:
         AstTaskRef* const taskrefp
             = new AstTaskRef{nodep->fileline(), taskp->name(), m_capturedVarRefsp};
         AstStmtExpr* const taskcallp = new AstStmtExpr{nodep->fileline(), taskrefp};
+        taskrefp->taskp(taskp);
         // Replaced nodes will be revisited, so we don't need to "lift" the arguments
         // as captures in case of nested forks.
         handle.relink(taskcallp);
