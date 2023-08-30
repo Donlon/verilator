@@ -324,8 +324,6 @@ file(TO_NATIVE_PATH ${srcdir}/../bin/verilator_includer VERILATOR_INCLUDER)
 file(TO_NATIVE_PATH ${srcdir}/vlcovgen VLCOVGEN)
 file(TO_NATIVE_PATH ${srcdir}/config_rev CONFIG_REV)
 
-configure_file(config_package.h.in config_package.h @ONLY)
-
 add_custom_command(
     OUTPUT V3Ast__gen_forward_class_decls.h V3Dfg__gen_forward_class_decls.h
     DEPENDS ./V3Ast.h ${ASTGEN}
@@ -482,10 +480,9 @@ target_compile_definitions(${verilator} PRIVATE
 
 target_include_directories(${verilator}
     PRIVATE
-    ../include
     ${WIN_FLEX_BISON}
     ${CMAKE_CURRENT_BINARY_DIR}
-    ${CMAKE_CURRENT_BINARY_DIR}/../include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
@@ -494,7 +491,6 @@ if (WIN32)
     target_compile_definitions(${verilator} PRIVATE
         YY_NO_UNISTD_H
     )
-    target_include_directories(${verilator} PRIVATE ../platform/win32)
     target_link_libraries(${verilator} PRIVATE bcrypt psapi)
     target_link_options(${verilator} PRIVATE /STACK:10000000)
 endif()

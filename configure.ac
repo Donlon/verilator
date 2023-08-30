@@ -403,6 +403,8 @@ AC_SUBST(HAVE_COROUTINES)
 # Flags for compiling Verilator internals including parser always
 _MY_CXX_CHECK_OPT(CFG_CXXFLAGS_SRC,-Qunused-arguments)
 _MY_CXX_CHECK_OPT(CFG_CXXFLAGS_SRC,-faligned-new)
+_MY_CXX_CHECK_OPT(CFG_CXXFLAGS_SRC,-fdata-sections)
+_MY_CXX_CHECK_OPT(CFG_CXXFLAGS_SRC,-ffunction-sections)
 _MY_CXX_CHECK_OPT(CFG_CXXFLAGS_SRC,-Wno-unused-parameter)
 _MY_CXX_CHECK_OPT(CFG_CXXFLAGS_SRC,-Wno-shadow)
 AC_SUBST(CFG_CXXFLAGS_SRC)
@@ -473,12 +475,13 @@ AC_SUBST(CFG_LDFLAGS_THREADS_CMAKE)
 # If 'mold' is installed, use it to link for faster buildtimes
 _MY_LDLIBS_CHECK_OPT(CFG_LDFLAGS_SRC, -fuse-ld=mold)
 _MY_LDLIBS_CHECK_OPT(CFG_LDFLAGS_VERILATED, -fuse-ld=mold)
+# Remove unused symbols
+_MY_LDLIBS_CHECK_OPT(CFG_LDFLAGS_SRC, -Xlinker -gc-sections)
 
 # When linking partially statically
 if test "$CFG_ENABLE_PARTIAL_STATIC" = "yes"; then
   _MY_LDLIBS_CHECK_OPT(CFG_LDFLAGS_SRC, -static-libgcc)
   _MY_LDLIBS_CHECK_OPT(CFG_LDFLAGS_SRC, -static-libstdc++)
-  _MY_LDLIBS_CHECK_OPT(CFG_LDFLAGS_SRC, -Xlinker -gc-sections)
   LTCMALLOC=-l:libtcmalloc_minimal.a
 else
   LTCMALLOC=-ltcmalloc_minimal
