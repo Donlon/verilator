@@ -59,6 +59,7 @@ private:
     AstVar* m_capturedVarsp = nullptr;  // Local copies of captured variables
     std::set<AstVar*> m_forkLocalsp;  // Variables local to a given fork
     AstArg* m_capturedVarRefsp = nullptr;  // References to captured variables (as args)
+    int m_createdTasksCount = 0;  // Number of tasks created by this visitor
 
     // METHODS
     AstVar* captureRef(AstNodeExpr* refp) {
@@ -81,12 +82,14 @@ private:
 
     AstTask* makeTask(FileLine* fl, AstNode* stmtsp, std::string name) {
         stmtsp = AstNode::addNext(static_cast<AstNode*>(m_capturedVarsp), stmtsp);
-        return new AstTask{fl, name, stmtsp};
+        AstTask* const taskp = new AstTask{fl, name, stmtsp};
+        ++m_createdTasksCount;
+        return taskp;
     }
 
     std::string generateTaskName(AstNode* fromp, std::string kind) {
         // TODO: Ensure no collisions occur
-        return kind + (!fromp->name().empty() ? (fromp->name() + "__") : "unnamed__")
+        return "__V" + kind + (!fromp->name().empty() ? (fromp->name() + "__") : "UNNAMED__")
                + cvtToHex(fromp);
     }
 
@@ -119,19 +122,17 @@ private:
 
         if (AstBegin* beginp = VN_CAST(nodep, Begin)) {
             UASSERT(beginp->stmtsp(), "No stmtsp\n");
-            const std::string taskName = generateTaskName(beginp, "__VforkBegin_");
+            const std::string taskName = generateTaskName(beginp, "__FORK_BEGIN_");
             taskp
                 = makeTask(beginp->fileline(), beginp->stmtsp()->unlinkFrBackWithNext(), taskName);
             beginp->unlinkFrBack(&handle);
             VL_DO_DANGLING(beginp->deleteTree(), beginp);
         } else if (AstNodeStmt* stmtp = VN_CAST(nodep, NodeStmt)) {
-            const std::string taskName = generateTaskName(stmtp, "__VforkStmt_");
+            const std::string taskName = generateTaskName(stmtp, "__FORK_STMT_");
             taskp = makeTask(stmtp->fileline(), stmtp->unlinkFrBack(&handle), taskName);
         } else if (AstFork* forkp = VN_CAST(nodep, Fork)) {
-            const std::string taskName = generateTaskName(forkp, "__VforkNested_");
+            const std::string taskName = generateTaskName(forkp, "__FORK_NESTED_");
             taskp = makeTask(forkp->fileline(), forkp->unlinkFrBack(&handle), taskName);
-        } else {
-            nodep->v3fatalSrc("Bad case");
         }
 
         m_modp->addStmtsp(taskp);
@@ -139,7 +140,6 @@ private:
         AstTaskRef* const taskrefp
             = new AstTaskRef{nodep->fileline(), taskp->name(), m_capturedVarRefsp};
         AstStmtExpr* const taskcallp = new AstStmtExpr{nodep->fileline(), taskrefp};
-        taskrefp->taskp(taskp);
         // Replaced nodes will be revisited, so we don't need to "lift" the arguments
         // as captures in case of nested forks.
         handle.relink(taskcallp);
@@ -223,13 +223,23 @@ public:
     // CONSTRUCTORS
     ForkVisitor(AstNetlist* nodep) { visit(nodep); }
     ~ForkVisitor() override = default;
+
+    // UTILITY
+    int createdTasksCount() { return m_createdTasksCount; }
 };
 
 //######################################################################
 // Fork class functions
 
 int V3Fork::makeTasks(AstNetlist* nodep) {
+    int createdTasksCount;
+
     UINFO(2, __FUNCTION__ << ": " << endl);
-    { ForkVisitor visitor(nodep); }  // Destruct before checking
+    {
+        ForkVisitor fork_visitor(nodep);
+        createdTasksCount = fork_visitor.createdTasksCount();
+    }
     V3Global::dumpCheckGlobalTree("fork", 0, dumpTreeLevel() >= 3);
+
+    return createdTasksCount;
 }
