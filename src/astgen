@@ -216,26 +216,25 @@ class Cpt:
     def process(self, in_filename, out_filename):
         self.in_filename = in_filename
         self.out_filename = out_filename
-        ln = 0
+        self.in_linenum = 0
         didln = False
 
         # Read the file and parse into list of functions that generate output
         with open(self.in_filename, "r", encoding="utf8") as fhi:
             for line in fhi:
-                ln += 1
+                self.in_linenum += 1
                 if not didln:
-                    self.print("#line " + str(ln) + " \"" + self.in_filename +
+                    self.print("#line " + str(self.in_linenum) + " \"" + self.in_filename +
                                "\"\n")
                     didln = True
                 match = re.match(r'^\s+(TREE.*)$', line)
                 if match:
                     func = match.group(1)
-                    self.in_linenum = ln
                     self.print("//" + line)
                     self.output_func(lambda self: self._output_line())
                     self.tree_line(func)
                     didln = False
-                elif not re.match(r'^\s*/[/\*]\s*TREE', line) and re.search(
+                elif not re.match(r'^\s*((//)|(/\*)|#).*TREE', line) and re.search(
                         r'\s+TREE', line):
                     self.error("Unknown astgen line: " + line)
                 else:

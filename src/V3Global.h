@@ -143,7 +143,7 @@ public:
     void removeStd();
     void checkTree() const;
     static void dumpCheckGlobalTree(const string& stagename, int newNumber = 0,
-                                    bool doDump = true);
+                                    bool doDump = true, bool doCheck = true);
     void assertDTypesResolved(bool flag) { m_assertDTypesResolved = flag; }
     void assertScoped(bool flag) { m_assertScoped = flag; }
     void widthMinUsage(const VWidthMinUsage& flag) { m_widthMinUsage = flag; }

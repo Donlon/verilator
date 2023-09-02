@@ -14,6 +14,9 @@
 //
 //*************************************************************************
 
+#ifndef VERILATOR_V3EMITCCONSTINIT_H_
+#define VERILATOR_V3EMITCCONSTINIT_H_
+
 #include "config_build.h"
 #include "verilatedos.h"
 
@@ -150,3 +153,7 @@ protected:
         nodep->v3fatalSrc("Unknown node type reached EmitCConstInit: " << nodep->prettyTypeName());
     }  // LCOV_EXCL_STOP
 };
+
+//######################################################################
+
+#endif  // Guard

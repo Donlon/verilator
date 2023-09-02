@@ -875,6 +875,14 @@ public:
 //######################################################################
 // Const state, as a visitor of each AstNode
 
+#define TREE_SKIP_VISIT(...)
+#define TREEOP(...)
+#define TREEOP1(...)
+#define TREEOPA(...)
+#define TREEOPC(...)
+#define TREEOPS(...)
+#define TREEOPV(...)
+
 class ConstVisitor final : public VNVisitor {
 private:
     // CONSTANTS

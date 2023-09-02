@@ -78,7 +78,7 @@ public:
             for (IdNameMap::const_iterator it = m_idNameMap.begin(); it != m_idNameMap.end();
                  ++it) {
                 if (numLevels >= 1) {
-                    it->second->dumpIterate(os, doneSymsr, indent + "| ", numLevels - 1,
+                    it->second->dumpIterate(os, doneSymsr, indent + "  ", numLevels - 1,
                                             it->first);
                 }
             }

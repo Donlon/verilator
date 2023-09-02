@@ -1325,7 +1325,7 @@ static std::string nodeAddr(const AstNode* nodep) {
 void AstNode::dump(std::ostream& str) const {
     str << typeName() << " " << nodeAddr(this)
 #ifdef VL_DEBUG
-        << " <e" << std::dec << editCount() << ((editCount() >= editCountLast()) ? "#>" : ">")
+        << " <e" << std::dec << editCount() << ">"
 #endif
         << " {" << fileline()->filenameLetters() << std::dec << fileline()->lastLineno()
         << fileline()->firstColumnLetters() << "}";

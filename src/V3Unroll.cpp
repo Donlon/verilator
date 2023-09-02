@@ -510,7 +510,10 @@ void UnrollStateful::unrollGen(AstNodeFor* nodep, const string& beginName) {
     m_unrollerp->process(nodep, true, beginName);
 }
 
-void UnrollStateful::unrollAll(AstNetlist* nodep) { m_unrollerp->process(nodep, false, ""); }
+void UnrollStateful::unrollAll(AstNetlist* nodep) {
+    UINFO(5, __FUNCTION__ << ": " << endl);
+    m_unrollerp->process(nodep, false, "");
+}
 
 void V3Unroll::unrollAll(AstNetlist* nodep) {
     UINFO(2, __FUNCTION__ << ": " << endl);
