@@ -2182,6 +2182,7 @@ int AstVarRef::instrCount() const {
 }
 void AstVar::dump(std::ostream& str) const {
     this->AstNode::dump(str);
+    if (isAnsi()) str << " [ANSI]";
     if (isSc()) str << " [SC]";
     if (isPrimaryIO()) str << (isInoutish() ? " [PIO]" : (isWritable() ? " [PO]" : " [PI]"));
     if (isIO()) str << " " << direction().ascii();
