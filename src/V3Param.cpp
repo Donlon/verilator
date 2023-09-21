@@ -577,12 +577,9 @@ class ParamProcessor final : public VNDeleter {
         // Deep clone of new module
         // Note all module internal variables will be re-linked to the new modules by clone
         // However links outside the module (like on the upper cells) will not.
-        AstNodeModule* newmodp;
-        if (srcModp->user4p()) {
-            newmodp = VN_CAST(srcModp->user4p()->cloneTree(false), NodeModule);
-        } else {
-            newmodp = srcModp->cloneTree(false);
-        }
+        AstNodeModule* origmodp = VN_CAST(srcModp->user4p(), NodeModule);
+        if (!origmodp) origmodp = srcModp;
+        AstNodeModule* const newmodp = origmodp->cloneTree(false);
 
         if (AstClass* const newClassp = VN_CAST(newmodp, Class)) {
             newClassp->isParameterized(false);
