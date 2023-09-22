@@ -1154,7 +1154,7 @@ public:
     }
     int widthAlignBytes() const override { return dtypeSkipRefp()->widthAlignBytes(); }
     int widthTotalBytes() const override { return dtypeSkipRefp()->widthTotalBytes(); }
-    void name(const string& flag) override { m_name = flag; }
+    void name(const string& name) override { m_name = name; }
     AstNodeDType* dtypeSkipRefp() const { return subDTypep()->skipRefp(); }
     AstTypedef* typedefp() const VL_MT_SAFE { return m_typedefp; }
     void typedefp(AstTypedef* nodep) { m_typedefp = nodep; }
