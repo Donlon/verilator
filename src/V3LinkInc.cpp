@@ -222,7 +222,7 @@ private:
         // Currently we can't reference the target, so we just copy the AST both for read and
         // write, but doing so would double any side-effects, so as a safety measure all
         // statements which could have side-effects are banned at the moment.
-        if (!nodep->rhsp()->isTreePureRecurse()) {
+        if (!nodep->rhsp()->isPure()) {
             nodep->rhsp()->v3warn(E_UNSUPPORTED,
                                   "Unsupported: Inc/Dec of expression with side-effects");
             return;
@@ -252,7 +252,7 @@ private:
         // Currently we can't reference the target, so we just copy the AST both for read and
         // write, but doing so would double any side-effects, so as a safety measure all
         // statements which could have side-effects are banned at the moment.
-        if (!nodep->rhsp()->isTreePureRecurse()) {
+        if (!nodep->rhsp()->isPure()) {
             nodep->rhsp()->v3warn(E_UNSUPPORTED,
                                   "Unsupported: Inc/Dec of expression with side-effects");
             return;
@@ -263,7 +263,7 @@ private:
             return;
         }
         AstNodeExpr* const readp = nodep->rhsp();
-        AstNodeExpr* const writep = nodep->thsp();
+        AstNodeExpr* const writep = nodep->thsp()->unlinkFrBack();
 
         AstConst* const constp = VN_AS(nodep->lhsp(), Const);
         UASSERT_OBJ(nodep, constp, "Expecting CONST");
@@ -283,9 +283,9 @@ private:
         // Define what operation will we be doing
         AstNodeExpr* operp;
         if (VN_IS(nodep, PostSub) || VN_IS(nodep, PreSub)) {
-            operp = new AstSub{fl, readp->cloneTree(true), newconstp};
+            operp = new AstSub{fl, readp->cloneTreePure(true), newconstp};
         } else {
-            operp = new AstAdd{fl, readp->cloneTree(true), newconstp};
+            operp = new AstAdd{fl, readp->cloneTreePure(true), newconstp};
         }
 
         if (VN_IS(nodep, PreAdd) || VN_IS(nodep, PreSub)) {
@@ -295,16 +295,16 @@ private:
                 = new AstAssign{fl, new AstVarRef{fl, varp, VAccess::WRITE}, operp};
             insertNextToStmt(nodep, assignp);
             // Immediately after incrementing - assign it to the original variable
-            assignp->addNextHere(new AstAssign{fl, writep->cloneTree(true),
-                                               new AstVarRef{fl, varp, VAccess::READ}});
+            assignp->addNextHere(
+                new AstAssign{fl, writep, new AstVarRef{fl, varp, VAccess::READ}});
         } else {
             // PostAdd/PostSub operations
             // Assign the original variable to the temporary one
             AstAssign* const assignp = new AstAssign{fl, new AstVarRef{fl, varp, VAccess::WRITE},
-                                                     readp->cloneTree(true)};
+                                                     readp->cloneTreePure(true)};
             insertNextToStmt(nodep, assignp);
             // Increment the original variable by one
-            assignp->addNextHere(new AstAssign{fl, writep->cloneTree(true), operp});
+            assignp->addNextHere(new AstAssign{fl, writep, operp});
         }
 
         // Replace the node with the temporary

@@ -147,6 +147,11 @@ private:
             m_hash += nodep->nrange().right();
         });
     }
+    void visit(AstCDType* nodep) override {
+        m_hash += hashNodeAndIterate(nodep, HASH_DTYPE, HASH_CHILDREN, [=]() {  //
+            m_hash += nodep->name();
+        });
+    }
     void visit(AstConstDType* nodep) override {
         m_hash += hashNodeAndIterate(nodep, HASH_DTYPE, HASH_CHILDREN, [=]() {  //
             iterateConstNull(nodep->virtRefDTypep());
@@ -173,6 +178,9 @@ private:
             iterateConstNull(nodep->typedefp());
             iterateConstNull(nodep->refDTypep());
         });
+    }
+    void visit(AstStreamDType* nodep) override {
+        m_hash += hashNodeAndIterate(nodep, false, HASH_CHILDREN, [=]() {});
     }
     void visit(AstVoidDType* nodep) override {
         m_hash += hashNodeAndIterate(nodep, false, HASH_CHILDREN, [=]() {});
@@ -207,7 +215,7 @@ private:
                 iterateConstNull(nodep->varScopep());
             } else {
                 iterateConstNull(nodep->varp());
-                m_hash += nodep->selfPointer();
+                m_hash += nodep->selfPointer().asString();
             }
         });
     }
@@ -268,6 +276,9 @@ private:
         m_hash += hashNodeAndIterate(nodep, HASH_DTYPE, HASH_CHILDREN, [=]() {  //
             iterateConstNull(nodep->sensesp());
         });
+    }
+    void visit(AstCLocalScope* nodep) override {
+        m_hash += hashNodeAndIterate(nodep, HASH_DTYPE, HASH_CHILDREN, [=]() {});
     }
     void visit(AstCoverInc* nodep) override {
         m_hash += hashNodeAndIterate(nodep, false, HASH_CHILDREN, [=]() {  //

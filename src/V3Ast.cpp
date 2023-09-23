@@ -64,6 +64,18 @@ const VNTypeInfo VNType::typeInfoTable[] = {
 std::ostream& operator<<(std::ostream& os, VNType rhs);
 
 //######################################################################
+// VSelfPointerText
+
+const std::shared_ptr<const string> VSelfPointerText::s_emptyp = std::make_shared<string>("");
+const std::shared_ptr<const string> VSelfPointerText::s_thisp = std::make_shared<string>("this");
+
+string VSelfPointerText::protect(bool useSelfForThis, bool protect) const {
+    const string& sp
+        = useSelfForThis ? VString::replaceWord(asString(), "this", "vlSelf") : asString();
+    return VIdProtect::protectWordsIf(sp, protect);
+}
+
+//######################################################################
 // AstNode
 
 AstNode::AstNode(VNType t, FileLine* fl)
@@ -369,8 +381,8 @@ AstNode* AstNode::addNext<AstNode, AstNode>(AstNode* nodep, AstNode* newp) {
 
 void AstNode::addNextHere(AstNode* newp) {
     // Add to m_nextp on exact node passed, not at the end.
-    //  This could be at head, tail, or both (single)
-    //  New  could be head of single node, or list
+    //  'this' could be at head, tail, or both (single)
+    //  'newp' could be head of single node, or list
     UASSERT(newp, "Null item passed to addNext");
     UASSERT_OBJ(!newp->backp(), newp, "New node (back) already assigned?");
     debugTreeChange(this, "-addHereThs: ", __LINE__, false);
@@ -1290,16 +1302,6 @@ void AstNode::dumpTreeDotFile(const string& filename, bool append, bool doDump) 
         dumpTreeDot(*treedotp);
         *treedotp << "}\n";
     }
-}
-
-bool AstNode::isTreePureRecurse() const {
-    // Should memoize this if call commonly
-    if (!this->isPure()) return false;
-    if (this->op1p() && !this->op1p()->isTreePureRecurse()) return false;
-    if (this->op2p() && !this->op2p()->isTreePureRecurse()) return false;
-    if (this->op3p() && !this->op3p()->isTreePureRecurse()) return false;
-    if (this->op4p() && !this->op4p()->isTreePureRecurse()) return false;
-    return true;
 }
 
 string AstNode::instanceStr() const {

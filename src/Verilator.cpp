@@ -143,10 +143,10 @@ static void process() {
     V3Error::abortIfErrors();
 
     if (v3Global.opt.stats()) V3Stats::statsStageAll(v3Global.rootp(), "Link");
-    if (v3Global.opt.debugExitUvm()) {
+    if (v3Global.opt.debugExitUvm23()) {
         V3Error::abortIfErrors();
         if (v3Global.opt.xmlOnly()) V3EmitXml::emitxml();
-        cout << "--debug-exit-uvm: Exiting after UVM-supported pass\n";
+        cout << "--debug-exit-uvm23: Exiting after UVM-supported pass\n";
         std::exit(0);
     }
 
@@ -170,6 +170,12 @@ static void process() {
             reportStatsIfEnabled();
             return;
         }
+    }
+    if (v3Global.opt.debugExitUvm()) {
+        V3Error::abortIfErrors();
+        if (v3Global.opt.xmlOnly()) V3EmitXml::emitxml();
+        cout << "--debug-exit-uvm: Exiting after UVM-supported pass\n";
+        std::exit(0);
     }
 
     // Calculate and check widths, edit tree to TRUNC/EXTRACT any width mismatches

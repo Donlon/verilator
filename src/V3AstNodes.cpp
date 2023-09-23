@@ -51,6 +51,7 @@ AstIface* AstIfaceRefDType::ifaceViaCellp() const {
 const char* AstNodeFTaskRef::broken() const {
     BROKEN_RTN(m_taskp && !m_taskp->brokeExists());
     BROKEN_RTN(m_classOrPackagep && !m_classOrPackagep->brokeExists());
+    BROKEN_RTN(m_purity.isCached() && m_purity.isPure() != getPurity());
     return nullptr;
 }
 
@@ -61,12 +62,34 @@ void AstNodeFTaskRef::cloneRelink() {
     }
 }
 
-bool AstNodeFTaskRef::isPure() const {
-    // TODO: For non-DPI functions we could traverse the AST of function's body to determine
-    // pureness.
-    return this->taskp() && this->taskp()->dpiImport() && this->taskp()->pure();
+bool AstNodeFTaskRef::isPure() {
+    if (!this->taskp()) {
+        // The task isn't linked yet, so it's assumed that it is impure, but the value shouldn't be
+        // cached.
+        return false;
+    } else {
+        if (!m_purity.isCached()) m_purity.setPurity(this->getPurity());
+        return m_purity.isPure();
+    }
 }
 
+void AstNodeFTaskRef::clearCachedPurity() {
+    m_purity.clearCache();
+    if (AstNodeExpr* const exprp = VN_CAST(backp(), NodeExpr)) exprp->clearCachedPurity();
+}
+
+bool AstNodeFTaskRef::getPurity() const {
+    AstNodeFTask* const taskp = this->taskp();
+    // Unlinked yet, so treat as impure
+    if (!taskp) return false;
+
+    // First compute the purity of arguments
+    for (AstNode* pinp = this->pinsp(); pinp; pinp = pinp->nextp()) {
+        if (!pinp->isPure()) return false;
+    }
+
+    return taskp->isPure();
+}
 bool AstNodeFTaskRef::isGateOptimizable() const { return m_taskp && m_taskp->isGateOptimizable(); }
 
 const char* AstNodeVarRef::broken() const {
@@ -82,12 +105,6 @@ void AstNodeVarRef::cloneRelink() {
     if (m_classOrPackagep && m_classOrPackagep->clonep()) {
         m_classOrPackagep = m_classOrPackagep->clonep();
     }
-}
-
-string AstNodeVarRef::selfPointerProtect(bool useSelfForThis) const {
-    const string& sp
-        = useSelfForThis ? VString::replaceWord(selfPointer(), "this", "vlSelf") : selfPointer();
-    return VIdProtect::protectWordsIf(sp, protect());
 }
 
 void AstAddrOfCFunc::cloneRelink() {
@@ -127,12 +144,70 @@ const char* AstNodeCCall::broken() const {
     BROKEN_RTN(m_funcp && !m_funcp->brokeExists());
     return nullptr;
 }
-bool AstNodeCCall::isPure() const { return funcp()->pure(); }
+bool AstNodeCCall::isPure() { return funcp()->dpiPure(); }
+bool AstNodeUniop::isPure() {
+    if (!m_purity.isCached()) m_purity.setPurity(lhsp()->isPure());
+    return m_purity.isPure();
+}
+const char* AstNodeUniop::broken() const {
+    BROKEN_RTN(m_purity.isCached() && m_purity.isPure() != lhsp()->isPure());
+    return nullptr;
+}
+void AstNodeUniop::clearCachedPurity() {
+    m_purity.clearCache();
+    if (AstNodeExpr* const exprp = VN_CAST(backp(), NodeExpr)) exprp->clearCachedPurity();
+}
 
-string AstCCall::selfPointerProtect(bool useSelfForThis) const {
-    const string& sp
-        = useSelfForThis ? VString::replaceWord(selfPointer(), "this", "vlSelf") : selfPointer();
-    return VIdProtect::protectWordsIf(sp, protect());
+bool AstNodeBiop::isPure() {
+    if (!m_purity.isCached()) m_purity.setPurity(getPurity());
+    return m_purity.isPure();
+}
+const char* AstNodeBiop::broken() const {
+    BROKEN_RTN(m_purity.isCached() && m_purity.isPure() != getPurity());
+    return nullptr;
+}
+void AstNodeBiop::clearCachedPurity() {
+    m_purity.clearCache();
+    if (AstNodeExpr* const exprp = VN_CAST(backp(), NodeExpr)) exprp->clearCachedPurity();
+}
+
+bool AstNodeTriop::isPure() {
+    if (!m_purity.isCached()) m_purity.setPurity(getPurity());
+    return m_purity.isPure();
+}
+const char* AstNodeTriop::broken() const {
+    BROKEN_RTN(m_purity.isCached() && m_purity.isPure() != getPurity());
+    return nullptr;
+}
+void AstNodeTriop::clearCachedPurity() {
+    m_purity.clearCache();
+    if (AstNodeExpr* const exprp = VN_CAST(backp(), NodeExpr)) exprp->clearCachedPurity();
+}
+
+bool AstNodePreSel::isPure() {
+    if (!m_purity.isCached()) m_purity.setPurity(getPurity());
+    return m_purity.isPure();
+}
+const char* AstNodePreSel::broken() const {
+    BROKEN_RTN(m_purity.isCached() && m_purity.isPure() != getPurity());
+    return nullptr;
+}
+void AstNodePreSel::clearCachedPurity() {
+    m_purity.clearCache();
+    if (AstNodeExpr* const exprp = VN_CAST(backp(), NodeExpr)) exprp->clearCachedPurity();
+}
+
+bool AstNodeQuadop::isPure() {
+    if (!m_purity.isCached()) m_purity.setPurity(getPurity());
+    return m_purity.isPure();
+}
+const char* AstNodeQuadop::broken() const {
+    BROKEN_RTN(m_purity.isCached() && m_purity.isPure() != getPurity());
+    return nullptr;
+}
+void AstNodeQuadop::clearCachedPurity() {
+    m_purity.clearCache();
+    if (AstNodeExpr* const exprp = VN_CAST(backp(), NodeExpr)) exprp->clearCachedPurity();
 }
 
 AstNodeCond::AstNodeCond(VNType t, FileLine* fl, AstNodeExpr* condp, AstNodeExpr* thenp,
@@ -291,8 +366,8 @@ AstExecGraph::~AstExecGraph() { VL_DO_DANGLING(delete m_depGraphp, m_depGraphp);
 
 AstNodeExpr* AstInsideRange::newAndFromInside(AstNodeExpr* exprp, AstNodeExpr* lhsp,
                                               AstNodeExpr* rhsp) {
-    AstNodeExpr* const ap = new AstGte{fileline(), exprp->cloneTree(true), lhsp};
-    AstNodeExpr* const bp = new AstLte{fileline(), exprp->cloneTree(true), rhsp};
+    AstNodeExpr* const ap = new AstGte{fileline(), exprp->cloneTreePure(true), lhsp};
+    AstNodeExpr* const bp = new AstLte{fileline(), exprp->cloneTreePure(true), rhsp};
     ap->fileline()->modifyWarnOff(V3ErrorCode::UNSIGNED, true);
     bp->fileline()->modifyWarnOff(V3ErrorCode::CMPCONST, true);
     return new AstAnd{fileline(), ap, bp};
@@ -400,7 +475,8 @@ string AstVar::vlArgType(bool named, bool forReturn, bool forFunc, const string&
     if (isStatic() && namespc.empty()) ostatic = "static ";
 
     const bool isRef = isDpiOpenArray()
-                       || (forFunc && (isWritable() || direction().isRefOrConstRef())) || asRef;
+                       || (forFunc && (isWritable() || this->isRef() || this->isConstRef()))
+                       || asRef;
 
     if (forFunc && isReadOnly() && isRef) ostatic = ostatic + "const ";
 
@@ -514,7 +590,7 @@ string AstVar::cPubArgType(bool named, bool forReturn) const {
     if (forReturn) named = false;
     string arg;
     if (isWide() && isReadOnly()) arg += "const ";
-    const bool isRef = !forReturn && (isWritable() || direction().isRefOrConstRef());
+    const bool isRef = !forReturn && (isWritable() || this->isRef() || this->isConstRef());
     if (VN_IS(dtypeSkipRefp(), BasicDType) && !dtypeSkipRefp()->isDouble()
         && !dtypeSkipRefp()->isString()) {
         // Backward compatible type declaration
@@ -724,6 +800,8 @@ AstNodeDType::CTypeRecursed AstNodeDType::cTypeRecurse(bool compound) const {
         const CTypeRecursed key = adtypep->keyDTypep()->cTypeRecurse(true);
         const CTypeRecursed val = adtypep->subDTypep()->cTypeRecurse(true);
         info.m_type = "VlAssocArray<" + key.m_type + ", " + val.m_type + ">";
+    } else if (const auto* const adtypep = VN_CAST(dtypep, CDType)) {
+        info.m_type = adtypep->name();
     } else if (const auto* const adtypep = VN_CAST(dtypep, WildcardArrayDType)) {
         const CTypeRecursed sub = adtypep->subDTypep()->cTypeRecurse(true);
         info.m_type = "VlAssocArray<std::string, " + sub.m_type + ">";
@@ -1634,10 +1712,6 @@ void AstJumpLabel::dump(std::ostream& str) const {
         str << "%Error:UNLINKED";
     }
 }
-void AstLogOr::dump(std::ostream& str) const {
-    this->AstNodeExpr::dump(str);
-    if (sideEffect()) str << " [SIDE]";
-}
 
 void AstMemberDType::dumpSmall(std::ostream& str) const {
     this->AstNodeDType::dumpSmall(str);
@@ -2116,8 +2190,14 @@ void AstVar::dump(std::ostream& str) const {
     if (isPulldown()) str << " [PULLDOWN]";
     if (isUsedClock()) str << " [CLK]";
     if (isSigPublic()) str << " [P]";
+    if (isInternal()) str << " [INTERNAL]";
     if (isLatched()) str << " [LATCHED]";
     if (isUsedLoopIdx()) str << " [LOOP]";
+    if (isRandC()) {
+        str << " [RANDC]";
+    } else if (isRand()) {
+        str << " [RAND]";
+    }
     if (noReset()) str << " [!RST]";
     if (attrIsolateAssign()) str << " [aISO]";
     if (attrFileDescr()) str << " [aFD]";
@@ -2230,6 +2310,31 @@ void AstNodeFTask::dump(std::ostream& str) const {
     if (taskPublic()) str << " [PUBLIC]";
     if ((dpiImport() || dpiExport()) && cname() != name()) str << " [c=" << cname() << "]";
 }
+bool AstNodeFTask::isPure() {
+    if (!m_purity.isCached()) m_purity.setPurity(getPurity());
+    return m_purity.isPure();
+}
+const char* AstNodeFTask::broken() const {
+    BROKEN_RTN(m_purity.isCached() && m_purity.isPure() != getPurity());
+    return nullptr;
+}
+bool AstNodeFTask::getPurity() const {
+    if (this->dpiImport()) return this->dpiPure();
+    // Check the list of statements if it contains any impure statement
+    // or any write reference to a variable that isn't an automatic function local.
+    for (AstNode* stmtp = this->stmtsp(); stmtp; stmtp = stmtp->nextp()) {
+        if (const AstVar* const varp = VN_CAST(stmtp, Var)) {
+            if (varp->isInoutish() || varp->isRef()) return false;
+        }
+        if (!stmtp->isPure()) return false;
+        if (stmtp->exists([](const AstNodeVarRef* const varrefp) {
+                return (!varrefp->varp()->isFuncLocal() || varrefp->varp()->lifetime().isStatic())
+                       && varrefp->access().isWriteOrRW();
+            }))
+            return false;
+    }
+    return true;
+}
 void AstNodeBlock::dump(std::ostream& str) const {
     this->AstNode::dump(str);
     if (unnamed()) str << " [UNNAMED]";
@@ -2299,7 +2404,7 @@ void AstCFile::dump(std::ostream& str) const {
 void AstCFunc::dump(std::ostream& str) const {
     this->AstNode::dump(str);
     if (slow()) str << " [SLOW]";
-    if (pure()) str << " [PURE]";
+    if (dpiPure()) str << " [DPIPURE]";
     if (isStatic()) str << " [STATIC]";
     if (dpiExportDispatcher()) str << " [DPIED]";
     if (dpiExportImpl()) str << " [DPIEI]";
@@ -2329,7 +2434,7 @@ void AstCAwait::dump(std::ostream& str) const {
 int AstCMethodHard::instrCount() const {
     if (AstBasicDType* const basicp = fromp()->dtypep()->basicp()) {
         // TODO: add a more structured description of library methods, rather than using string
-        //       matching. See #3715.
+        //       matching. See issue #3715.
         if (basicp->isTriggerVec() && m_name == "word") {
             // This is an important special case for scheduling so we compute it precisely,
             // it is simply a load.
@@ -2337,6 +2442,74 @@ int AstCMethodHard::instrCount() const {
         }
     }
     return 0;
+}
+void AstCMethodHard::setPurity() {
+    static const std::map<std::string, bool> isPureMethod{{"andNot", false},
+                                                          {"any", true},
+                                                          {"assign", false},
+                                                          {"at", true},
+                                                          {"atBack", true},
+                                                          {"awaitingCurrentTime", true},
+                                                          {"clear", false},
+                                                          {"clearFired", false},
+                                                          {"commit", false},
+                                                          {"delay", false},
+                                                          {"done", false},
+                                                          {"erase", false},
+                                                          {"evaluate", false},
+                                                          {"evaluation", false},
+                                                          {"exists", true},
+                                                          {"find", true},
+                                                          {"find_first", true},
+                                                          {"find_first_index", true},
+                                                          {"find_index", true},
+                                                          {"find_last", true},
+                                                          {"find_last_index", true},
+                                                          {"fire", false},
+                                                          {"first", false},
+                                                          {"init", false},
+                                                          {"insert", false},
+                                                          {"isFired", true},
+                                                          {"isTriggered", true},
+                                                          {"join", false},
+                                                          {"last", false},
+                                                          {"max", true},
+                                                          {"min", true},
+                                                          {"neq", true},
+                                                          {"next", false},
+                                                          {"pop", false},
+                                                          {"pop_back", false},
+                                                          {"pop_front", false},
+                                                          {"prev", false},
+                                                          {"push", false},
+                                                          {"push_back", false},
+                                                          {"push_front", false},
+                                                          {"r_and", true},
+                                                          {"r_or", true},
+                                                          {"r_product", true},
+                                                          {"r_sum", true},
+                                                          {"r_xor", true},
+                                                          {"renew", false},
+                                                          {"renew_copy", false},
+                                                          {"resume", false},
+                                                          {"reverse", false},
+                                                          {"rsort", false},
+                                                          {"set", false},
+                                                          {"shuffle", false},
+                                                          {"size", true},
+                                                          {"slice", true},
+                                                          {"sliceBackBack", true},
+                                                          {"sliceFrontBack", true},
+                                                          {"sort", false},
+                                                          {"thisOr", false},
+                                                          {"trigger", false},
+                                                          {"unique", true},
+                                                          {"unique_index", true},
+                                                          {"word", true}};
+
+    auto isPureIt = isPureMethod.find(name());
+    UASSERT_OBJ(isPureIt != isPureMethod.end(), this, "Unknown purity of method " + name());
+    m_pure = isPureIt->second;
 }
 const char* AstCFunc::broken() const {
     BROKEN_RTN((m_scopep && !m_scopep->brokeExists()));

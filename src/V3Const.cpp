@@ -1225,13 +1225,13 @@ private:
     bool operandHugeShiftL(const AstNodeBiop* nodep) {
         return (VN_IS(nodep->rhsp(), Const) && !VN_AS(nodep->rhsp(), Const)->num().isFourState()
                 && (VN_AS(nodep->rhsp(), Const)->toUInt() >= static_cast<uint32_t>(nodep->width()))
-                && isTPure(nodep->lhsp()));
+                && nodep->lhsp()->isPure());
     }
     bool operandHugeShiftR(const AstNodeBiop* nodep) {
         return (VN_IS(nodep->rhsp(), Const) && !VN_AS(nodep->rhsp(), Const)->num().isFourState()
                 && (VN_AS(nodep->rhsp(), Const)->toUInt()
                     >= static_cast<uint32_t>(nodep->lhsp()->width()))
-                && isTPure(nodep->lhsp()));
+                && nodep->lhsp()->isPure());
     }
     bool operandIsTwo(const AstNode* nodep) {
         return (VN_IS(nodep, Const) && !VN_AS(nodep, Const)->num().isFourState()
@@ -1385,14 +1385,6 @@ private:
         return nodep;
     }
 
-    bool isTPure(AstNode* nodep) {
-        // Pure checks - if this node and all nodes under it are free of
-        // side effects can do this optimization
-        // Eventually we'll recurse through tree when unknown, memoizing results so far,
-        // but for now can disable en masse until V3Purify takes effect.
-        return m_doShort || VN_IS(nodep, VarRef) || VN_IS(nodep, Const);
-    }
-
     // Extraction checks
     bool warnSelect(AstSel* nodep) {
         if (m_doGenerate) {
@@ -1502,13 +1494,13 @@ private:
         const AstSel* rselp = VN_CAST(rhsp, Sel);
         // a[i:0] a
         if (lselp && !rselp && rhsp->sameGateTree(lselp->fromp()))
-            rselp = new AstSel{rhsp->fileline(), rhsp->cloneTree(false), 0, rhsp->width()};
+            rselp = new AstSel{rhsp->fileline(), rhsp->cloneTreePure(false), 0, rhsp->width()};
         // a[i:j] {a[j-1:k], b}
         if (lselp && !rselp && VN_IS(rhsp, Concat))
             return ifMergeAdjacent(lhsp, VN_CAST(rhsp, Concat)->lhsp());
         // a a[msb:j]
         if (rselp && !lselp && lhsp->sameGateTree(rselp->fromp()))
-            lselp = new AstSel{lhsp->fileline(), lhsp->cloneTree(false), 0, lhsp->width()};
+            lselp = new AstSel{lhsp->fileline(), lhsp->cloneTreePure(false), 0, lhsp->width()};
         // {b, a[j:k]} a[k-1:i]
         if (rselp && !lselp && VN_IS(lhsp, Concat))
             return ifMergeAdjacent(VN_CAST(lhsp, Concat)->rhsp(), rhsp);
@@ -1595,7 +1587,7 @@ private:
         // For example, "0 * n" -> 0 if n has no side effects
         // Else strength reduce it to 0 & n.
         // If ever change the operation note AstAnd rule specially ignores this created pattern
-        if (isTPure(checkp)) {
+        if (checkp->isPure()) {
             VL_DO_DANGLING(replaceNum(nodep, 0), nodep);
         } else {
             AstNode* const newp = new AstAnd{nodep->fileline(), new AstConst{nodep->fileline(), 0},
@@ -1807,7 +1799,7 @@ private:
         UASSERT_OBJ((rstart + rwidth) == lstart, nodep,
                     "tried to merge two selects which are not adjacent");
         AstSel* const newselp = new AstSel{
-            lselp->fromp()->fileline(), rselp->fromp()->cloneTree(false), rstart, lwidth + rwidth};
+            lselp->fromp()->fileline(), rselp->fromp()->unlinkFrBack(), rstart, lwidth + rwidth};
         UINFO(5, "merged two adjacent sel " << lselp << " and " << rselp << " to one " << newselp
                                             << endl);
 
@@ -1817,12 +1809,13 @@ private:
         VL_DO_DANGLING(nodep->deleteTree(), nodep);
     }
     void replaceConcatMerge(AstConcat* nodep) {
+        // {llp OP lrp, rlp OP rrp} => {llp, rlp} OP {lrp, rrp}, where OP = AND/OR/XOR
         AstNodeBiop* const lp = VN_AS(nodep->lhsp(), NodeBiop);
         AstNodeBiop* const rp = VN_AS(nodep->rhsp(), NodeBiop);
-        AstNodeExpr* const llp = lp->lhsp()->cloneTree(false);
-        AstNodeExpr* const lrp = lp->rhsp()->cloneTree(false);
-        AstNodeExpr* const rlp = rp->lhsp()->cloneTree(false);
-        AstNodeExpr* const rrp = rp->rhsp()->cloneTree(false);
+        AstNodeExpr* const llp = lp->lhsp()->cloneTreePure(false);
+        AstNodeExpr* const lrp = lp->rhsp()->cloneTreePure(false);
+        AstNodeExpr* const rlp = rp->lhsp()->cloneTreePure(false);
+        AstNodeExpr* const rrp = rp->rhsp()->cloneTreePure(false);
         if (concatMergeable(lp, rp, 0)) {
             AstConcat* const newlp = new AstConcat{rlp->fileline(), llp, rlp};
             AstConcat* const newrp = new AstConcat{rrp->fileline(), lrp, rrp};
@@ -1904,9 +1897,9 @@ private:
         AstNodeExpr* const ap = lhsp->lhsp()->unlinkFrBack();
         AstNodeExpr* const bp = lhsp->rhsp()->unlinkFrBack();
         AstNodeBiop* const shift1p = nodep;
-        AstNodeBiop* const shift2p = nodep->cloneTree(true);
+        AstNodeBiop* const shift2p = nodep->cloneTreePure(true);
         shift1p->lhsp(ap);
-        shift1p->rhsp(shiftp->cloneTree(true));
+        shift1p->rhsp(shiftp->cloneTreePure(true));
         shift2p->lhsp(bp);
         shift2p->rhsp(shiftp);
         AstNodeBiop* const newp = lhsp;
@@ -2060,7 +2053,7 @@ private:
                 VL_DO_DANGLING(nodep->unlinkFrBack()->deleteTree(), nodep);
                 return true;
             }
-        } else if (m_doV && VN_IS(nodep->lhsp(), Concat)) {
+        } else if (m_doV && VN_IS(nodep->lhsp(), Concat) && nodep->isPure()) {
             bool need_temp = false;
             if (m_warn && !VN_IS(nodep, AssignDly)) {  // Is same var on LHS and RHS?
                 // Note only do this (need user4) when m_warn, which is
@@ -2092,7 +2085,7 @@ private:
             AstNodeExpr* const lc2p = VN_AS(nodep->lhsp(), Concat)->rhsp()->unlinkFrBack();
             AstNodeExpr* const conp = VN_AS(nodep->lhsp(), Concat)->unlinkFrBack();
             AstNodeExpr* const rhsp = nodep->rhsp()->unlinkFrBack();
-            AstNodeExpr* const rhs2p = rhsp->cloneTree(false);
+            AstNodeExpr* const rhs2p = rhsp->cloneTreePure(false);
             // Calc widths
             const int lsb2 = 0;
             const int msb2 = lsb2 + lc2p->width() - 1;
@@ -2153,14 +2146,19 @@ private:
             return true;
         } else if (m_doV && VN_IS(nodep->rhsp(), StreamR)) {
             // The right-streaming operator on rhs of assignment does not
-            // change the order of bits. Eliminate stream but keep its lhsp
-            // Unlink the stuff
-            AstNodeExpr* const srcp = VN_AS(nodep->rhsp(), StreamR)->lhsp()->unlinkFrBack();
-            AstNode* const sizep = VN_AS(nodep->rhsp(), StreamR)->rhsp()->unlinkFrBack();
-            AstNodeExpr* const streamp = VN_AS(nodep->rhsp(), StreamR)->unlinkFrBack();
+            // change the order of bits. Eliminate stream but keep its lhsp.
+            // Add a cast if needed.
+            AstStreamR* const streamp = VN_AS(nodep->rhsp(), StreamR)->unlinkFrBack();
+            AstNodeExpr* srcp = streamp->lhsp()->unlinkFrBack();
+            AstNodeDType* const srcDTypep = srcp->dtypep();
+            if (VN_IS(srcDTypep, QueueDType) || VN_IS(srcDTypep, DynArrayDType)) {
+                if (nodep->lhsp()->widthMin() > 64) {
+                    nodep->v3warn(E_UNSUPPORTED, "Unsupported: Assignment of stream of dynamic "
+                                                 "array to a variable of size greater than 64");
+                }
+                srcp = new AstCvtDynArrayToPacked{srcp->fileline(), srcp, srcDTypep};
+            }
             nodep->rhsp(srcp);
-            // Cleanup
-            VL_DO_DANGLING(sizep->deleteTree(), sizep);
             VL_DO_DANGLING(streamp->deleteTree(), streamp);
             // Further reduce, any of the nodes may have more reductions.
             return true;
@@ -2193,7 +2191,6 @@ private:
             // then we select bits from the left-most, not the right-most.
             AstNodeExpr* const streamp = nodep->lhsp()->unlinkFrBack();
             AstNodeExpr* const dstp = VN_AS(streamp, StreamR)->lhsp()->unlinkFrBack();
-            AstNode* const sizep = VN_AS(streamp, StreamR)->rhsp()->unlinkFrBack();
             AstNodeExpr* srcp = nodep->rhsp()->unlinkFrBack();
             const int sWidth = srcp->width();
             const int dWidth = dstp->width();
@@ -2204,11 +2201,23 @@ private:
             }
             nodep->lhsp(dstp);
             nodep->rhsp(srcp);
-            // Cleanup
-            VL_DO_DANGLING(sizep->deleteTree(), sizep);
             VL_DO_DANGLING(streamp->deleteTree(), streamp);
             // Further reduce, any of the nodes may have more reductions.
             return true;
+        } else if (m_doV && VN_IS(nodep->rhsp(), StreamL)) {
+            AstNodeDType* const lhsDtypep = nodep->lhsp()->dtypep();
+            AstStreamL* streamp = VN_AS(nodep->rhsp(), StreamL);
+            AstNodeExpr* const srcp = streamp->lhsp();
+            const AstNodeDType* const srcDTypep = srcp->dtypep();
+            if (VN_IS(srcDTypep, QueueDType) || VN_IS(srcDTypep, DynArrayDType)) {
+                if (lhsDtypep->widthMin() > 64) {
+                    nodep->v3warn(E_UNSUPPORTED, "Unsupported: Assignment of stream of dynamic "
+                                                 "array to a variable of size greater than 64");
+                }
+                srcp->unlinkFrBack();
+                streamp->lhsp(new AstCvtDynArrayToPacked{srcp->fileline(), srcp, lhsDtypep});
+                streamp->dtypeFrom(lhsDtypep);
+            }
         } else if (m_doV && replaceAssignMultiSel(nodep)) {
             return true;
         }
@@ -2421,8 +2430,8 @@ private:
             nodep->fileline(),
             new AstLogOr{nodep->fileline(), new AstLogNot{nodep->fileline(), lhsp}, rhsp},
             new AstLogOr{nodep->fileline(),
-                         new AstLogNot{nodep->fileline(), rhsp->cloneTree(false)},
-                         lhsp->cloneTree(false)}};
+                         new AstLogNot{nodep->fileline(), rhsp->cloneTreePure(false)},
+                         lhsp->cloneTreePure(false)}};
         newp->dtypeFrom(nodep);
         nodep->replaceWith(newp);
         VL_DO_DANGLING(nodep->deleteTree(), nodep);
@@ -2579,8 +2588,8 @@ private:
         AstNodeExpr* const bilhsp = fromp->lhsp()->unlinkFrBack();
         AstNodeExpr* const birhsp = fromp->rhsp()->unlinkFrBack();
         //
-        fromp->lhsp(
-            new AstSel{nodep->fileline(), bilhsp, lsbp->cloneTree(true), widthp->cloneTree(true)});
+        fromp->lhsp(new AstSel{nodep->fileline(), bilhsp, lsbp->cloneTreePure(true),
+                               widthp->cloneTreePure(true)});
         fromp->rhsp(new AstSel{nodep->fileline(), birhsp, lsbp, widthp});
         fromp->dtypeFrom(nodep);
         nodep->replaceWith(fromp);
@@ -3005,7 +3014,7 @@ private:
                 }
                 VL_DO_DANGLING(nodep->deleteTree(), nodep);
             } else if (!afterComment(nodep->thensp()) && !afterComment(nodep->elsesp())) {
-                if (!nodep->condp()->isTreePureRecurse()) {
+                if (!nodep->condp()->isPure()) {
                     // Condition has side effect - leave - perhaps in
                     // future simplify to remove all but side effect terms
                 } else {
@@ -3195,8 +3204,17 @@ private:
         iterateChildren(nodep);
     }
 
-    void visit(AstFuncRef* nodep) override {
+    void visit(AstNodeCCall* nodep) override {
         iterateChildren(nodep);
+        m_hasJumpDelay = true;  // As don't analyze inside tasks for timing controls
+    }
+    void visit(AstNodeFTaskRef* nodep) override {
+        // Note excludes AstFuncRef as other visitor below
+        iterateChildren(nodep);
+        m_hasJumpDelay = true;  // As don't analyze inside tasks for timing controls
+    }
+    void visit(AstFuncRef* nodep) override {
+        visit(static_cast<AstNodeFTaskRef*>(nodep));
         if (m_params) {  // Only parameters force us to do constant function call propagation
             replaceWithSimulation(nodep);
         }
@@ -3356,7 +3374,7 @@ private:
     TREEOPA("AstNodeQuadop{$lhsp.castConst, $rhsp.castConst, $thsp.castConst, $fhsp.castConst}",  "replaceConst(nodep)");
     // Zero on one side or the other
     TREEOP ("AstAdd   {$lhsp.isZero, $rhsp}",   "replaceWRhs(nodep)");
-    TREEOP ("AstAnd   {$lhsp.isZero, $rhsp, isTPure($rhsp)}",   "replaceZero(nodep)");  // Can't use replaceZeroChkPure as we make this pattern in ChkPure
+    TREEOP ("AstAnd   {$lhsp.isZero, $rhsp, $rhsp.isPure}",   "replaceZero(nodep)");  // Can't use replaceZeroChkPure as we make this pattern in ChkPure
     // This visit function here must allow for short-circuiting.
     TREEOPS("AstLogAnd   {$lhsp.isZero}",       "replaceZero(nodep)");
     TREEOP ("AstLogAnd{$lhsp.isZero, $rhsp}",   "replaceZero(nodep)");
@@ -3396,12 +3414,12 @@ private:
     // Non-zero on one side or the other
     TREEOP ("AstAnd   {$lhsp.isAllOnes, $rhsp}",        "replaceWRhs(nodep)");
     TREEOP ("AstLogAnd{$lhsp.isNeqZero, $rhsp}",        "replaceWRhsBool(nodep)");
-    TREEOP ("AstOr    {$lhsp.isAllOnes, $rhsp, isTPure($rhsp)}",        "replaceWLhs(nodep)");  // ->allOnes
+    TREEOP ("AstOr    {$lhsp.isAllOnes, $rhsp, $rhsp.isPure}",        "replaceWLhs(nodep)");  // ->allOnes
     TREEOP ("AstLogOr {$lhsp.isNeqZero, $rhsp}",        "replaceNum(nodep,1)");
     TREEOP ("AstAnd   {$lhsp, $rhsp.isAllOnes}",        "replaceWLhs(nodep)");
     TREEOP ("AstLogAnd{$lhsp, $rhsp.isNeqZero}",        "replaceWLhsBool(nodep)");
-    TREEOP ("AstOr    {$lhsp, $rhsp.isAllOnes, isTPure($lhsp)}",        "replaceWRhs(nodep)");  // ->allOnes
-    TREEOP ("AstLogOr {$lhsp, $rhsp.isNeqZero, isTPure($lhsp), nodep->isPure()}",        "replaceNum(nodep,1)");
+    TREEOP ("AstOr    {$lhsp, $rhsp.isAllOnes, $lhsp.isPure}",        "replaceWRhs(nodep)");  // ->allOnes
+    TREEOP ("AstLogOr {$lhsp, $rhsp.isNeqZero, $lhsp.isPure, nodep->isPure()}",        "replaceNum(nodep,1)");
     TREEOP ("AstXor   {$lhsp.isAllOnes, $rhsp}",        "AstNot{$rhsp}");
     TREEOP ("AstMul   {$lhsp.isOne, $rhsp}",    "replaceWRhs(nodep)");
     TREEOP ("AstMulS  {$lhsp.isOne, $rhsp}",    "replaceWRhs(nodep)");
@@ -3573,9 +3591,9 @@ private:
     TREEOPV("AstOneHot{$lhsp.width1}",          "replaceWLhs(nodep)");
     TREEOPV("AstOneHot0{$lhsp.width1}",         "replaceNum(nodep,1)");
     // Binary AND/OR is faster than logical and/or (usually)
-    TREEOPV("AstLogAnd{$lhsp.width1, $rhsp.width1, isTPure($lhsp), isTPure($rhsp)}", "AstAnd{$lhsp,$rhsp}");
-    TREEOPV("AstLogOr {$lhsp.width1, $rhsp.width1, nodep->isPure(), isTPure($lhsp), isTPure($rhsp)}", "AstOr{$lhsp,$rhsp}");
-    TREEOPV("AstLogNot{$lhsp.width1, isTPure($lhsp)}",  "AstNot{$lhsp}");
+    TREEOPV("AstLogAnd{$lhsp.width1, $rhsp.width1, nodep->isPure()}", "AstAnd{$lhsp,$rhsp}");
+    TREEOPV("AstLogOr {$lhsp.width1, $rhsp.width1, nodep->isPure()}", "AstOr{$lhsp,$rhsp}");
+    TREEOPV("AstLogNot{$lhsp.width1}",  "AstNot{$lhsp}");
     // CONCAT(CONCAT({a},{b}),{c}) -> CONCAT({a},CONCAT({b},{c}))
     // CONCAT({const},CONCAT({const},{c})) -> CONCAT((constifiedCONC{const|const},{c}))
     TREEOPV("AstConcat{matchConcatRand(nodep)}",      "DONE");

@@ -214,7 +214,7 @@ private:
         }
         iterateAndNextNull(nodep->rhsp());
         {
-            VL_RESTORER(m_assignLhs);
+            // VL_RESTORER(m_assignLhs);  // Not needed; part of RESTORER_START_STATEMENT()
             m_assignLhs = true;
             iterateAndNextNull(nodep->lhsp());
         }
@@ -257,7 +257,7 @@ private:
                     // Create equivalent of VL_SIGNONES_(node_width)
                     constzerop = new AstNegate{
                         nodep->fileline(),
-                        new AstShiftR{nodep->fileline(), nodep->lhsp()->cloneTree(false),
+                        new AstShiftR{nodep->fileline(), nodep->lhsp()->cloneTreePure(false),
                                       new AstConst(nodep->fileline(), m1value), nodep->width()}};
                 } else {
                     constzerop = new AstConst{nodep->fileline(), AstConst::WidthedValue{},
@@ -269,10 +269,10 @@ private:
                     = new AstConst(nodep->fileline(), AstConst::WidthedValue{},
                                    nodep->rhsp()->widthMin(), m1value);
                 constwidthp->dtypeFrom(nodep->rhsp());  // unsigned
-                AstCond* const newp = new AstCond{
-                    nodep->fileline(),
-                    new AstGte{nodep->fileline(), constwidthp, nodep->rhsp()->cloneTree(false)},
-                    nodep, constzerop};
+                AstCond* const newp = new AstCond{nodep->fileline(),
+                                                  new AstGte{nodep->fileline(), constwidthp,
+                                                             nodep->rhsp()->cloneTreePure(false)},
+                                                  nodep, constzerop};
                 replaceHandle.relink(newp);
             }
         }
@@ -346,6 +346,7 @@ private:
             // We're going to need the expression several times in the expanded code,
             // so might as well make it a common expression
             createDeepTemp(nodep->condp(), false);
+            nodep->clearCachedPurity();
         }
         checkNode(nodep);
     }
@@ -370,7 +371,7 @@ private:
                 UINFO(4, "Autoflush " << nodep << endl);
                 nodep->addNextHere(
                     new AstFFlush{nodep->fileline(),
-                                  nodep->filep() ? nodep->filep()->cloneTree(true) : nullptr});
+                                  nodep->filep() ? nodep->filep()->cloneTreePure(true) : nullptr});
             }
         }
     }

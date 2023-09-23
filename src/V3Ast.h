@@ -167,6 +167,21 @@ inline std::ostream& operator<<(std::ostream& os, const VLifetime& rhs) {
 
 // ######################################################################
 
+class VPurity final {
+    // Used in some nodes to cache the result of isPure method
+public:
+    enum en : uint8_t { NOT_CACHED, PURE, IMPURE };
+    enum en m_e;
+    VPurity()
+        : m_e{NOT_CACHED} {}
+    bool isCached() const { return m_e != NOT_CACHED; }
+    bool isPure() const { return m_e == PURE; }
+    void setPurity(bool pure) { m_e = pure ? PURE : IMPURE; }
+    void clearCache() { m_e = NOT_CACHED; }
+};
+
+// ######################################################################
+
 class VAccess final {
 public:
     enum en : uint8_t {
@@ -690,7 +705,8 @@ public:
     }
     bool isReadOnly() const VL_MT_SAFE { return m_e == INPUT || m_e == CONSTREF; }
     bool isWritable() const VL_MT_SAFE { return m_e == OUTPUT || m_e == INOUT || m_e == REF; }
-    bool isRefOrConstRef() const VL_MT_SAFE { return m_e == REF || m_e == CONSTREF; }
+    bool isRef() const VL_MT_SAFE { return m_e == REF; }
+    bool isConstRef() const VL_MT_SAFE { return m_e == CONSTREF; }
 };
 constexpr bool operator==(const VDirection& lhs, const VDirection& rhs) {
     return lhs.m_e == rhs.m_e;
@@ -1183,30 +1199,34 @@ inline std::ostream& operator<<(std::ostream& os, const VNumRange& rhs) {
 class VUseType final {
 public:
     enum en : uint8_t {
-        IMP_INCLUDE,  // Implementation (.cpp) needs an include
-        INT_INCLUDE,  // Interface (.h) needs an include
-        IMP_FWD_CLASS,  // Implementation (.cpp) needs a forward class declaration
-        INT_FWD_CLASS,  // Interface (.h) needs a forward class declaration
+        // Enum values are compared with <, so order matters
+        INT_FWD_CLASS = 1 << 0,  // Interface (.h) needs a forward class declaration
+        INT_INCLUDE = 1 << 1,  // Interface (.h) needs an include
     };
     enum en m_e;
     VUseType()
-        : m_e{IMP_FWD_CLASS} {}
+        : m_e{INT_FWD_CLASS} {}
     // cppcheck-suppress noExplicitConstructor
     constexpr VUseType(en _e)
         : m_e{_e} {}
     explicit VUseType(int _e)
         : m_e(static_cast<en>(_e)) {}  // Need () or GCC 4.8 false warning
-    bool isInclude() const { return m_e == IMP_INCLUDE || m_e == INT_INCLUDE; }
-    bool isFwdClass() const { return m_e == IMP_FWD_CLASS || m_e == INT_FWD_CLASS; }
     constexpr operator en() const { return m_e; }
+    bool containsAny(VUseType other) { return m_e & other.m_e; }
     const char* ascii() const {
-        static const char* const names[] = {"IMP_INC", "INT_INC", "IMP_FWD", "INT_FWD"};
-        return names[m_e];
+        static const char* const names[] = {"INT_FWD", "INT_INC", "INT_FWD_INC"};
+        return names[m_e - 1];
     }
 };
 constexpr bool operator==(const VUseType& lhs, const VUseType& rhs) { return lhs.m_e == rhs.m_e; }
 constexpr bool operator==(const VUseType& lhs, VUseType::en rhs) { return lhs.m_e == rhs; }
 constexpr bool operator==(VUseType::en lhs, const VUseType& rhs) { return lhs == rhs.m_e; }
+constexpr VUseType::en operator|(VUseType::en lhs, VUseType::en rhs) {
+    return VUseType::en((uint8_t)lhs | (uint8_t)rhs);
+}
+constexpr VUseType::en operator&(VUseType::en lhs, VUseType::en rhs) {
+    return VUseType::en((uint8_t)lhs & (uint8_t)rhs);
+}
 inline std::ostream& operator<<(std::ostream& os, const VUseType& rhs) {
     return os << rhs.ascii();
 }
@@ -1245,6 +1265,44 @@ public:
         , m_numeric{numeric}
         , m_keyword{kwd} {}
     ~VBasicTypeKey() = default;
+};
+
+// ######################################################################
+//  VSelfPointerText - Represents text to be emitted before a given var reference, call, etc. to
+//  serve as a pointer to a 'self' object. For example, it could be empty (no self pointer), or the
+//  string 'this', or 'vlSymsp->...'
+
+class VSelfPointerText final {
+private:
+    // STATIC MEMBERS
+    // Keep these in shared pointers to avoid branching for special cases
+    static const std::shared_ptr<const string> s_emptyp;  // Holds ""
+    static const std::shared_ptr<const string> s_thisp;  // Holds "this"
+
+    // MEMBERS
+    std::shared_ptr<const string> m_strp;
+
+public:
+    // CONSTRUCTORS
+    class Empty {};  // for creator type-overload selection
+    VSelfPointerText(Empty)
+        : m_strp{s_emptyp} {}
+    class This {};  // for creator type-overload selection
+    VSelfPointerText(This)
+        : m_strp{s_thisp} {}
+    VSelfPointerText(This, const string& field)
+        : m_strp{std::make_shared<const string>("this->" + field)} {}
+    class VlSyms {};  // for creator type-overload selection
+    VSelfPointerText(VlSyms, const string& field)
+        : m_strp{std::make_shared<const string>("(&vlSymsp->" + field + ')')} {}
+
+    // METHODS
+    bool isEmpty() const { return m_strp == s_emptyp; }
+    bool isVlSym() const { return m_strp->find("vlSymsp") != string::npos; }
+    bool hasThis() const { return m_strp == s_thisp || VString::startsWith(*m_strp, "this"); }
+    string protect(bool useSelfForThis, bool protect) const;
+    const std::string& asString() const { return *m_strp; }
+    bool operator==(const VSelfPointerText& other) const { return *m_strp == *other.m_strp; }
 };
 
 //######################################################################
@@ -1688,7 +1746,6 @@ public:
     AstNode* nextp() const VL_MT_STABLE { return m_nextp; }
     AstNode* backp() const VL_MT_STABLE { return m_backp; }
     AstNode* abovep() const;  // Get parent node above, only for list head and tail
-    AstNode* abovepIter() const;  // Get parent node above iteratively, could be slow
     AstNode* op1p() const VL_MT_STABLE { return m_op1p; }
     AstNode* op2p() const VL_MT_STABLE { return m_op2p; }
     AstNode* op3p() const VL_MT_STABLE { return m_op3p; }
@@ -1984,7 +2041,8 @@ public:
                              AstNode* belowp);  // When calling, "this" is second argument
 
     // METHODS - Iterate on a tree
-    AstNode* cloneTree(bool cloneNextLink);  // Not const, as sets clonep() on original nodep
+    AstNode* cloneTree(bool cloneNextLink);  // Not const, as sets clonep() on original nodep //
+    AstNode* cloneTreePure(bool cloneNextLink) { return cloneTree(cloneNextLink); }
     bool gateTree() { return gateTreeIter(); }  // Is tree isGateOptimizable?
     inline bool sameTree(const AstNode* node2p) const;  // Does tree of this == node2p?
     // Does tree of this == node2p?, not allowing non-isGateOptimizable
@@ -2009,8 +2067,6 @@ public:
     void dumpTreeDot(std::ostream& os = std::cout) const;
     void dumpTreeDotFile(const string& filename, bool append = false, bool doDump = true);
 
-    bool isTreePureRecurse() const;
-
     // METHODS - queries
     // Changes control flow, disable some optimizations
     virtual bool isBrancher() const { return false; }
@@ -2019,11 +2075,11 @@ public:
     // GateDedupable is a slightly larger superset of GateOptimzable (eg, AstNodeIf)
     virtual bool isGateDedupable() const { return isGateOptimizable(); }
     // Else creates output or exits, etc, not unconsumed
-    virtual bool isOutputter() const { return false; }
+    virtual bool isOutputter() { return false; }
     // Else a AstTime etc which output can't be predicted from input
     virtual bool isPredictOptimizable() const { return !isTimingControl(); }
     // Else a $display, etc, that must be ordered with other displays
-    virtual bool isPure() const { return true; }
+    virtual bool isPure() { return true; }
     // Else a AstTime etc that can't be substituted out
     virtual bool isSubstOptimizable() const { return true; }
     // An event control, delay, wait, etc.
