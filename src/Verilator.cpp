@@ -594,6 +594,7 @@ static void process() {
 
 static void verilate(const string& argString) {
     UINFO(1, "Option --verilate: Start Verilation\n");
+    V3Global::dumpCheckGlobalTree("initial", 0, dumpTreeLevel() >= 6);
 
     // Can we skip doing everything if times are ok?
     V3File::addSrcDepend(v3Global.opt.buildDepBin());
