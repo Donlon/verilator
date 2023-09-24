@@ -586,9 +586,7 @@ int V3ParseImp::tokenPipelineSym(int idToken) {
                 VL_RESTORER(yylval);  // Remember value, as about to read ahead
                 const int nexttok = tokenPeekp(0)->token;
                 size_t depth = 0;
-                if (nexttok == '#') {
-                    depth += tokenPipeScanParenBracket(1);
-                }  // skip #()
+                if (nexttok == '#') { depth += tokenPipeScanParenBracket(1); }  // skip #()
                 size_t newDepth;
                 do {  // skip packed dimensions (yaID [..][..])
                     newDepth = tokenPipeScanParenBracket(depth, false);
