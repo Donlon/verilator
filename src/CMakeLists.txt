@@ -489,13 +489,18 @@ target_include_directories(${verilator}
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-if (WIN32)
-    target_compile_options(${verilator} PRIVATE /bigobj)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "CLANG")
+    target_compile_options(${verilator} PRIVATE -fdata-sections -ffunction-sections)
+    target_link_options(${verilator} PRIVATE -Xlinker -gc-sections)
+elseif (MSVC)
+    # target_compile_options(${verilator} PRIVATE /Gy)  # Enable Function-Level Linking
+    target_compile_options(${verilator} PRIVATE /bigobj)  # Allow big obj file
     target_compile_definitions(${verilator} PRIVATE
-        YY_NO_UNISTD_H
+            YY_NO_UNISTD_H
     )
     target_link_libraries(${verilator} PRIVATE bcrypt psapi)
+    # target_link_options(${verilator} PRIVATE /OPT:REF)  # Eliminates functions and/or data that are never referenced
     target_link_options(${verilator} PRIVATE /STACK:10000000)
-endif()
+endif ()
 
 install(TARGETS ${verilator})
