@@ -149,6 +149,7 @@ class V3ParseImp final {
     int m_lexPrevToken = 0;  // previous parsed token (for lexer)
     bool m_afterColonColon = false;  // The previous token was '::'
     std::deque<V3ParseBisonYYSType> m_tokensAhead;  // Tokens we parsed ahead of parser
+    ssize_t m_maxLookaheadDepth = -1;  // Max depth peeked in the token pipeline, for debug only
 
     std::deque<string*> m_stringps;  // Created strings for later cleanup
     std::deque<V3Number*> m_numberps;  // Created numbers for later cleanup
@@ -299,9 +300,8 @@ private:
     void yylexReadTok();
     void tokenPull();
     void tokenPipeline();  // Internal; called from tokenToBison
-    void tokenPipelineSym();
-    size_t tokenPipeScanParam(size_t depth);
-    size_t tokenPipeScanType(size_t depth);
+    int tokenPipelineSym(int idToken);
+    size_t tokenPipeScanParenBracket(size_t depth, bool scanParen = true);
     const V3ParseBisonYYSType* tokenPeekp(size_t depth);
     void preprocDumps(std::ostream& os, bool forInputs);
 };

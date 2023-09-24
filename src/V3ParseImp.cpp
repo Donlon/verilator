@@ -359,6 +359,7 @@ void V3ParseImp::lexFile(const string& modname) {
 
     // Lex it
     if (bisonParse()) v3fatal("Cannot continue\n");
+    UINFO(3, "   bisonParse done. Max lookahead depth: " << m_maxLookaheadDepth << endl);
 }
 
 void V3ParseImp::tokenPull() {
@@ -372,59 +373,35 @@ void V3ParseImp::tokenPull() {
 const V3ParseBisonYYSType* V3ParseImp::tokenPeekp(size_t depth) {
     // Look ahead "depth" number of tokens in the input stream
     // Returns pointer to token, which is no longer valid after changing m_tokensAhead
+#ifdef VL_DEBUG
+    if (static_cast<ssize_t>(depth) > m_maxLookaheadDepth) m_maxLookaheadDepth = depth;
+#endif
     while (m_tokensAhead.size() <= depth) tokenPull();
     return &m_tokensAhead.at(depth);
 }
 
-size_t V3ParseImp::tokenPipeScanParam(size_t depth) {
-    // Search around IEEE parameter_value_assignment to see if :: follows
-    // Return location of following token, or input if not found
-    // yaID [ '#(' ... ')' ]
-    if (tokenPeekp(depth)->token != '#') return depth;
-    if (tokenPeekp(depth + 1)->token != '(') return depth;
-    depth += 2;  // Past the (
-    int parens = 1;  // Count first (
-    while (true) {
-        const int tok = tokenPeekp(depth)->token;
-        if (tok == 0) {
-            UINFO(9, "tokenPipeScanParam hit EOF; probably syntax error to come");
-            break;
-        } else if (tok == '(') {
-            ++parens;
-        } else if (tok == ')') {
-            --parens;
-            if (parens == 0) {
-                ++depth;
-                break;
-            }
-        }
-        ++depth;
-    }
-    return depth;
-}
-
-size_t V3ParseImp::tokenPipeScanType(size_t depth) {
+size_t V3ParseImp::tokenPipeScanParenBracket(size_t depth, bool scanParen) {
     // Search around IEEE type_reference to see if is expression
     // Return location of following token, or input if not found
-    // yTYPE__ETC '(' ... ')'  ['==' '===' '!=' '!===']
-    if (tokenPeekp(depth)->token != '(') return depth;
-    depth += 1;  // Past the (
-    int parens = 1;  // Count first (
+    // yTYPE__ETC '(' ... ')'  ['==' '===' '!=' '!==='] // TODO: doc
+    const int ltoken = scanParen ? '(' : '[';
+    const int rtoken = scanParen ? ')' : ']';
+    if (tokenPeekp(depth)->token != ltoken) return depth;
+    ++depth;  // Past the '(' / '['
+    int parens = 1;  // Count first '(' / '['
     while (true) {
         const int tok = tokenPeekp(depth)->token;
         if (tok == 0) {
             UINFO(9, "tokenPipeScanType hit EOF; probably syntax error to come");
             break;
-        } else if (tok == '(') {
-            ++parens;
-        } else if (tok == ')') {
-            --parens;
-            if (parens == 0) {
-                ++depth;
-                break;
-            }
         }
         ++depth;
+        if (tok == ltoken) {
+            ++parens;
+        } else if (tok == rtoken) {
+            --parens;
+            if (parens == 0) break;
+        }
     }
     return depth;
 }
@@ -433,8 +410,10 @@ void V3ParseImp::tokenPipeline() {
     // called from bison's "yylex", has a "this"
     if (m_tokensAhead.empty()) tokenPull();  // corrupts yylval
     yylval = m_tokensAhead.front();
+    // cout << "fetch token  " << yylval << endl;
     m_tokensAhead.pop_front();
     int token = yylval.token;
+    m_afterColonColon = token == yP_COLONCOLON;
     // If a paren, read another
     if (token == '('  //
         || token == ':'  //
@@ -501,7 +480,7 @@ void V3ParseImp::tokenPipeline() {
             }
         } else if (token == yTYPE__LEX) {
             VL_RESTORER(yylval);  // Remember value, as about to read ahead
-            const size_t depth = tokenPipeScanType(0);
+            const size_t depth = tokenPipeScanParenBracket(0);
             const int postToken = tokenPeekp(depth)->token;
             if (  // v-- token                v-- postToken
                   // yTYPE__EQ '(' .... ')' EQ_OPERATOR yTYPE_ETC '(' ... ')'
@@ -538,11 +517,14 @@ void V3ParseImp::tokenPipeline() {
                 token = yaID__CC;
             } else if (nexttok == '#') {
                 VL_RESTORER(yylval);  // Remember value, as about to read ahead
-                const size_t depth = tokenPipeScanParam(0);
+                const size_t depth = tokenPipeScanParenBracket(1);
                 if (tokenPeekp(depth)->token == yP_COLONCOLON) token = yaID__CC;
             }
         }
         // If add to above "else if", also add to "if (token" further above
+    }
+    if (token == yaID__LEX || token == yaID__CC) {
+        token = tokenPipelineSym(token);  // lookup symbol table for yaID* tokens
     }
     yylval.token = token;
     // effectively returns yylval
@@ -554,87 +536,98 @@ bool V3ParseImp::isStrengthToken(int tok) {
            || tok == yHIGHZ0 || tok == yHIGHZ1;
 }
 
-void V3ParseImp::tokenPipelineSym() {
+int V3ParseImp::tokenPipelineSym(int idToken) {
     // If an id, change the type based on symbol table
     // Note above sometimes converts yGLOBAL to a yaID__LEX
-    tokenPipeline();  // sets yylval
-    int token = yylval.token;
-    if (token == yaID__LEX || token == yaID__CC) {
-        const VSymEnt* foundp;
-        if (const VSymEnt* const look_underp = V3ParseImp::parsep()->symp()->nextId()) {
-            UINFO(7, "   tokenPipelineSym: next id lookup forced under " << look_underp << endl);
-            // if (debug() >= 7) V3ParseImp::parsep()->symp()->dumpSelf(cout, " -symtree: ");
-            foundp = look_underp->findIdFlat(*(yylval.strp));
-            // "consume" it.  Must set again if want another token under temp scope
-            V3ParseImp::parsep()->symp()->nextId(nullptr);
-        } else {
-            UINFO(7, "   tokenPipelineSym: find upward "
-                         << V3ParseImp::parsep()->symp()->symCurrentp() << " for '"
-                         << *(yylval.strp) << "'" << endl);
-            // if (debug()>=9) V3ParseImp::parsep()->symp()->symCurrentp()->dumpSelf(cout,
-            // " -findtree: ", true);
-            foundp = V3ParseImp::parsep()->symp()->symCurrentp()->findIdFallback(*(yylval.strp));
+
+    const VSymEnt* foundp;
+    if (const VSymEnt* const look_underp = V3ParseImp::parsep()->symp()->nextId()) {
+        UINFO(7, "   tokenPipelineSym: next id lookup forced under " << look_underp << endl);
+        // if (debug() >= 7) V3ParseImp::parsep()->symp()->dumpSelf(cout, " -symtree: ");
+        foundp = look_underp->findIdFlat(*(yylval.strp));
+        // "consume" it.  Must set again if want another token under temp scope
+        V3ParseImp::parsep()->symp()->nextId(nullptr);
+    } else {
+        UINFO(7, "   tokenPipelineSym: find upward " << V3ParseImp::parsep()->symp()->symCurrentp()
+                                                     << " for '" << *(yylval.strp) << "'" << endl);
+        // if (debug()>=9) V3ParseImp::parsep()->symp()->symCurrentp()->dumpSelf(cout,
+        // " -findtree: ", true);
+        foundp = V3ParseImp::parsep()->symp()->symCurrentp()->findIdFallback(*(yylval.strp));
+    }
+    if (!foundp && !m_afterColonColon) {  // Check if the symbol can be found in std
+        AstPackage* const stdpkgp = v3Global.rootp()->stdPackagep();
+        if (stdpkgp) {
+            VSymEnt* const stdsymp = stdpkgp->user4u().toSymEnt();
+            foundp = stdsymp->findIdFallback(*(yylval.strp));
         }
-        if (!foundp && !m_afterColonColon) {  // Check if the symbol can be found in std
-            AstPackage* const stdpkgp = v3Global.rootp()->stdPackagep();
-            if (stdpkgp) {
-                VSymEnt* const stdsymp = stdpkgp->user4u().toSymEnt();
-                foundp = stdsymp->findIdFallback(*(yylval.strp));
-            }
-            if (foundp && !v3Global.usesStdPackage()) {
-                AstPackageImport* const impp
-                    = new AstPackageImport{stdpkgp->fileline(), stdpkgp, "*"};
-                unitPackage(stdpkgp->fileline())->addStmtsp(impp);
-                v3Global.setUsesStdPackage();
-            }
-        }
-        if (foundp) {
-            AstNode* const scp = foundp->nodep();
-            yylval.scp = scp;
-            UINFO(7, "   tokenPipelineSym: Found " << scp << endl);
-            if (token == yaID__LEX) {  // i.e. not yaID__CC
-                if (VN_IS(scp, Typedef)) {
-                    token = yaID__aTYPE;
-                } else if (VN_IS(scp, TypedefFwd)) {
-                    token = yaID__aTYPE;
-                } else if (VN_IS(scp, Class)) {
-                    token = yaID__aTYPE;
-                } else if (VN_IS(scp, Package)) {
-                    token = yaID__ETC;
-                } else {
-                    token = yaID__ETC;
-                }
-            } else if (!m_afterColonColon && *(yylval.strp) == "std") {
-                v3Global.setUsesStdPackage();
-            }
-        } else {  // Not found
-            yylval.scp = nullptr;
-            if (token == yaID__CC) {
-                if (!v3Global.opt.bboxUnsup()) {
-                    // IEEE does require this, but we may relax this as UVM breaks it, so allow
-                    // bbox for today
-                    // We'll get a parser error eventually but might not be obvious
-                    // is missing package, and this confuses people
-                    static int warned = false;
-                    if (!warned++) {
-                        yylval.fl->v3warn(PKGNODECL, "Package/class '" + *yylval.strp
-                                                         + "' not found, and needs to be "
-                                                           "predeclared (IEEE 1800-2017 26.3)");
-                    }
-                }
-            } else if (token == yaID__LEX) {
-                token = yaID__ETC;
-            }
+        if (foundp && !v3Global.usesStdPackage()) {
+            AstPackageImport* const impp = new AstPackageImport{stdpkgp->fileline(), stdpkgp, "*"};
+            unitPackage(stdpkgp->fileline())->addStmtsp(impp);
+            v3Global.setUsesStdPackage();
         }
     }
-    m_afterColonColon = token == yP_COLONCOLON;
-    yylval.token = token;
+    if (foundp) {
+        AstNode* const scp = foundp->nodep();
+        yylval.scp = scp;
+        UINFO(7, "   tokenPipelineSym: Found " << scp << endl);
+        if (idToken == yaID__LEX) {
+            if (VN_IS(scp, Typedef)) {
+                idToken = yaID__aTYPE__ETC;
+            } else if (VN_IS(scp, TypedefFwd)) {
+                idToken = yaID__aTYPE__ETC;
+            } else if (VN_IS(scp, Class)) {
+                idToken = yaID__aTYPE__ETC;
+            } else if (VN_IS(scp, Package)) {
+                idToken = yaID__ETC;
+            } else {
+                idToken = yaID__ETC;
+            }
+            if (idToken == yaID__aTYPE__ETC) {
+                VL_RESTORER(yylval);  // Remember value, as about to read ahead
+                const int nexttok = tokenPeekp(0)->token;
+                size_t depth = 0;
+                if (nexttok == '#') {
+                    depth += tokenPipeScanParenBracket(1);
+                }  // skip #()
+                size_t newDepth;
+                do {  // skip packed dimensions (yaID [..][..])
+                    newDepth = tokenPipeScanParenBracket(depth, false);
+                    depth = newDepth;
+                } while (newDepth != depth);
+                // v-- token                v-- postToken
+                // yaID__aTYPE '[' .... ']' yaID__LEX
+                const int postToken = tokenPeekp(depth)->token;
+                if (postToken == yaID__LEX) idToken = yaID__aTYPE__ID;
+            }
+        } else if (!m_afterColonColon && *(yylval.strp) == "std") {  // yaID__CC
+            v3Global.setUsesStdPackage();
+        }
+    } else {  // Not found
+        yylval.scp = nullptr;
+        if (idToken == yaID__CC) {
+            if (!v3Global.opt.bboxUnsup()) {
+                // IEEE does require this, but we may relax this as UVM breaks it, so allow
+                // bbox for today
+                // We'll get a parser error eventually but might not be obvious
+                // is missing package, and this confuses people
+                static int warned = false;
+                if (!warned++) {
+                    yylval.fl->v3warn(PKGNODECL, "Package/class '" + *yylval.strp
+                                                     + "' not found, and needs to be "
+                                                       "predeclared (IEEE 1800-2017 26.3)");
+                }
+            }
+        } else if (idToken == yaID__LEX) {
+            idToken = yaID__ETC;
+        }
+    }
+    return idToken;
     // effectively returns yylval
 }
 
 int V3ParseImp::tokenToBison() {
     // Called as global since bison doesn't have our pointer
-    tokenPipelineSym();  // sets yylval
+    tokenPipeline();  // sets yylval
     m_bisonLastFileline = yylval.fl;
 
     // yylval.scp = nullptr;   // Symbol table not yet needed - no packages
@@ -653,7 +646,7 @@ std::ostream& operator<<(std::ostream& os, const V3ParseBisonYYSType& rhs) {
     if (rhs.token == yaID__ETC  //
         || rhs.token == yaID__CC  //
         || rhs.token == yaID__LEX  //
-        || rhs.token == yaID__aTYPE) {
+        || rhs.token == yaID__aTYPE__ETC || rhs.token == yaID__aTYPE__ID) {
         os << " strp='" << *(rhs.strp) << "'";
     }
     return os;

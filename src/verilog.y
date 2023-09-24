@@ -439,7 +439,8 @@ BISONPRE_VERSION(3.7,%define api.header.include {"V3ParseBison.h"})
 %token<strp>            yaID__ETC       "IDENTIFIER"
 %token<strp>            yaID__CC        "IDENTIFIER-::"
 %token<strp>            yaID__LEX       "IDENTIFIER-in-lex"
-%token<strp>            yaID__aTYPE     "TYPE-IDENTIFIER"
+%token<strp>            yaID__aTYPE__ETC "TYPE-AS-IDENTIFIER"
+%token<strp>            yaID__aTYPE__ID "TYPE-IDENTIFIER"
 //                      Can't predecode aFUNCTION, can declare after use
 //                      Can't predecode aINTERFACE, can declare after use
 //                      Can't predecode aTASK, can declare after use
@@ -2242,9 +2243,9 @@ list_of_variable_decl_assignments<varp>:        // ==IEEE: list_of_variable_decl
         ;
 
 variable_decl_assignment<varp>: // ==IEEE: variable_decl_assignment
-                id variable_dimensionListE sigAttrListE
+                idAny variable_dimensionListE sigAttrListE
                         { $$ = VARDONEA($<fl>1, *$1, $2, $3); }
-        |       id variable_dimensionListE sigAttrListE '=' variable_declExpr
+        |       idAny variable_dimensionListE sigAttrListE '=' variable_declExpr
                         { $$ = VARDONEA($<fl>1, *$1, $2, $3); $$->valuep($5); }
         |       idSVKwd                                 { $$ = nullptr; }
         //
@@ -3104,7 +3105,7 @@ packed_dimension<nodeRangep>:   // ==IEEE: packed_dimension
 param_assignment<varp>:         // ==IEEE: param_assignment
         //                      // IEEE: constant_param_expression
         //                      // constant_param_expression: '$' is in expr
-                id/*new-parameter*/ variable_dimensionListE sigAttrListE exprOrDataTypeEqE
+                idAny/*new-parameter*/ variable_dimensionListE sigAttrListE exprOrDataTypeEqE
                         { $$ = VARDONEA($<fl>1, *$1, $2, $3);
                           if ($4) $$->valuep($4); }
         ;
@@ -4603,7 +4604,7 @@ tf_port_itemDir:                // IEEE: part of tf_port_item, direction
         ;
 
 tf_port_itemAssignment<varp>:   // IEEE: part of tf_port_item, which has assignment
-                id variable_dimensionListE sigAttrListE exprEqE
+                idAny variable_dimensionListE sigAttrListE exprEqE
                         { $$ = VARDONEA($<fl>1, *$1, $2, $3); if ($4) $$->valuep($4); }
         ;
 
@@ -5536,15 +5537,14 @@ id<strp>:
         |       idRandomize                             { $$ = $1; $<fl>$ = $<fl>1; }
         ;
 
-idAny<strp>:                    // Any kind of identifier
-                yaID__ETC                               { $$ = $1; $<fl>$ = $<fl>1; }
-        |       yaID__aTYPE                             { $$ = $1; $<fl>$ = $<fl>1; }
-        |       idRandomize                             { $$ = $1; $<fl>$ = $<fl>1; }
-        ;
-
 idType<strp>:                   // IEEE: class_identifier or other type identifier
         //                      // Used where reference is needed
-                yaID__aTYPE                             { $$ = $1; $<fl>$ = $<fl>1; }
+               yaID__aTYPE__ID                          { $$ = $1; $<fl>$ = $<fl>1; }
+        ;
+
+idAny<strp>:                    // Any kind of identifier
+                id                                      { $$ = $1; $<fl>$ = $<fl>1; }
+        |       yaID__aTYPE__ETC                        { $$ = $1; $<fl>$ = $<fl>1; }
         ;
 
 idCC<strp>:                     // IEEE: class/package then ::
@@ -5639,8 +5639,7 @@ idDottedMoreForeach<nodeExprp>:
 // id below includes:
 //       enum_identifier
 idArrayed<nodeExprp>:               // IEEE: id + select
-                id
-                        { $$ = new AstParseRef{$<fl>1, VParseRefExp::PX_TEXT, *$1, nullptr, nullptr}; }
+                idAny                      { $$ = new AstParseRef{$<fl>1, VParseRefExp::PX_TEXT, *$1, nullptr, nullptr}; }
         //                      // IEEE: id + part_select_range/constant_part_select_range
         |       idArrayed '[' expr ']'                          { $$ = new AstSelBit{$2, $1, $3}; }  // Or AstArraySel, don't know yet.
         |       idArrayed '[' constExpr ':' constExpr ']'       { $$ = new AstSelExtract{$2, $1, $3, $5}; }
