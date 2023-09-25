@@ -161,8 +161,8 @@ def _suppress(filename, linenum, eid):
             lineno += 1
             if (lineno + 1) == linenum:
                 match = re.search(
-                        r'(cppcheck|cppcheck-has-bug|cppverilator)-suppress((\s+\S+)+)',
-                        line)
+                    r'(cppcheck|cppcheck-has-bug|cppverilator)-suppress((\s+\S+)+)',
+                    line)
                 if match:
                     for supid in match.group(2).split():
                         if (supid == eid or (eid in SuppressMap
