@@ -330,7 +330,8 @@ class CallAnnotationsValidator:
             for line in file:
                 line = line.strip()
                 match = re.fullmatch(
-                    r"^#\s*(define\s+(\w+)(?:\s+(.*))?|include\s+.*)$", line)
+                        r"^#\s*(define\s+(\w+)(?:\s+(.*))?|include\s+.*)$",
+                        line)
                 if match:
                     if match.group(1).startswith("define"):
                         key = match.group(2)

@@ -300,8 +300,8 @@ def clean_input(filename, outname):
             if _enaline(line) and re.search(r'BISONPRE_VERSION', line):
                 #                       1           2 3            4
                 match = re.search(
-                    r'BISONPRE_VERSION\((\S+)\s*,\s*((\S+)\s*,)?\s*([^\),]+)\)\s*$',
-                    line)
+                        r'BISONPRE_VERSION\((\S+)\s*,\s*((\S+)\s*,)?\s*([^\),]+)\)\s*$',
+                        line)
                 if not match:
                     sys.exit("%Error: " + filename + ":" + str(lineno) +
                              ": Bad form of BISONPRE_VERSION: " + line)
@@ -324,9 +324,9 @@ def clean_input(filename, outname):
             lineno += 1
             if _enaline(line) and re.search(r'BISONPRE_NOT', line):
                 match = re.search(
-                    r'(.*)BISONPRE_NOT\((\S+)\)\s*(\{[^}]+})\s*(.*)$',
-                    line,
-                    flags=re.DOTALL)
+                        r'(.*)BISONPRE_NOT\((\S+)\)\s*(\{[^}]+})\s*(.*)$',
+                        line,
+                        flags=re.DOTALL)
                 if not match:
                     sys.exit("%Error: " + filename + ":" + str(lineno) +
                              ": Bad form of BISONPRE_NOT: " + line)
@@ -413,10 +413,10 @@ def clean_input(filename, outname):
 def _bisonpre_copy(text, lineno, depth):
     while re.search(r'BISONPRE_COPY', text):
         match = re.match(
-            # 1                2         3             4            5
-            r'(.*)BISONPRE_COPY(_ONCE)?\((\S+)\s*,\s*\{([^}]*)}\s*\)(.*)',
-            text,
-            flags=re.DOTALL)
+                # 1                2         3             4            5
+                r'(.*)BISONPRE_COPY(_ONCE)?\((\S+)\s*,\s*\{([^}]*)}\s*\)(.*)',
+                text,
+                flags=re.DOTALL)
         if not match:
             sys.exit("%Error: " + Filename + ":" + str(lineno) +
                      ": Bad form of BISONPRE_NOT: " + text)

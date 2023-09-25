@@ -18,8 +18,8 @@ def profcfunc(filename):
         for line in fh:
             #                  %time      cumesec   selfsec     calls     {stuff}   name
             match = re.match(
-                r'^\s*([0-9.]+)\s+[0-9.]+\s+([0-9.]+)\s+([0-9.]+)\s+[^a-zA-Z_]*([a-zA-Z_].*)$',
-                line)
+                    r'^\s*([0-9.]+)\s+[0-9.]+\s+([0-9.]+)\s+([0-9.]+)\s+[^a-zA-Z_]*([a-zA-Z_].*)$',
+                    line)
             if match:
                 pct = float(match.group(1))
                 sec = float(match.group(2))
@@ -35,8 +35,8 @@ def profcfunc(filename):
             # Older gprofs have no call column for single-call functions
             #                  %time      cumesec   selfsec      {stuff}   name
             match = re.match(
-                r'^\s*([0-9.]+)\s+[0-9.]+\s+([0-9.]+)\s+[^a-zA-Z_]*([a-zA-Z_].*)$',
-                line)
+                    r'^\s*([0-9.]+)\s+[0-9.]+\s+([0-9.]+)\s+[^a-zA-Z_]*([a-zA-Z_].*)$',
+                    line)
             if match:
                 pct = float(match.group(1))
                 sec = float(match.group(2))
