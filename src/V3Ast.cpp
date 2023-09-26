@@ -1205,17 +1205,18 @@ void AstNode::dumpTree(std::ostream& os, const string& indent, int maxDepth) con
     if (maxDepth == 1) {
         if (op1p() || op2p() || op3p() || op4p()) os << indent << "1: ...(maxDepth)\n";
     } else {
+        const string identSpaced(indent.size(), ' ');
         for (const AstNode* nodep = op1p(); nodep; nodep = nodep->nextp()) {
-            nodep->dumpTree(os, indent + "1:", maxDepth - 1);
+            nodep->dumpTree(os, identSpaced + "1:", maxDepth - 1);
         }
         for (const AstNode* nodep = op2p(); nodep; nodep = nodep->nextp()) {
-            nodep->dumpTree(os, indent + "2:", maxDepth - 1);
+            nodep->dumpTree(os, identSpaced + "2:", maxDepth - 1);
         }
         for (const AstNode* nodep = op3p(); nodep; nodep = nodep->nextp()) {
-            nodep->dumpTree(os, indent + "3:", maxDepth - 1);
+            nodep->dumpTree(os, identSpaced + "3:", maxDepth - 1);
         }
         for (const AstNode* nodep = op4p(); nodep; nodep = nodep->nextp()) {
-            nodep->dumpTree(os, indent + "4:", maxDepth - 1);
+            nodep->dumpTree(os, identSpaced + "4:", maxDepth - 1);
         }
     }
 }
