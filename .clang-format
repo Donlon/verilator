@@ -80,7 +80,7 @@ IncludeCategories:
 IncludeIsMainRegex: '$'
 
 IndentCaseLabels: false
-IndentPPDirectives: None
+IndentPPDirectives: AfterHash
 IndentWidth:     4
 IndentWrappedFunctionNames: false
 JavaScriptQuotes: Leave
@@ -101,6 +101,7 @@ PenaltyBreakString: 1000
 PenaltyExcessCharacter: 1000000
 PenaltyReturnTypeOnItsOwnLine: 60
 PointerAlignment: Left
+PPIndentWidth: 1
 ReflowComments:  true
 SortUsingDeclarations: true
 SpaceAfterCStyleCast: false
