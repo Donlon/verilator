@@ -96,19 +96,49 @@ elif [ "$CI_BUILD_STAGE_NAME" = "test" ]; then
   ccache -z
   case $TESTS in
     dist-vlt-0)
-      "$MAKE" -C test_regress SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=0/3
+      "$MAKE" -C test_regress SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=0/9
       ;;
     dist-vlt-1)
-      "$MAKE" -C test_regress SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=1/3
+      "$MAKE" -C test_regress SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=1/9
       ;;
     dist-vlt-2)
-      "$MAKE" -C test_regress SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=2/3
+      "$MAKE" -C test_regress SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=2/9
+      ;;
+    dist-vlt-3)
+      "$MAKE" -C test_regress SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=3/9
+      ;;
+    dist-vlt-4)
+      "$MAKE" -C test_regress SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=4/9
+      ;;
+    dist-vlt-5)
+      "$MAKE" -C test_regress SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=5/9
+      ;;
+    dist-vlt-6)
+      "$MAKE" -C test_regress SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=6/9
+      ;;
+    dist-vlt-7)
+      "$MAKE" -C test_regress SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=7/9
+      ;;
+    dist-vlt-8)
+      "$MAKE" -C test_regress SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=8/9
       ;;
     vltmt-0)
-      "$MAKE" -C test_regress SCENARIOS=--vltmt DRIVER_HASHSET=--hashset=0/2
+      "$MAKE" -C test_regress SCENARIOS=--vltmt DRIVER_HASHSET=--hashset=0/6
       ;;
     vltmt-1)
-      "$MAKE" -C test_regress SCENARIOS=--vltmt DRIVER_HASHSET=--hashset=1/2
+      "$MAKE" -C test_regress SCENARIOS=--vltmt DRIVER_HASHSET=--hashset=1/6
+      ;;
+    vltmt-2)
+      "$MAKE" -C test_regress SCENARIOS=--vltmt DRIVER_HASHSET=--hashset=2/6
+      ;;
+    vltmt-3)
+      "$MAKE" -C test_regress SCENARIOS=--vltmt DRIVER_HASHSET=--hashset=3/6
+      ;;
+    vltmt-4)
+      "$MAKE" -C test_regress SCENARIOS=--vltmt DRIVER_HASHSET=--hashset=4/6
+      ;;
+    vltmt-5)
+      "$MAKE" -C test_regress SCENARIOS=--vltmt DRIVER_HASHSET=--hashset=5/6
       ;;
     coverage-all)
       nodist/code_coverage --stages 1-
