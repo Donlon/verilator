@@ -58,6 +58,7 @@
 #include "V3HierBlock.h"
 #include "V3Inline.h"
 #include "V3Inst.h"
+#include "V3Interface.h"
 #include "V3Life.h"
 #include "V3LifePost.h"
 #include "V3LinkDot.h"
@@ -103,6 +104,7 @@
 #include "V3VariableOrder.h"
 #include "V3Waiver.h"
 #include "V3Width.h"
+#include "V3WidthCommit.h"
 
 #include <ctime>
 
@@ -188,7 +190,7 @@ static void process() {
         V3Error::abortIfErrors();
 
         // Commit to the widths we've chosen; Make widthMin==width
-        V3Width::widthCommit(v3Global.rootp());
+        V3WidthCommit::widthCommit(v3Global.rootp());
         v3Global.assertDTypesResolved(true);
         v3Global.widthMinUsage(VWidthMinUsage::MATCHES_WIDTH);
 
@@ -273,6 +275,8 @@ static void process() {
                 V3LinkDot::linkDotArrayed(v3Global.rootp());  // Cleanup as made new modules
             }
         }
+
+        if (v3Global.opt.trace()) V3Interface::interfaceAll(v3Global.rootp());
 
         if (v3Global.opt.fDfgPostInline()) {
             // Post inline DFG optimization
@@ -643,6 +647,7 @@ static void verilate(const string& argString) {
         {
             const V3MtDisabledLockGuard mtDisabler{v3MtDisabledLock()};
 
+            V3Os::selfTest();
             VHashSha256::selfTest();
             VSpellCheck::selfTest();
             V3Graph::selfTest();
@@ -783,7 +788,7 @@ int main(int argc, char** argv) {
         V3PreShell::boot();
 
         // Command option parsing
-        v3Global.opt.buildDepBin(VString::escapeStringForPath(argv[0]));
+        v3Global.opt.buildDepBin(V3Os::filenameCleanup(argv[0]));
         v3Global.opt.parseOpts(new FileLine{FileLine::commandLineFilename()}, argc - 1, argv + 1);
 
         // Validate settings (aka Boost.Program_options)

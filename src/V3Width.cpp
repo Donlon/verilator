@@ -77,12 +77,13 @@
 #include "V3Randomize.h"
 #include "V3String.h"
 #include "V3Task.h"
+#include "V3WidthCommit.h"
 
 #include <algorithm>
 
 // More code; this file was getting too large; see actions there
 #define VERILATOR_V3WIDTH_CPP_
-#include "V3WidthCommit.h"
+#include "V3WidthRemove.h"
 
 VL_DEFINE_DEBUG_FUNCTIONS;
 
@@ -843,7 +844,7 @@ private:
             } else {
                 nodep->v3error("Slice size isn't a constant or basic data type.");
             }
-            const AstNodeDType* const lhsDtypep = nodep->lhsp()->dtypep();
+            const AstNodeDType* const lhsDtypep = nodep->lhsp()->dtypep()->skipRefToEnump();
             if (VN_IS(lhsDtypep, DynArrayDType) || VN_IS(lhsDtypep, QueueDType)) {
                 nodep->dtypeSetStream();
             } else if (VN_IS(lhsDtypep, UnpackArrayDType) || lhsDtypep->isCompound()) {
@@ -4311,8 +4312,7 @@ private:
         if (VN_IS(valuep, Const)) {
             // Forming a AstConcat will cause problems with
             // unsized (uncommitted sized) constants
-            if (AstConst* const newp
-                = WidthCommitVisitor::newIfConstCommitSize(VN_AS(valuep, Const))) {
+            if (AstConst* const newp = V3WidthCommit::newIfConstCommitSize(VN_AS(valuep, Const))) {
                 VL_DO_DANGLING(pushDeletep(valuep), valuep);
                 valuep = newp;
             }
@@ -4893,6 +4893,7 @@ private:
                     }
                     break;
                 }
+                case 'e':  // FALLTHRU
                 case 'f':  // FALLTHRU
                 case 'g': {
                     if (argp) {
@@ -7192,8 +7193,9 @@ private:
     }
     AstVar* enumVarp(AstEnumDType* nodep, VAttrType attrType, bool assoc, uint32_t msbdim) {
         // Return a variable table which has specified dimension properties for this variable
-        const auto pos = m_tableMap.find(std::make_pair(nodep, attrType));
-        if (pos != m_tableMap.end()) return pos->second;
+        const auto& tableMapr = nodep->tableMap();
+        const auto pos = tableMapr.find(attrType);
+        if (pos != tableMapr.end()) return pos->second;
         UINFO(9, "Construct Venumtab attr=" << attrType.ascii() << " assoc=" << assoc
                                             << " max=" << msbdim << " for " << nodep << endl);
         AstNodeDType* basep;
@@ -7275,7 +7277,7 @@ private:
             }
         }
         userIterate(varp, nullptr);  // May have already done $unit so must do this var
-        m_tableMap.emplace(std::make_pair(nodep, attrType), varp);
+        nodep->tableMap().emplace(attrType, varp);
         return varp;
     }
 
@@ -7611,10 +7613,4 @@ AstNode* V3Width::widthGenerateParamsEdit(
     nodep = visitor.mainAcceptEdit(nodep);
     // No WidthRemoveVisitor, as don't want to drop $signed etc inside gen blocks
     return nodep;
-}
-
-void V3Width::widthCommit(AstNetlist* nodep) {
-    UINFO(2, __FUNCTION__ << ": " << endl);
-    { WidthCommitVisitor{nodep}; }  // Destruct before checking
-    V3Global::dumpCheckGlobalTree("widthcommit", 0, dumpTreeLevel() >= 6);
 }

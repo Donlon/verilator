@@ -1383,7 +1383,7 @@ private:
     AstNode* afterComment(AstNode* nodep) {
         // Ignore comments, such as to determine if a AstIf is empty.
         // nodep may be null, if so return null.
-        while (nodep && VN_IS(nodep, Comment)) { nodep = nodep->nextp(); }
+        while (nodep && VN_IS(nodep, Comment)) nodep = nodep->nextp();
         return nodep;
     }
 

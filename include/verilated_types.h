@@ -69,7 +69,7 @@ extern std::string VL_TO_STRING_W(int words, const WDataInP obj);
 #define VL_INOUTW(name, msb, lsb, words) VlWide<words> name  ///< Declare bidir signal, 65+ bits
 #define VL_OUT8(name, msb, lsb) CData name  ///< Declare output signal, 1-8 bits
 #define VL_OUT16(name, msb, lsb) SData name  ///< Declare output signal, 9-16 bits
-#define VL_OUT64(name, msb, lsb) QData name  ///< Declare output signal, 33-64bits
+#define VL_OUT64(name, msb, lsb) QData name  ///< Declare output signal, 33-64 bits
 #define VL_OUT(name, msb, lsb) IData name  ///< Declare output signal, 17-32 bits
 #define VL_OUTW(name, msb, lsb, words) VlWide<words> name  ///< Declare output signal, 65+ bits
 
@@ -77,11 +77,8 @@ extern std::string VL_TO_STRING_W(int words, const WDataInP obj);
 // Functions needed here
 
 constexpr IData VL_CLOG2_CE_Q(QData lhs) VL_PURE {
-    if (VL_UNLIKELY(!lhs)) return 0;
-    --lhs;
-    int shifts = 0;
-    for (; lhs != 0; ++shifts) lhs = lhs >> 1ULL;
-    return shifts;
+    // constexpr usage only! Recuses to meet C++11 constexpr func limitations
+    return lhs <= 1 ? 0 : VL_CLOG2_CE_Q((lhs + 1) >> 1ULL) + 1;
 }
 
 //===================================================================
@@ -1480,8 +1477,8 @@ class VlClass VL_NOT_FINAL : public VlDeletable {
 
 public:
     // CONSTRUCTORS
-    VlClass() = default;
-    VlClass(const VlClass& copied) {}
+    VlClass() { refCountInc(); }
+    VlClass(const VlClass& copied) { refCountInc(); }
     ~VlClass() override = default;
 };
 
@@ -1529,8 +1526,9 @@ public:
         // () required here to avoid narrowing conversion warnings,
         // when a new() has an e.g. CData type and passed a 1U.
         : m_objp{new T_Class(std::forward<T_Args>(args)...)} {
+        // refCountInc was moved to the constructor of T_Class
+        // to fix self references in constructor.
         m_objp->m_deleterp = &deleter;
-        refCountInc();
     }
     // Explicit to avoid implicit conversion from 0
     explicit VlClassRef(T_Class* objp)

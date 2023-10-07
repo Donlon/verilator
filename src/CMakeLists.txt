@@ -96,6 +96,7 @@ set(HEADERS
     V3Inline.h
     V3Inst.h
     V3InstrCount.h
+    V3Interface.h
     V3LangCode.h
     V3LanguageWords.h
     V3Life.h
@@ -165,6 +166,7 @@ set(HEADERS
     V3Waiver.h
     V3Width.h
     V3WidthCommit.h
+    V3WidthRemove.h
     VlcBucket.h
     VlcOptions.h
     VlcPoint.h
@@ -243,6 +245,7 @@ set(COMMON_SOURCES
     V3Inline.cpp
     V3Inst.cpp
     V3InstrCount.cpp
+    V3Interface.cpp
     V3Life.cpp
     V3LifePost.cpp
     V3LinkCells.cpp
@@ -296,6 +299,7 @@ set(COMMON_SOURCES
     V3VariableOrder.cpp
     V3Waiver.cpp
     V3Width.cpp
+    V3WidthCommit.cpp
     V3WidthSel.cpp
     V3ParseImp.cpp
     V3ParseGrammar.cpp
