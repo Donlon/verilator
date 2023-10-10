@@ -49,6 +49,7 @@ class V3HierBlockPlan;
     const VRestorer<typename std::decay<decltype(var)>::type> restorer_##var(var);
 #define VL_RESTORER_MOVE(var) \
     const VRestorer<typename std::decay<decltype(var)>::type> restorer_##var(var, std::move(var));
+#define VL_GET_SAVED(var) restorer_##var.saved()
 
 // Object used by VL_RESTORER and VL_RESTORER_MOVE.  This object must be an auto variable, not
 // allocated on the heap or otherwise.
@@ -65,6 +66,7 @@ public:
         : m_ref{permr}
         , m_saved{save} {}
     ~VRestorer() { m_ref = std::move(m_saved); }
+    const T& saved() const { return m_saved; }
     VL_UNCOPYABLE(VRestorer);
 };
 
