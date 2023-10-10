@@ -169,15 +169,31 @@ inline std::ostream& operator<<(std::ostream& os, const VLifetime& rhs) {
 
 class VIsCached final {
     // Used in some nodes to cache results of boolean methods
+    // If cachedCnt == 0, not cached
+    // else if cachedCnt == s_cachedCntGbl, then m_state is if cached
+    uint32_t m_cachedCnt : 31;  // Mark of when cache was computed
+    uint32_t m_state : 1;
+    static uint32_t s_cachedCntGbl;  // Global computed count
+    static constexpr uint32_t MAX_CNT = (1UL << 31) - 1;  // Max for m_cachedCnt
+
 public:
-    enum en : uint8_t { NOT_CACHED, YES, NO };
-    enum en m_e;
     VIsCached()
-        : m_e{NOT_CACHED} {}
-    bool isCached() const { return m_e != NOT_CACHED; }
-    bool get() const { return m_e == YES; }
-    void set(bool flag) { m_e = flag ? YES : NO; }
-    void clearCache() { m_e = NOT_CACHED; }
+        : m_cachedCnt{0}
+        , m_state{0} {}
+    bool isCached() const { return m_cachedCnt == s_cachedCntGbl; }
+    bool get() const { return m_state; }
+    void set(bool flag) {
+        m_cachedCnt = s_cachedCntGbl;
+        m_state = flag;
+    }
+    void clearCache() {
+        m_cachedCnt = 0;
+        m_state = 0;
+    }
+    static void clearCacheTree() {
+        ++s_cachedCntGbl;
+        UASSERT_STATIC(s_cachedCntGbl < MAX_CNT, "Overflow of cache counting");
+    }
 };
 
 // ######################################################################
@@ -1233,6 +1249,45 @@ inline std::ostream& operator<<(std::ostream& os, const VUseType& rhs) {
 
 // ######################################################################
 
+class VCastable final {
+public:
+    enum en : uint8_t {
+        UNSUPPORTED,
+        SAMEISH,
+        COMPATIBLE,
+        ENUM_EXPLICIT,
+        ENUM_IMPLICIT,
+        DYNAMIC_CLASS,
+        INCOMPATIBLE,
+        _ENUM_MAX  // Leave last
+    };
+    enum en m_e;
+    const char* ascii() const {
+        static const char* const names[]
+            = {"UNSUPPORTED",   "SAMEISH",       "COMPATIBLE",  "ENUM_EXPLICIT",
+               "ENUM_IMPLICIT", "DYNAMIC_CLASS", "INCOMPATIBLE"};
+        return names[m_e];
+    }
+    VCastable()
+        : m_e{UNSUPPORTED} {}
+    // cppcheck-suppress noExplicitConstructor
+    constexpr VCastable(en _e)
+        : m_e{_e} {}
+    explicit VCastable(int _e)
+        : m_e(static_cast<en>(_e)) {}  // Need () or GCC 4.8 false warning
+    constexpr operator en() const { return m_e; }
+};
+constexpr bool operator==(const VCastable& lhs, const VCastable& rhs) {
+    return lhs.m_e == rhs.m_e;
+}
+constexpr bool operator==(const VCastable& lhs, VCastable::en rhs) { return lhs.m_e == rhs; }
+constexpr bool operator==(VCastable::en lhs, const VCastable& rhs) { return lhs == rhs.m_e; }
+inline std::ostream& operator<<(std::ostream& os, const VCastable& rhs) {
+    return os << rhs.ascii();
+}
+
+// ######################################################################
+
 class VBasicTypeKey final {
 public:
     const int m_width;  // From AstNodeDType: Bit width of operation
@@ -2000,6 +2055,10 @@ public:
     AstNodeDType* findBasicDType(VBasicDTypeKwd kwd) const;
     static AstBasicDType* findInsertSameDType(AstBasicDType* nodep);
 
+    static VCastable computeCastable(const AstNodeDType* toDtp, const AstNodeDType* fromDtp,
+                                     const AstNode* fromConstp);
+    static AstNodeDType* getCommonClassTypep(AstNode* nodep1, AstNode* nodep2);
+
     // METHODS - dump and error
     void v3errorEnd(std::ostringstream& str) const VL_RELEASE(V3Error::s().m_mutex);
     void v3errorEndFatal(std::ostringstream& str) const VL_ATTR_NORETURN
@@ -2066,6 +2125,15 @@ public:
     static void dumpTreeFileGdb(const AstNode* nodep, const char* filenamep = nullptr);
     void dumpTreeDot(std::ostream& os = std::cout) const;
     void dumpTreeDotFile(const string& filename, bool append = false, bool doDump = true);
+
+    // METHODS - static advancement
+    static AstNode* afterCommentp(AstNode* nodep) {
+        // Skip over comments starting at provided nodep,
+        // such as to determine if a AstIf is empty.
+        // nodep may be null, if so return nullptr.
+        while (nodep && VN_IS(nodep, Comment)) nodep = nodep->nextp();
+        return nodep;
+    }
 
     // METHODS - queries
     // Changes control flow, disable some optimizations
