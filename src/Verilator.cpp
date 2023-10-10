@@ -611,7 +611,6 @@ static void process() {
 
 static void verilate(const string& argString) {
     UINFO(1, "Option --verilate: Start Verilation\n");
-    V3Global::dumpCheckGlobalTree("initial", 0, dumpTreeLevel() >= 6);
 
     // Can we skip doing everything if times are ok?
     V3File::addSrcDepend(v3Global.opt.buildDepBin());
@@ -639,6 +638,8 @@ static void verilate(const string& argString) {
     V3Os::unlinkRegexp(v3Global.opt.hierTopDataDir(), v3Global.opt.prefix() + "_*.tree");
     V3Os::unlinkRegexp(v3Global.opt.hierTopDataDir(), v3Global.opt.prefix() + "_*.dot");
     V3Os::unlinkRegexp(v3Global.opt.hierTopDataDir(), v3Global.opt.prefix() + "_*.txt");
+
+    V3Global::dumpCheckGlobalTree("initial", 0, dumpTreeLevel() >= 3);
 
     // Internal tests (after option parsing as need debug() setting,
     // and after removing files as may make debug output)
