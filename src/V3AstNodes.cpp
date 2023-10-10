@@ -1609,6 +1609,12 @@ void AstEnumItemRef::dump(std::ostream& str) const {
         str << "UNLINKED";
     }
 }
+void AstEnumItemRef::cloneRelink() {
+    if (m_itemp->clonep()) m_itemp = m_itemp->clonep();
+    if (m_classOrPackagep && m_classOrPackagep->clonep()) {
+        m_classOrPackagep = m_classOrPackagep->clonep();
+    }
+}
 const char* AstEnumItemRef::broken() const {
     BROKEN_RTN(m_itemp && !m_itemp->brokeExists());
     BROKEN_RTN(m_classOrPackagep && !m_classOrPackagep->brokeExists());
