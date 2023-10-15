@@ -191,7 +191,7 @@ static void process() {
 
         // Commit to the widths we've chosen; Make widthMin==width
         V3WidthCommit::widthCommit(v3Global.rootp());
-        v3Global.assertDTypesResolved(true);
+        if (!v3Global.opt.lintOnly()) v3Global.assertDTypesResolved(true);
         v3Global.widthMinUsage(VWidthMinUsage::MATCHES_WIDTH);
 
         // Coverage insertion
