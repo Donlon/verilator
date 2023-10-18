@@ -41,14 +41,15 @@ class V3HierBlockPlan;
 //======================================================================
 // Restorer
 
-/// Save a given variable's value on the stack, restoring it at
-/// end-of-stope.
+/// Save a given variable's value on the stack, restoring it at end-of-scope.
 // Object must be named, or it will not persist until end-of-scope.
 // Constructor needs () or GCC 4.8 false warning.
 #define VL_RESTORER(var) \
     const VRestorer<typename std::decay<decltype(var)>::type> restorer_##var(var);
 #define VL_RESTORER_MOVE(var) \
     const VRestorer<typename std::decay<decltype(var)>::type> restorer_##var(var, std::move(var));
+/// Get the copy of the variable previously saved by VL_RESTORER()
+#define VL_RESTORER_PREV(var) restorer_##var.saved()
 
 // Object used by VL_RESTORER and VL_RESTORER_MOVE.  This object must be an auto variable, not
 // allocated on the heap or otherwise.
@@ -65,6 +66,7 @@ public:
         : m_ref{permr}
         , m_saved{save} {}
     ~VRestorer() { m_ref = std::move(m_saved); }
+    const T& saved() const { return m_saved; }
     VL_UNCOPYABLE(VRestorer);
 };
 
