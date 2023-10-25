@@ -240,6 +240,7 @@ private:
         processAndIterate(nodep);
     }
     void visit(AstNodeModule* nodep) override {
+        if (nodep->dead()) return;
         VL_RESTORER_MOVE(m_cFuncNames);
         processAndIterate(nodep);
     }

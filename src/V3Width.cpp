@@ -2625,6 +2625,7 @@ private:
     }
     void visit(AstClass* nodep) override {
         if (nodep->didWidthAndSet()) return;
+        if (nodep->dead()) return;
 
         // If the class is std::process
         if (nodep->name() == "process") {

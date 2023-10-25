@@ -152,7 +152,7 @@ public:
     }
 };
 
-inline std::ostream& operator<<(std::ostream& os, const ModParamSet& rhs) {
+std::ostream& operator<<(std::ostream& os, const ModParamSet& rhs) {
     rhs.dump(os);
     return os;
 }
@@ -248,7 +248,11 @@ public:
         , m_ifaceIndexMap(std::move(ifaceIndexMap)) {}
     ~ModInfo() {
         if (VN_IS(m_origModp, Class))  // Unused modules/ifaces are removed in V3Dead
+#ifdef DEBUG_DONT_REMOVE_MODS
+            m_origModp->dead(true);
+#else
             VL_DO_DANGLING(m_origModp->unlinkFrBack()->deleteTree(), m_origModp);
+#endif
     }
     const auto& paramIndexMap() const { return m_paramIndexMap; }
     const auto& typeParamIndexMap() const { return m_typeParamIndexMap; }
@@ -452,7 +456,8 @@ class ParamProcessor final {
                     probeModule(ifacep);
                     BaseModInfo* ifaceModInfop = ifacep->user5u().to<BaseModInfo*>();
                     if (ifaceModInfop == reinterpret_cast<BaseModInfo*>(0x3)) {
-                        m_cellNodep->v3error("Circular reference on interface ports");
+                        m_cellNodep->v3warn(E_UNSUPPORTED,
+                                            "Circular reference on interface ports");
                     } else if (BaseModInfo::isParameterizable(ifaceModInfop)) {
                         ifaceIndexMap[varp] = ifaceIndexMap.size();
                     }
@@ -1065,9 +1070,8 @@ public:
         // }
     }
     ~ParamProcessor() {
-        for (BaseModInfo* const modInfo : m_allocatedModInfo) {
-            VL_DO_DANGLING(modInfo->destroy(), modInfo);
-        }
+        for (BaseModInfo* const modInfo : m_allocatedModInfo) modInfo->destroy();
+        m_allocatedModInfo.clear();
     };
     VL_UNCOPYABLE(ParamProcessor);
 };
