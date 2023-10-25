@@ -64,6 +64,8 @@
 
 VL_DEFINE_DEBUG_FUNCTIONS;
 
+#define DEBUG_DONT_REMOVE_MODS
+
 //######################################################################
 // Descriptions
 
@@ -116,12 +118,11 @@ public:
     void rehash() {
         V3Hash m_hash;
         for (AstNode* const nodep : m_params) {
-            AstNode* hashNodep = nodep;
             if (const auto* const constp = VN_CAST(nodep, Const)) {
-                // UINFO(0, "num " << constp->num() << "-> " << constp->num().toHash() << endl);
                 m_hash += constp->num().toHash();
                 continue;
             }
+            AstNode* hashNodep = nodep;
             if (const auto* const typeParamp = VN_CAST(nodep, NodeDType))
                 hashNodep = typeParamp->skipRefToEnump();
             m_hash += hashNodep ? V3Hasher::uncachedHash(hashNodep) : V3Hash();
@@ -136,7 +137,8 @@ public:
             // AstNode* const nodep = paramSet->m_params[item.second];
             if (const AstConst* const constp = VN_CAST(nodep, Const)) {
                 str = cvtToStr(constp);
-                // str = constp->num().ascii();
+                str += ", hash=";
+                str += constp->num().toHash().toString();
             } else if (const AstInitArray* const initArrp = VN_CAST(nodep, InitArray)) {
                 str = "InitArray[" + std::to_string(initArrp->map().size()) + "]";
             } else if (const AstNodeDType* const dtypep = VN_CAST(nodep, NodeDType)) {
@@ -277,32 +279,47 @@ public:
             // TODO: print inorder
             os << "- Parameterized node " << nodeItem.second->name() << ":  " << nodeItem.second
                << "\n";
+            os << "    hash: " << ModParamSet::Hash()(nodeItem.first) << "\n";
             const ModParamSet* const paramSet = nodeItem.first;
             for (const auto& item : m_paramIndexMap) {
                 string str;
+                V3Hash hash;
                 AstNode* const nodep = paramSet->m_params[item.second];
                 if (AstConst* const constp = VN_CAST(nodep, Const)) {
                     str = constp->num().ascii();
+                    hash = constp->num().toHash();
                 } else if (AstInitArray* const initArrp = VN_CAST(nodep, InitArray)) {
                     str = "InitArray[" + std::to_string(initArrp->map().size()) + "]";
+                    hash = V3Hasher::uncachedHash(initArrp);
                 } else if (AstNodeDType* const dtypep = VN_CAST(nodep, NodeDType)) {
                     str = dtypep->prettyDTypeName() + " (" + cvtToStr(dtypep) + ")";
+                    AstNode* hashNodep = nodep;
+                    if (const auto* const typeParamp = VN_CAST(nodep, NodeDType))
+                        hashNodep = typeParamp->skipRefToEnump();
+                    hash = hashNodep ? V3Hasher::uncachedHash(hashNodep) : V3Hash();
                 }
                 os << "    param " << item.second << ": " << item.first->name() << " -> "
-                   << (str.empty() ? "(none)" : str) << "\n";
+                   << (str.empty() ? "(none)" : str) << ", hash=" << hash.value() << "\n";
             }
             for (const auto& item : m_typeParamIndexMap) {
                 string str;
+                V3Hash hash;
                 AstNode* const nodep = paramSet->m_params[item.second];
                 if (AstConst* const constp = VN_CAST(nodep, Const)) {
                     str = constp->num().ascii();
+                    hash = constp->num().toHash();
                 } else if (AstInitArray* const initArrp = VN_CAST(nodep, InitArray)) {
                     str = "InitArray[" + std::to_string(initArrp->map().size()) + "]";
+                    hash = V3Hasher::uncachedHash(initArrp);
                 } else if (AstNodeDType* const dtypep = VN_CAST(nodep, NodeDType)) {
                     str = dtypep->prettyDTypeName() + " (" + cvtToStr(dtypep) + ")";
+                    AstNode* hashNodep = nodep;
+                    if (const auto* const typeParamp = VN_CAST(nodep, NodeDType))
+                        hashNodep = typeParamp->skipRefToEnump();
+                    hash = hashNodep ? V3Hasher::uncachedHash(hashNodep) : V3Hash();
                 }
                 os << "    param " << item.second << ": " << item.first->name() << " -> "
-                   << (str.empty() ? "(none)" : str) << "\n";
+                   << (str.empty() ? "(none)" : str) << ", hash=" << hash.value() << "\n";
             }
             for (const auto& item : m_ifaceIndexMap) {
                 os << "    interface " << item.second << ": " << item.first->name() << " -> ";
@@ -312,7 +329,7 @@ public:
                     os << "(none)";
                 os << "\n";
             }
-            os << "  all: " << *paramSet << "\n";
+            os << "\n    all: " << *paramSet << "\n";
             os << endl;
         }
     }
@@ -819,7 +836,7 @@ class ParamProcessor final {
             }
         }
         collectedParams->rehash();
-        if (!hasEmptyParam) {
+        if (!hasEmptyParam) {  // not needed
             foundp = modInfop->findNodeWithOverriddenParamSet(collectedParams.get());
             if (!foundp) foundp = modInfop->findNodeWithFullParamSet(collectedParams.get());
             if (foundp) {
@@ -835,15 +852,22 @@ class ParamProcessor final {
         auto evaluatedParams = std::make_unique<ModParamSet>(*overriddenParams);
         clonedModp = evaluateModParams(modp, modInfop, evaluatedParams.get());
 
-        foundp = modInfop->findNodeWithFullParamSet(evaluatedParams.get());
+        foundp = modInfop->findNodeWithOverriddenParamSet(evaluatedParams.get());
+        if (!foundp) foundp = modInfop->findNodeWithFullParamSet(evaluatedParams.get());
         if (foundp) {
             UINFO(7, "  module found with full param set\n");
 
             // A specialized module with the same param set is already exist. The cloned one is not
             // necessary anymore
-            if (clonedModp) VL_DO_DANGLING(m_deleter.pushDeletep(clonedModp), clonedModp);
+#ifdef DEBUG_DONT_REMOVE_MODS
             // Directly remove the module seems to make some nodes in type table link broken
-            // if (clonedModp) clonedModp->dead(true);
+            if (clonedModp) {
+                clonedModp->dead(true);
+                modp->addNextHere(clonedModp);
+            }
+#else
+            if (clonedModp) VL_DO_DANGLING(m_deleter.pushDeletep(clonedModp), clonedModp);
+#endif
 
             modInfop->insertOverriddenParamSet(overriddenParams.release(), foundp);
             modInfop->insertOverriddenParamSet(collectedParams.release(), foundp);
@@ -865,8 +889,8 @@ class ParamProcessor final {
         if (!updateClonedModInfo(modInfop, clonedModp, collectedParams.get())) return nullptr;
         collectedParams->skipTypesRef();
         UINFO(6, "  insert new paramed module: " << clonedModp << endl);
-        modInfop->insertOverriddenParamSet(overriddenParams.release(), foundp);
-        modInfop->insertOverriddenParamSet(collectedParams.release(), foundp);
+        modInfop->insertOverriddenParamSet(overriddenParams.release(), clonedModp);
+        modInfop->insertOverriddenParamSet(collectedParams.release(), clonedModp);
         // modInfop->insertOverriddenParamSet(evaluatedParams.release(), foundp);
         modInfop->insertFullParamSet(evaluatedParams.release(), clonedModp);
         // Keep tree sorted by level. Note: Different parameterizations of the same recursive
