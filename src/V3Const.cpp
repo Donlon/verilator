@@ -1603,14 +1603,12 @@ private:
     }
     void replaceConst(AstNodeUniop* nodep) {
         V3Number num{nodep, nodep->width()};
-        num.isSigned(nodep->isSigned());
         nodep->numberOperate(num, VN_AS(nodep->lhsp(), Const)->num());
         UINFO(4, "UNICONST -> " << num << endl);
         VL_DO_DANGLING(replaceNum(nodep, num), nodep);
     }
     void replaceConst(AstNodeBiop* nodep) {
         V3Number num{nodep, nodep->width()};
-        num.isSigned(nodep->isSigned());
         nodep->numberOperate(num, VN_AS(nodep->lhsp(), Const)->num(),
                              VN_AS(nodep->rhsp(), Const)->num());
         UINFO(4, "BICONST -> " << num << endl);
@@ -1618,7 +1616,6 @@ private:
     }
     void replaceConst(AstNodeTriop* nodep) {
         V3Number num{nodep, nodep->width()};
-        num.isSigned(nodep->isSigned());
         nodep->numberOperate(num, VN_AS(nodep->lhsp(), Const)->num(),
                              VN_AS(nodep->rhsp(), Const)->num(),
                              VN_AS(nodep->thsp(), Const)->num());
@@ -1627,7 +1624,6 @@ private:
     }
     void replaceConst(AstNodeQuadop* nodep) {
         V3Number num{nodep, nodep->width()};
-        num.isSigned(nodep->isSigned());
         nodep->numberOperate(
             num, VN_AS(nodep->lhsp(), Const)->num(), VN_AS(nodep->rhsp(), Const)->num(),
             VN_AS(nodep->thsp(), Const)->num(), VN_AS(nodep->fhsp(), Const)->num());

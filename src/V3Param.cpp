@@ -836,9 +836,9 @@ class ParamProcessor final {
 
             // A specialized module with the same param set is already exist. The cloned one is not
             // necessary anymore
-            // if (clonedModp) VL_DO_DANGLING(m_deleter.pushDeletep(clonedModp), clonedModp);
+            if (clonedModp) VL_DO_DANGLING(m_deleter.pushDeletep(clonedModp), clonedModp);
             // Directly remove the module seems to make some nodes in type table link broken
-            if (clonedModp) clonedModp->dead(true);
+            // if (clonedModp) clonedModp->dead(true);
 
             modInfop->insertOverriddenParamSet(overriddenParams.release(), foundp);
             modInfop->insertOverriddenParamSet(collectedParams.release(), foundp);
@@ -1037,6 +1037,7 @@ public:
         m_modp = modp;
         m_cellNodep = nodep;
         srcModpr->someInstanceName(someInstanceName + "." + nodep->name());
+        V3Const::constifyParamsEdit(nodep);
 
         if (auto* cellp = VN_CAST(nodep, Cell)) {
             cellDeparam(cellp, srcModpr);
