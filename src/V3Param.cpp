@@ -16,7 +16,7 @@
 // PARAM TRANSFORMATIONS:
 //   Top down traversal:
 //      For each cell/classref:
-//          If linked module/class parameterizable,
+//          If linked module/class parameterized,
 //              Determine all parameter widths, constant values.
 //              (Interfaces also matter, as if a module is parameterized
 //              this effectively changes the width behavior of all that
@@ -64,7 +64,7 @@
 
 VL_DEFINE_DEBUG_FUNCTIONS;
 
-#define DEBUG_DONT_REMOVE_MODS
+// #define DEBUG_DONT_REMOVE_MODS
 
 //######################################################################
 // Descriptions
@@ -105,7 +105,7 @@ private:
     size_t m_hashValue = 0;
 
 public:
-    // Can be Const/InitArray/NodeDType
+    // Items are Const/InitArray/NodeDType
     std::vector<AstNode*> m_params;
     std::vector<AstNodeModule*> m_ifaces;
 
@@ -176,22 +176,22 @@ protected:
 
 public:
     void destroy();
-    static bool isParameterizable(const void* userp) {
+    static bool isParameterized(const void* userp) {
         return userp >= reinterpret_cast<const void*>(0x10);
     }
     static bool isVisited(const void* userp) {
         if (userp == reinterpret_cast<const void*>(0x2)) {
-            // Not a parameterizable modules, visited
+            // Not a parameterized module, visited
             return true;
-        } else if (isParameterizable(userp)) {
+        } else if (isParameterized(userp)) {
             return static_cast<const BaseModInfo*>(userp)->visited();
         } else {
             return false;
         }
     }
     static void* setVisited(void* userp) {
-        if (!isParameterizable(userp)) {
-            return reinterpret_cast<void*>(0x2);  // Not a parameterizable modules, visited
+        if (!isParameterized(userp)) {
+            return reinterpret_cast<void*>(0x2);  // Not a parameterized module, visited
         } else {
             static_cast<BaseModInfo*>(userp)->visited(true);
             return userp;
@@ -211,8 +211,8 @@ public:
 };
 
 class ModInfo final : public BaseModInfo {
-    struct ParamMap : public std::unordered_map<const ModParamSet*, AstNodeModule*,
-                                                ModParamSet::Hash, ModParamSet::Compare> {
+    struct ParamMap : std::unordered_map<const ModParamSet*, AstNodeModule*, ModParamSet::Hash,
+                                         ModParamSet::Compare> {
         ~ParamMap() {
             for (auto& item : *this) delete item.first;  // delete the ModParamSet
         }
@@ -228,11 +228,12 @@ class ModInfo final : public BaseModInfo {
     };
     /// Keep the original modules tracked, so we can delete them after everything is done
     AstNodeModule* const m_origModp;
-    /// Parameter nodes of the unparameterized node.  Map the parameters to the index in the vector
-    /// in the ModParamSet structure.  Note the nodes is not inordered when iterating.
-    const std::map<const AstVar*, int> m_paramIndexMap;
-    const std::map<const AstParamTypeDType*, int> m_typeParamIndexMap;  // TODO: merge it
-    const std::map<const AstVar*, int> m_ifaceIndexMap;
+    /// Map the parameters to the index of the vector in the ModParamSet structure.  Note the nodes
+    /// is not inordered when iterating.  Items are Var/ParamTypeDType
+    const std::vector<const AstNode*> m_paramList;
+    const std::vector<const AstVar*> m_ifaceList;
+    std::map<const AstNode*, int> m_paramIndexMap;
+    std::map<const AstVar*, int> m_ifaceIndexMap;
     /// Map full param sets to specialized instances, keeps unique reference to the cloned modules
     ParamMap m_paramsMap;
     /// Map overridden param sets/param before width conversion to specialized instances, used to
@@ -240,24 +241,23 @@ class ModInfo final : public BaseModInfo {
     ParamMap m_overriddenMap;  // TODO: Partial param set
 
 public:
-    ModInfo(AstNodeModule* origModp, std::map<const AstVar*, int>&& paramIndexMap,
-            std::map<const AstParamTypeDType*, int>&& typeParamIndexMap,
-            std::map<const AstVar*, int>&& ifaceIndexMap)
+    ModInfo(AstNodeModule* origModp, std::vector<const AstNode*>&& paramList,
+            std::vector<const AstVar*>&& ifaceList)
         : BaseModInfo(BaseModInfo::ORIGINAL_MOD)
         , m_origModp(origModp)
-        , m_paramIndexMap(std::move(paramIndexMap))
-        , m_typeParamIndexMap(std::move(typeParamIndexMap))
-        , m_ifaceIndexMap(std::move(ifaceIndexMap)) {}
+        , m_paramList(std::move(paramList))
+        , m_ifaceList(std::move(ifaceList)) {
+        for (size_t i = 0; i < m_paramList.size(); i++) m_paramIndexMap[m_paramList[i]] = i;
+        for (size_t i = 0; i < m_ifaceList.size(); i++) m_ifaceIndexMap[m_ifaceList[i]] = i;
+    }
     ~ModInfo() {
         if (VN_IS(m_origModp, Class))  // Unused modules/ifaces are removed in V3Dead
-#ifdef DEBUG_DONT_REMOVE_MODS
-            m_origModp->dead(true);
-#else
             VL_DO_DANGLING(m_origModp->unlinkFrBack()->deleteTree(), m_origModp);
-#endif
     }
+    const auto& paramList() const { return m_paramList; }
+    const AstNode* paramListAt(size_t index) const { return m_paramList[index]; }
+    const auto& ifaceList() const { return m_ifaceList; }
     const auto& paramIndexMap() const { return m_paramIndexMap; }
-    const auto& typeParamIndexMap() const { return m_typeParamIndexMap; }
     const auto& ifaceIndexMap() const { return m_ifaceIndexMap; }
     AstNodeModule* findNodeWithFullParamSet(const ModParamSet* paramSet) {
         return m_paramsMap.findNode(paramSet);
@@ -277,14 +277,14 @@ public:
         os << m_origModp->prettyTypeName() << " (" << m_origModp << ")\n";
         for (const auto& nodeItem : m_paramsMap) {
             // TODO: print inorder
-            os << "- Parameterized node " << nodeItem.second->name() << ":  " << nodeItem.second
-               << "\n";
+            os << "- Parameterization instance " << nodeItem.second->name() << ":  "
+               << nodeItem.second << "\n";
             os << "    hash: " << ModParamSet::Hash()(nodeItem.first) << "\n";
             const ModParamSet* const paramSet = nodeItem.first;
-            for (const auto& item : m_paramIndexMap) {
+            for (size_t i = 0; i < m_paramList.size(); i++) {
                 string str;
                 V3Hash hash;
-                AstNode* const nodep = paramSet->m_params[item.second];
+                AstNode* const nodep = paramSet->m_params[i];
                 if (AstConst* const constp = VN_CAST(nodep, Const)) {
                     str = constp->num().ascii();
                     hash = constp->num().toHash();
@@ -298,32 +298,12 @@ public:
                         hashNodep = typeParamp->skipRefToEnump();
                     hash = hashNodep ? V3Hasher::uncachedHash(hashNodep) : V3Hash();
                 }
-                os << "    param " << item.second << ": " << item.first->name() << " -> "
+                os << "    param " << i << ": " << m_paramList[i]->name() << " -> "
                    << (str.empty() ? "(none)" : str) << ", hash=" << hash.value() << "\n";
             }
-            for (const auto& item : m_typeParamIndexMap) {
-                string str;
-                V3Hash hash;
-                AstNode* const nodep = paramSet->m_params[item.second];
-                if (AstConst* const constp = VN_CAST(nodep, Const)) {
-                    str = constp->num().ascii();
-                    hash = constp->num().toHash();
-                } else if (AstInitArray* const initArrp = VN_CAST(nodep, InitArray)) {
-                    str = "InitArray[" + std::to_string(initArrp->map().size()) + "]";
-                    hash = V3Hasher::uncachedHash(initArrp);
-                } else if (AstNodeDType* const dtypep = VN_CAST(nodep, NodeDType)) {
-                    str = dtypep->prettyDTypeName() + " (" + cvtToStr(dtypep) + ")";
-                    AstNode* hashNodep = nodep;
-                    if (const auto* const typeParamp = VN_CAST(nodep, NodeDType))
-                        hashNodep = typeParamp->skipRefToEnump();
-                    hash = hashNodep ? V3Hasher::uncachedHash(hashNodep) : V3Hash();
-                }
-                os << "    param " << item.second << ": " << item.first->name() << " -> "
-                   << (str.empty() ? "(none)" : str) << ", hash=" << hash.value() << "\n";
-            }
-            for (const auto& item : m_ifaceIndexMap) {
-                os << "    interface " << item.second << ": " << item.first->name() << " -> ";
-                if (const AstNodeModule* const modp = paramSet->m_ifaces[item.second])
+            for (size_t i = 0; i < m_ifaceIndexMap.size(); i++) {
+                os << "    interface " << i << ": " << m_ifaceList[i]->name() << " -> ";
+                if (const AstNodeModule* const modp = paramSet->m_ifaces[i])
                     os << modp;
                 else
                     os << "(none)";
@@ -371,12 +351,12 @@ class ParamProcessor final {
     // NODE STATE - Shared with ParamVisitor
     //   User1/2/3 used by constant function simulations
     //   User4 shared with V3Hasher
-    //   AstNodeModule::user5p() // BaseModInfo* 0x1: Not a parameterizable modules, nor visited
-    //                                           0x2: Not a parameterizable modules, visited
+    //   AstNodeModule::user5p() // BaseModInfo* 0x1: Not a parameterized module, nor visited
+    //                                           0x2: Not a parameterized module, visited
     //                                           0x3: Module probing. Used to detect circular
     //                                               reference
     //                                           Other non-null values: BaseModInfo for
-    //                                               parameterizable modules
+    //                                               parameterized modules
     //   AstGenFor::user5()      // bool         True if processed
     //   AstVar::user5()         // bool         True if constant propagated
     //   AstCell::user5p()       // string*      Generate portion of hierarchical name
@@ -435,7 +415,6 @@ class ParamProcessor final {
             if (classPkgRefp->classOrPackagep() == oldClassp)
                 classPkgRefp->classOrPackagep(newClassp);
         }
-
         if (nodep->op1p()) replaceRefsRecurse(nodep->op1p(), oldClassp, newClassp);
         if (nodep->op2p()) replaceRefsRecurse(nodep->op2p(), oldClassp, newClassp);
         if (nodep->op3p()) replaceRefsRecurse(nodep->op3p(), oldClassp, newClassp);
@@ -454,20 +433,18 @@ class ParamProcessor final {
         return ifDtypep->ifaceViaCellp();
     }
     //! Check if the module/class can be parameterized (has parameter, or for modules, has
-    //! interface port that can be parameterized), and collect the parameters and parameterizable
-    //! interfaces for further uses.  Not for cloned modules.
+    //! interface port that can be parameterized), and collect the parameters and parameterized
+    //! interface ports for further uses.  Not for cloned modules.
     void probeModule(AstNodeModule* modp) {
         if (modp->user5p()) return;  // Already processed
         modp->user5p(reinterpret_cast<void*>(0x3));  // Avoid circular reference
-        // Collect all parameters and parameterizable interface ports inside source module
-        std::map<const AstVar*, int> paramIndexMap;
-        std::map<const AstParamTypeDType*, int> typeParamIndexMap;
-        std::map<const AstVar*, int> ifaceIndexMap;
-        int paramIndex = 0;
+        // Collect all parameters and parameterized interface ports inside source module
+        std::vector<const AstNode*> paramList;
+        std::vector<const AstVar*> ifaceList;
         for (auto* stmtp = modp->stmtsp(); stmtp; stmtp = stmtp->nextp()) {
             if (const AstVar* const varp = VN_CAST(stmtp, Var)) {
                 if (varp->isGParam()) {
-                    paramIndexMap[varp] = paramIndex++;
+                    paramList.push_back(varp);
                 } else if (varp->isIfaceRef()) {
                     AstIface* const ifacep = getIfaceFromVar(varp);
                     probeModule(ifacep);
@@ -475,35 +452,33 @@ class ParamProcessor final {
                     if (ifaceModInfop == reinterpret_cast<BaseModInfo*>(0x3)) {
                         m_cellNodep->v3warn(E_UNSUPPORTED,
                                             "Circular reference on interface ports");
-                    } else if (BaseModInfo::isParameterizable(ifaceModInfop)) {
-                        ifaceIndexMap[varp] = ifaceIndexMap.size();
+                    } else if (BaseModInfo::isParameterized(ifaceModInfop)) {
+                        ifaceList.push_back(varp);
                     }
                 }
             } else if (AstParamTypeDType* const dtypep = VN_CAST(stmtp, ParamTypeDType)) {
-                if (dtypep->isGParam()) typeParamIndexMap[dtypep] = paramIndex++;
+                if (dtypep->isGParam()) paramList.push_back(dtypep);
             }
         }
         UINFO(6, "  probeModule: " << modp << endl);
-        UINFO(6, "    collected: " << paramIndexMap.size() << " params, "
-                                   << typeParamIndexMap.size() << " type params, "
-                                   << ifaceIndexMap.size() << " param ifaces" << endl);
-        const bool hasGParam = !paramIndexMap.empty() || !typeParamIndexMap.empty();
-        const bool isParameterizable = hasGParam || !ifaceIndexMap.empty();
+        UINFO(6, "    collected: " << paramList.size() << " params, " << ifaceList.size()
+                                   << " param ifaces" << endl);
+        const bool hasGParam = !paramList.empty();
+        const bool isParameterized = hasGParam || !ifaceList.empty();
         UASSERT(hasGParam == modp->hasGParam(), "modp->hasGParam() is not consistent");
         ModInfo* modInfop;
-        if (isParameterizable) {
-            modInfop = new ModInfo(modp, std::move(paramIndexMap), std::move(typeParamIndexMap),
-                                   std::move(ifaceIndexMap));
+        if (isParameterized) {
+            modInfop = new ModInfo(modp, std::move(paramList), std::move(ifaceList));
             modInfop->hierBlock(modp->hierBlock());
             m_allocatedModInfo.push_back(modInfop);
         } else {
-            // 0x1: Not a parameterizable modules, nor visited
+            // 0x1: Not a parameterized module, nor visited
             modInfop = reinterpret_cast<ModInfo*>(0x1);
         }
         modp->user5p(modInfop);
     }
-    template <typename T_KEY, typename T_LIST, typename T_VAL>
-    void insertOverriddenParamSet(T_KEY* key, const std::map<const T_KEY*, int>& paramIndexMap,
+    template <typename T_KEY, typename T_MAP, typename T_LIST, typename T_VAL>
+    void insertOverriddenParamSet(T_KEY* key, const std::map<const T_MAP*, int>& paramIndexMap,
                                   std::vector<T_LIST*>& paramList, T_VAL* paramVal,
                                   const AstPin* errp) {
         const auto it = paramIndexMap.find(key);
@@ -516,9 +491,8 @@ class ParamProcessor final {
     ModParamSet* collectOverriddenParamSet(const ModInfo* modInfop, const AstPin* paramsp,
                                            const AstPin* pinsp) {
         auto& paramIndexMap = modInfop->paramIndexMap();
-        auto& typeParamIndexMap = modInfop->typeParamIndexMap();
         auto& ifaceIndexMap = modInfop->ifaceIndexMap();
-        std::vector<AstNode*> params{paramIndexMap.size() + typeParamIndexMap.size(), nullptr};
+        std::vector<AstNode*> params{paramIndexMap.size(), nullptr};
         std::vector<AstNodeModule*> ifaces{ifaceIndexMap.size(), nullptr};
         for (auto* pinp = paramsp; pinp; pinp = VN_AS(pinp->nextp(), Pin)) {
             if (!pinp->exprp()) continue;
@@ -553,7 +527,7 @@ class ParamProcessor final {
                         << " has hier_block metacomment, but 'parameter type' is not supported");
                 }
                 AstNodeDType* dtypep = VN_CAST(pinp->exprp(), NodeDType);
-                insertOverriddenParamSet(paramDTypep, typeParamIndexMap, params, dtypep, pinp);
+                insertOverriddenParamSet(paramDTypep, paramIndexMap, params, dtypep, pinp);
             }
         }
         for (auto* pinp = pinsp; pinp; pinp = VN_AS(pinp->nextp(), Pin)) {
@@ -570,7 +544,7 @@ class ParamProcessor final {
                 AstNodeModule* ifacep = getIfaceFromVar(ifaceVarp);
                 UASSERT_OBJ(ifacep, varrefp, "Ifaceref not linked to module");
                 probeModule(ifacep);
-                if (!BaseModInfo::isParameterizable(ifacep->user5p())) continue;
+                if (!BaseModInfo::isParameterized(ifacep->user5p())) continue;
                 insertOverriddenParamSet(modVarp, ifaceIndexMap, ifaces, ifacep, pinp);
             }
         }
@@ -600,19 +574,18 @@ class ParamProcessor final {
             replaceRefsRecurse(newModp->stmtsp(), newClassp, VN_AS(srcModp, Class));
         }
         // Assign params to the cloned module
-        for (const auto& item : modInfop->paramIndexMap()) {
-            if (AstNode* const valuep = paramCopies[item.second]) {
-                AstVar* clonedNodep = item.first->clonep();
-                if (auto* const nodep = clonedNodep->valuep()) nodep->unlinkFrBack()->deleteTree();
-                clonedNodep->valuep(valuep);
-            }
-        }
-        for (const auto& item : modInfop->typeParamIndexMap()) {
-            if (AstNodeDType* const typep = VN_CAST(paramCopies[item.second], NodeDType)) {
-                AstParamTypeDType* clonedNodep = item.first->clonep();
-                if (auto* const dtypep = clonedNodep->childDTypep())
+        for (size_t i = 0; i < modInfop->paramList().size(); i++) {
+            const AstNode* const paramp = modInfop->paramListAt(i);
+            AstNode* const valuep = paramCopies[i];
+            if (!valuep) continue;  // not overridden
+            if (AstVar* clonedVarp = VN_CAST(paramp->clonep(), Var)) {
+                if (auto* const nodep = clonedVarp->valuep()) nodep->unlinkFrBack()->deleteTree();
+                clonedVarp->valuep(valuep);
+            } else if (AstParamTypeDType* const clonedTypep
+                       = VN_CAST(paramp->clonep(), ParamTypeDType)) {
+                if (auto* const dtypep = clonedTypep->childDTypep())
                     dtypep->unlinkFrBack()->deleteTree();
-                clonedNodep->childDTypep(typep);
+                clonedTypep->childDTypep(VN_AS(valuep, NodeDType));
             }
         }
         for (const auto& item : modInfop->ifaceIndexMap()) {
@@ -632,34 +605,30 @@ class ParamProcessor final {
     //! @return the cloned module, with parameters propagated
     AstNodeModule* evaluateModParams(AstNodeModule* srcModp, ModInfo* modInfop,
                                      ModParamSet* paramsp) {
+        UINFO(7, "  evaluating params in cloned module...\n");
         AstNodeModule* const newModp = deepCloneModule(srcModp, modInfop, paramsp);
         // Propagate constant through the parameters in the new module
-        for (const auto& item : modInfop->paramIndexMap()) {  // TODO: this is not inordered
-            AstVar* clonedVarp = VN_AS(m_clonedModPinMap[item.first], Var);
-            V3Const::constifyParamsEdit(clonedVarp);
-        }
-        for (const auto& item : modInfop->typeParamIndexMap()) {
-            AstParamTypeDType* clonedVarp = VN_AS(m_clonedModPinMap[item.first], ParamTypeDType);
-            V3Const::constifyParamsEdit(clonedVarp);
+        for (const AstNode* paramp : modInfop->paramList()) {
+            V3Const::constifyParamsEdit(m_clonedModPinMap[paramp]);
         }
         // Collect evaluated parameters
         for (const auto& item : modInfop->paramIndexMap()) {
-            AstVar* clonedVarp = VN_AS(m_clonedModPinMap[item.first], Var);
-            // clonedVarp->varType(VVarType::LPARAM);
-            AstNodeExpr* exprp = VN_CAST(clonedVarp->valuep(), NodeExpr);
-            if (modInfop->hierBlock()) {
-                if (AstConst* constp = VN_CAST(exprp, Const)) {
-                    if (constp->isOpaque()) continue;
-                } else {
-                    continue;
+            AstNode* const clonep = m_clonedModPinMap[item.first];
+            if (AstVar* clonedVarp = VN_CAST(clonep, Var)) {
+                // clonedVarp->varType(VVarType::LPARAM);
+                AstNodeExpr* exprp = VN_CAST(clonedVarp->valuep(), NodeExpr);
+                if (modInfop->hierBlock()) {
+                    if (AstConst* constp = VN_CAST(exprp, Const)) {
+                        if (constp->isOpaque()) continue;
+                    } else {
+                        continue;
+                    }
                 }
+                paramsp->m_params[item.second] = exprp;
+            } else if (AstParamTypeDType* clonedDtp = VN_AS(clonep, ParamTypeDType)) {
+                if (modInfop->hierBlock()) continue;
+                paramsp->m_params[item.second] = clonedDtp->subDTypep();
             }
-            paramsp->m_params[item.second] = exprp;
-        }
-        for (const auto& item : modInfop->typeParamIndexMap()) {
-            if (modInfop->hierBlock()) continue;
-            AstParamTypeDType* clonedVarp = VN_AS(m_clonedModPinMap[item.first], ParamTypeDType);
-            paramsp->m_params[item.second] = clonedVarp->subDTypep();
         }
         paramsp->skipTypesRef();
         paramsp->rehash();
@@ -766,20 +735,23 @@ class ParamProcessor final {
     }
     bool checkCellParamSet(ModInfo* modInfop, ModParamSet* cellParam, AstPin* pinsp) {
         // Check parameters not given value
-        for (const auto& item : modInfop->paramIndexMap()) {
-            if (!item.first->valuep() && !cellParam->m_params[item.second]
-                && VN_IS(modInfop->originalModp(), Class)) {
-                m_cellNodep->v3error("Class parameter without initial value is never given value"
-                                     << " (IEEE 1800-2017 6.20.1): " << item.first->prettyNameQ());
-                return false;
-            }
-        }
-        for (const auto& item : modInfop->typeParamIndexMap()) {
-            AstNodeDType* dtypep = VN_CAST(cellParam->m_params[item.second], NodeDType);
-            if (!dtypep || VN_IS(dtypep, VoidDType)) dtypep = item.first->subDTypep();
-            if (!dtypep || VN_IS(dtypep, VoidDType)) {
-                m_cellNodep->v3error("Missing type parameter: " << item.first->prettyNameQ());
-                return false;
+        for (size_t i = 0; i < modInfop->paramList().size(); i++) {
+            const AstNode* const paramp = modInfop->paramListAt(i);
+            if (const AstVar* const varp = VN_CAST(paramp, Var)) {
+                if (!varp->valuep() && !cellParam->m_params[i]
+                    && VN_IS(modInfop->originalModp(), Class)) {
+                    m_cellNodep->v3error(
+                        "Class parameter without initial value is never given value"
+                        << " (IEEE 1800-2017 6.20.1): " << varp->prettyNameQ());
+                    return false;
+                }
+            } else if (const AstParamTypeDType* const pdtypep = VN_CAST(paramp, ParamTypeDType)) {
+                AstNodeDType* dtypep = VN_CAST(cellParam->m_params[i], NodeDType);
+                if (!dtypep || VN_IS(dtypep, VoidDType)) dtypep = pdtypep->subDTypep();
+                if (!dtypep || VN_IS(dtypep, VoidDType)) {
+                    m_cellNodep->v3error("Missing type parameter: " << pdtypep->prettyNameQ());
+                    return false;
+                }
             }
         }
         // Check interface connection
@@ -808,30 +780,28 @@ class ParamProcessor final {
         // Collect constants from original module for not overridden parameters, so potentially
         // don't need to clone a new module and evaluate the unknown parameters
         bool hasEmptyParam = false;
-        for (const auto& item : modInfop->paramIndexMap()) {
-            if (!collectedParams->m_params[item.second]) {  // not overridden
-                if (!item.first->valuep()) {  // skip parameter with no value
-                } else if (AstConst* constp = VN_CAST(item.first->valuep(), Const)) {
-                    if (isString(item.first->subDTypep())) {
+        for (size_t i = 0; i < modInfop->paramList().size(); i++) {
+            const AstNode* const paramp = modInfop->paramListAt(i);
+            if (collectedParams->m_params[i]) continue;
+            if (const AstVar* const varp = VN_CAST(paramp, Var)) {
+                if (!varp->valuep()) {  // skip parameter with no value
+                } else if (AstConst* constp = VN_CAST(varp->valuep(), Const)) {
+                    if (isString(varp->subDTypep())) {
                         constp = VN_AS(replaceWithStringp(constp), Const);
                     }
                     if (modInfop->hierBlock() && constp->isOpaque()) continue;
-                    collectedParams->m_params[item.second] = constp;
+                    collectedParams->m_params[i] = constp;
                 } else {
                     if (modInfop->hierBlock()) continue;
                     hasEmptyParam = true;
                 }
-            }
-        }
-        if (!modInfop->hierBlock()) {
-            for (const auto& item : modInfop->typeParamIndexMap()) {
-                if (!collectedParams->m_params[item.second]) {  // not overridden
-                    if (!item.first->childDTypep()) {  // skip parameter with no value
-                    } else {
-                        // We are not sure if item.first->childDTypep() is constant (e.g. has
-                        // non-constant range), so just mark it currently
-                        hasEmptyParam = true;
-                    }
+            } else if (const AstParamTypeDType* const dtypep = VN_CAST(paramp, ParamTypeDType)) {
+                if (modInfop->hierBlock()) continue;
+                if (!dtypep->childDTypep()) {  // skip parameter with no value
+                } else {
+                    // We are not sure if item.first->childDTypep() is constant (e.g. has
+                    // non-constant range), so just mark it currently
+                    hasEmptyParam = true;
                 }
             }
         }
@@ -840,22 +810,22 @@ class ParamProcessor final {
             foundp = modInfop->findNodeWithOverriddenParamSet(collectedParams.get());
             if (!foundp) foundp = modInfop->findNodeWithFullParamSet(collectedParams.get());
             if (foundp) {
-                UINFO(7, "  module found with full param set\n");
+                UINFO(7, "  module found with collected param set\n");
                 modInfop->insertOverriddenParamSet(overriddenParams.release(), foundp);
                 modInfop->insertOverriddenParamSet(collectedParams.release(), foundp);
                 return foundp;
             }
         }
         AstNodeModule* clonedModp = nullptr;
-        // If still has unknown parameters, evaluate them before finding in the fullParamSet
-        UINFO(7, "  evaluating params in cloned module...\n");
+        // Even if there's no unknown parameters, we still have to evaluate them under module's
+        // context (to perform truncation/extension/type propagation/...)
         auto evaluatedParams = std::make_unique<ModParamSet>(*overriddenParams);
         clonedModp = evaluateModParams(modp, modInfop, evaluatedParams.get());
 
         foundp = modInfop->findNodeWithOverriddenParamSet(evaluatedParams.get());
         if (!foundp) foundp = modInfop->findNodeWithFullParamSet(evaluatedParams.get());
         if (foundp) {
-            UINFO(7, "  module found with full param set\n");
+            UINFO(7, "  module found with evaluated param set\n");
 
             // A specialized module with the same param set is already exist. The cloned one is not
             // necessary anymore
@@ -888,7 +858,7 @@ class ParamProcessor final {
         deparamedModInfo->setPinMap(std::move(m_clonedModPinMap));
         if (!updateClonedModInfo(modInfop, clonedModp, collectedParams.get())) return nullptr;
         collectedParams->skipTypesRef();
-        UINFO(6, "  insert new paramed module: " << clonedModp << endl);
+        UINFO(6, "  insert new deparamed module: " << clonedModp << endl);
         modInfop->insertOverriddenParamSet(overriddenParams.release(), clonedModp);
         modInfop->insertOverriddenParamSet(collectedParams.release(), clonedModp);
         // modInfop->insertOverriddenParamSet(evaluatedParams.release(), foundp);
@@ -911,14 +881,14 @@ class ParamProcessor final {
         UINFO(6, "Deparam: processing: " << m_cellNodep << endl);
         UINFO(6, "         src module: " << srcModpr << endl);
         probeModule(srcModpr);
-        if (!BaseModInfo::isParameterizable(srcModpr->user5p())) {  // Not parameterizable
+        BaseModInfo* modInfo = srcModpr->user5u().to<BaseModInfo*>();
+        if (!BaseModInfo::isParameterized(modInfo)) {  // Not parameterized
             checkIfacePinConnection(pinsp);
-            UINFO(6, "  skip not parameterizable module" << endl);
+            UINFO(6, "  skip not parameterized module" << endl);
             return false;
-        }
-        if (srcModpr->user5u().to<BaseModInfo*>()->isDeparamed()) {
-            // After processing, some ClassRefs in parameter pins can be copied and assigned to new
-            // module, and then be revisited, so just skip them.
+        } else if (modInfo->isDeparamed()) {
+            // After processing, some ClassRefs inside parameter pins could be copied and assigned
+            // to new module, and then be revisited, so just skip them.
             UINFO(6, "  skip already processed cell" << endl);
             return false;
         }
@@ -983,7 +953,7 @@ class ParamProcessor final {
             UASSERT(origModp, "Can not find original module for " << modName << endl);
             probeModule(origModp);
             ModInfo* modInfo = origModp->user5u().to<ModInfo*>();
-            if (!BaseModInfo::isParameterizable(modInfo)) continue;
+            if (!BaseModInfo::isParameterized(modInfo)) continue;
             modInfo->hierBlock(true);
             std::unordered_map<string, AstNode*> origModPinMap;
             for (AstNode* stmtp = origModp->stmtsp(); stmtp; stmtp = stmtp->nextp()) {
@@ -1005,11 +975,10 @@ class ParamProcessor final {
                     paramMap[paramItem.first] = constp;
                 }
                 auto& paramIndexMap = modInfo->paramIndexMap();
-                auto& typeParamIndexMap = modInfo->typeParamIndexMap();
-                std::vector<AstNode*> paramsList{paramIndexMap.size() + typeParamIndexMap.size(),
-                                                 nullptr};
+                std::vector<AstNode*> paramsList{paramIndexMap.size(), nullptr};
                 for (const auto& indexMapItem : paramIndexMap) {
-                    const AstVar* const varp = indexMapItem.first;
+                    if (!VN_IS(indexMapItem.first, Var)) continue;
+                    const AstVar* const varp = VN_AS(indexMapItem.first, Var);
                     // if (!varp->isParam()) continue;
                     auto paramMapIt = paramMap.find(varp->name());
                     if (paramMapIt == paramMap.end()) continue;
