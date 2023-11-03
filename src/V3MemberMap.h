@@ -34,13 +34,13 @@
 
 class VMemberMap final {
     // MEMBERS
-    using MemberMap = std::map<std::string, AstNode*>;
+    using MemberMap = std::map<VConstString, AstNode*>;
     using NodeMap = std::map<const AstNode*, MemberMap>;
     NodeMap m_map;  // Map of nodes being tracked
 public:
     void clear() { m_map.clear(); }
     // Find 'name' under 'nodep', caching nodep's children if needed
-    AstNode* findMember(const AstNode* nodep, const std::string& name) {
+    AstNode* findMember(const AstNode* nodep, const VConstString& name) {
         auto nit = m_map.find(nodep);
         if (VL_UNLIKELY(nit == m_map.end())) {
             scan(nodep);

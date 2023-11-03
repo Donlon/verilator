@@ -285,7 +285,7 @@ private:
                 // This is necessarily an O(n^2) expansion, which is why
                 // we limit coverage to signals with < 256 bits.
 
-                ToggleEnt newvec{std::string{""}, new AstVarRef{fl_nowarn, nodep, VAccess::READ},
+                ToggleEnt newvec{"", new AstVarRef{fl_nowarn, nodep, VAccess::READ},
                                  new AstVarRef{fl_nowarn, chgVarp, VAccess::WRITE}};
                 toggleVarRecurse(nodep->dtypeSkipRefp(), 0, newvec, nodep, chgVarp);
                 newvec.cleanup();
@@ -309,8 +309,7 @@ private:
                 for (int index_docs = bdtypep->lo(); index_docs < bdtypep->hi() + 1;
                      ++index_docs) {
                     const int index_code = index_docs - bdtypep->lo();
-                    ToggleEnt newent{above.m_comment + std::string{"["} + cvtToStr(index_docs)
-                                         + "]",
+                    ToggleEnt newent{above.m_comment + '[' + cvtToStr(index_docs) + ']',
                                      new AstSel{varp->fileline(), above.m_varRefp->cloneTree(true),
                                                 index_code, 1},
                                      new AstSel{varp->fileline(), above.m_chgRefp->cloneTree(true),
@@ -324,7 +323,7 @@ private:
         } else if (const AstUnpackArrayDType* const adtypep = VN_CAST(dtypep, UnpackArrayDType)) {
             for (int index_docs = adtypep->lo(); index_docs <= adtypep->hi(); ++index_docs) {
                 const int index_code = index_docs - adtypep->lo();
-                ToggleEnt newent{above.m_comment + std::string{"["} + cvtToStr(index_docs) + "]",
+                ToggleEnt newent{above.m_comment + '[' + cvtToStr(index_docs) + ']',
                                  new AstArraySel{varp->fileline(),
                                                  above.m_varRefp->cloneTree(true), index_code},
                                  new AstArraySel{varp->fileline(),
@@ -337,7 +336,7 @@ private:
             for (int index_docs = adtypep->lo(); index_docs <= adtypep->hi(); ++index_docs) {
                 const AstNodeDType* const subtypep = adtypep->subDTypep()->skipRefp();
                 const int index_code = index_docs - adtypep->lo();
-                ToggleEnt newent{above.m_comment + std::string{"["} + cvtToStr(index_docs) + "]",
+                ToggleEnt newent{above.m_comment + '[' + cvtToStr(index_docs) + ']',
                                  new AstSel{varp->fileline(), above.m_varRefp->cloneTree(true),
                                             index_code * subtypep->width(), subtypep->width()},
                                  new AstSel{varp->fileline(), above.m_chgRefp->cloneTree(true),
@@ -352,7 +351,7 @@ private:
                      itemp = VN_AS(itemp->nextp(), MemberDType)) {
                     AstNodeDType* const subtypep = itemp->subDTypep()->skipRefp();
                     const int index_code = itemp->lsb();
-                    ToggleEnt newent{above.m_comment + std::string{"."} + itemp->name(),
+                    ToggleEnt newent{above.m_comment + '.' + itemp->name(),
                                      new AstSel{varp->fileline(), above.m_varRefp->cloneTree(true),
                                                 index_code, subtypep->width()},
                                      new AstSel{varp->fileline(), above.m_chgRefp->cloneTree(true),
@@ -370,8 +369,7 @@ private:
                         varp->fileline(), above.m_varRefp->cloneTree(true), itemp->name()};
                     varRefp->dtypep(subtypep);
                     chgRefp->dtypep(subtypep);
-                    ToggleEnt newent{above.m_comment + std::string{"."} + itemp->name(), varRefp,
-                                     chgRefp};
+                    ToggleEnt newent{above.m_comment + '.' + itemp->name(), varRefp, chgRefp};
                     toggleVarRecurse(subtypep, depth + 1, newent, varp, chgVarp);
                     newent.cleanup();
                 }
@@ -380,7 +378,7 @@ private:
             // Arbitrarily handle only the first member of the union
             if (const AstMemberDType* const itemp = adtypep->membersp()) {
                 AstNodeDType* const subtypep = itemp->subDTypep()->skipRefp();
-                ToggleEnt newent{above.m_comment + std::string{"."} + itemp->name(),
+                ToggleEnt newent{above.m_comment + '.' + itemp->name(),
                                  above.m_varRefp->cloneTree(true),
                                  above.m_chgRefp->cloneTree(true)};
                 toggleVarRecurse(subtypep, depth + 1, newent, varp, chgVarp);

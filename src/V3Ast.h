@@ -1949,9 +1949,9 @@ public:
     static constexpr int INSTR_COUNT_PLI = 20;  // PLI routines
 
     // ACCESSORS
-    virtual string name() const { return ""; }
-    virtual string origName() const { return ""; }
-    virtual void name(const string& name) {
+    virtual VConstString name() const { return {}; }
+    virtual VConstString origName() const { return {}; }
+    virtual void name(const VConstString& name) {
         this->v3fatalSrc("name() called on object without name() method");
     }
     virtual void tag(const string& text) {}
@@ -2758,10 +2758,16 @@ public:
     template <typename U>
     // cppcheck-suppress noExplicitConstructor
     VNRef(U&& x)
-        : std::reference_wrapper<T_Node>{x} {}
+        : std::reference_wrapper<T_Node> {
+        x
+    }
+    {}
     // cppcheck-suppress noExplicitConstructor
     VNRef(const std::reference_wrapper<T_Node>& other)
-        : std::reference_wrapper<T_Node>{other} {}
+        : std::reference_wrapper<T_Node> {
+        other
+    }
+    {}
 };
 
 static_assert(sizeof(VNRef<AstNode>) == sizeof(std::reference_wrapper<AstNode>),

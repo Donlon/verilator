@@ -186,7 +186,7 @@ void V3LinkLevel::wrapTopCell(AstNetlist* rootp) {
     UASSERT_OBJ(newmodp && newmodp->isTop(), rootp, "No TOP module found to insert under");
 
     // Find all duplicate signal names (if multitop)
-    using NameSet = std::unordered_set<std::string>;
+    using NameSet = std::unordered_set<VConstString>;
     NameSet ioNames;
     NameSet dupNames;
     // For all modules, skipping over new top
@@ -239,7 +239,7 @@ void V3LinkLevel::wrapTopCell(AstNetlist* rootp) {
         AstCell* const cellp = new AstCell{
             newmodp->fileline(),
             newmodp->fileline(),
-            (!v3Global.opt.l2Name().empty() ? v3Global.opt.l2Name() : oldmodp->name()),
+            !v3Global.opt.l2Name().empty() ? VConstString{v3Global.opt.l2Name()} : oldmodp->name(),
             oldmodp->name(),
             nullptr,
             nullptr,
@@ -252,7 +252,7 @@ void V3LinkLevel::wrapTopCell(AstNetlist* rootp) {
             if (AstVar* const oldvarp = VN_CAST(subnodep, Var)) {
                 UINFO(8, "VARWRAP " << oldvarp << endl);
                 if (oldvarp->isIO()) {
-                    string name = oldvarp->name();
+                    VConstString name = oldvarp->name();
                     if (dupNames.find(name) != dupNames.end()) {
                         // __02E=. while __DOT__ looks nicer but will break V3LinkDot
                         name = oldmodp->name() + "__02E" + name;
@@ -293,7 +293,7 @@ void V3LinkLevel::wrapTopCell(AstNetlist* rootp) {
                     if (VN_IS(subtypep, IfaceRefDType)) {
                         const AstIfaceRefDType* const ifacerefp = VN_AS(subtypep, IfaceRefDType);
                         if (!ifacerefp->cellp()) {
-                            string name = oldvarp->name();
+                            VConstString name = oldvarp->name();
                             if (dupNames.find(name) != dupNames.end()) {
                                 // __02E=. while __DOT__ looks nicer but will break V3LinkDot
                                 name = oldmodp->name() + "__02E" + name;
@@ -338,7 +338,7 @@ void V3LinkLevel::wrapTopCell(AstNetlist* rootp) {
                             const AstIfaceRefDType* const ifacerefp
                                 = VN_AS(arrsubtypep, IfaceRefDType);
                             if (!ifacerefp->cellp()) {
-                                string name = oldvarp->name();
+                                VConstString name = oldvarp->name();
                                 if (dupNames.find(name) != dupNames.end()) {
                                     // __02E=. while __DOT__ looks nicer but will break V3LinkDot
                                     name = oldmodp->name() + "__02E" + name;

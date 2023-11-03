@@ -325,7 +325,7 @@ AstNodeBiop* AstEqWild::newTyped(FileLine* fl, AstNodeExpr* lhsp, AstNodeExpr* r
     }
 }
 
-AstExecGraph::AstExecGraph(FileLine* fileline, const string& name) VL_MT_DISABLED
+AstExecGraph::AstExecGraph(FileLine* fileline, const VConstString& name) VL_MT_DISABLED
     : ASTGEN_SUPER_ExecGraph(fileline),
       m_depGraphp{new V3Graph},
       m_name{name} {}
@@ -586,7 +586,7 @@ string AstVar::cPubArgType(bool named, bool forReturn) const {
         }
     } else {
         // Newer internal-compatible types
-        arg += dtypep()->cType((named ? name() : std::string{}), true, isRef);
+        arg += dtypep()->cType((named ? name() : VConstString{}), true, isRef);
     }
     return arg;
 }
@@ -979,7 +979,7 @@ string AstScope::nameDotless() const {
     return result;
 }
 
-AstVarScope* AstScope::createTemp(const string& name, unsigned width) {
+AstVarScope* AstScope::createTemp(const VConstString& name, unsigned width) {
     FileLine* const flp = fileline();
     AstVar* const varp
         = new AstVar{flp, VVarType::MODULETEMP, name, VFlagBitPacked{}, static_cast<int>(width)};
@@ -989,7 +989,7 @@ AstVarScope* AstScope::createTemp(const string& name, unsigned width) {
     return vscp;
 }
 
-AstVarScope* AstScope::createTemp(const string& name, AstNodeDType* dtypep) {
+AstVarScope* AstScope::createTemp(const VConstString& name, AstNodeDType* dtypep) {
     FileLine* const flp = fileline();
     AstVar* const varp = new AstVar{flp, VVarType::MODULETEMP, name, dtypep};
     modp()->addStmtsp(varp);
@@ -998,7 +998,7 @@ AstVarScope* AstScope::createTemp(const string& name, AstNodeDType* dtypep) {
     return vscp;
 }
 
-AstVarScope* AstScope::createTempLike(const string& name, AstVarScope* vscp) {
+AstVarScope* AstScope::createTempLike(const VConstString& name, AstVarScope* vscp) {
     return createTemp(name, vscp->dtypep());
 }
 
@@ -1197,7 +1197,7 @@ const char* AstConstPool::broken() const {
     return nullptr;
 }
 
-AstVarScope* AstConstPool::createNewEntry(const string& name, AstNodeExpr* initp) {
+AstVarScope* AstConstPool::createNewEntry(const VConstString& name, AstNodeExpr* initp) {
     FileLine* const fl = initp->fileline();
     AstVar* const varp = new AstVar{fl, VVarType::MODULETEMP, name, initp->dtypep()};
     varp->isConst(true);
@@ -1546,7 +1546,7 @@ void AstClassRefDType::cloneRelink() {
         m_classOrPackagep = m_classOrPackagep->clonep();
     }
 }
-string AstClassRefDType::name() const { return classp() ? classp()->name() : "<unlinked>"; }
+VConstString AstClassRefDType::name() const { return classp() ? classp()->name() : "<unlinked>"; }
 void AstNodeCoverOrAssert::dump(std::ostream& str) const {
     this->AstNodeStmt::dump(str);
     if (immediate()) str << " [IMMEDIATE]";

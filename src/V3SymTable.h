@@ -43,13 +43,13 @@ using VSymConstMap = std::unordered_set<const VSymEnt*>;
 class VSymEnt final {
     // Symbol table that can have a "superior" table for resolving upper references
     // MEMBERS
-    using IdNameMap = std::multimap<std::string, VSymEnt*>;
+    using IdNameMap = std::multimap<VConstString, VSymEnt*>;
     IdNameMap m_idNameMap;  // Hash of variables by name
     AstNode* m_nodep;  // Node that entry belongs to
     VSymEnt* m_fallbackp;  // Table "above" this one in name scope, for fallback resolution
     VSymEnt* m_parentp;  // Table that created this table, dot notation needed to resolve into it
     AstNodeModule* m_classOrPackagep;  // Package node is in (for V3LinkDot, unused here)
-    string m_symPrefix;  // String to prefix symbols with (for V3LinkDot, unused here)
+    VConstString m_symPrefix;  // String to prefix symbols with (for V3LinkDot, unused here)
     bool m_exported;  // Allow importing
     bool m_imported;  // Was imported
 #ifdef VL_DEBUG
@@ -111,13 +111,13 @@ public:
     void classOrPackagep(AstNodeModule* entp) { m_classOrPackagep = entp; }
     AstNodeModule* classOrPackagep() const { return m_classOrPackagep; }
     AstNode* nodep() const { return m_nodep; }
-    string symPrefix() const { return m_symPrefix; }
-    void symPrefix(const string& name) { m_symPrefix = name; }
+    VConstString symPrefix() const { return m_symPrefix; }
+    void symPrefix(const VConstString& name) { m_symPrefix = name; }
     bool exported() const { return m_exported; }
     void exported(bool flag) { m_exported = flag; }
     bool imported() const { return m_imported; }
     void imported(bool flag) { m_imported = flag; }
-    void insert(const string& name, VSymEnt* entp) {
+    void insert(const VConstString& name, VSymEnt* entp) {
         UINFO(9, "     SymInsert se" << cvtToHex(this) << " '" << name << "' se" << cvtToHex(entp)
                                      << "  " << entp->nodep() << endl);
         if (name != "" && m_idNameMap.find(name) != m_idNameMap.end()) {
@@ -130,7 +130,7 @@ public:
             m_idNameMap.emplace(name, entp);
         }
     }
-    void reinsert(const string& name, VSymEnt* entp) {
+    void reinsert(const VConstString& name, VSymEnt* entp) {
         const auto it = m_idNameMap.find(name);
         if (name != "" && it != m_idNameMap.end()) {
             UINFO(9, "     SymReinsert se" << cvtToHex(this) << " '" << name << "' se"
@@ -140,7 +140,7 @@ public:
             insert(name, entp);
         }
     }
-    VSymEnt* findIdFlat(const string& name) const {
+    VSymEnt* findIdFlat(const VConstString& name) const {
         // Find identifier without looking upward through symbol hierarchy
         // First, scan this begin/end block or module for the name
         const auto it = m_idNameMap.find(name);
@@ -153,7 +153,7 @@ public:
         if (it != m_idNameMap.end()) return (it->second);
         return nullptr;
     }
-    VSymEnt* findIdFallback(const string& name) const {
+    VSymEnt* findIdFallback(const VConstString& name) const {
         // Find identifier looking upward through symbol hierarchy
         // First, scan this begin/end block or module for the name
         if (VSymEnt* const entp = findIdFlat(name)) return entp;
@@ -179,7 +179,7 @@ public:
     }
 
 private:
-    void importOneSymbol(VSymGraph* graphp, const string& name, const VSymEnt* srcp,
+    void importOneSymbol(VSymGraph* graphp, const VConstString& name, const VSymEnt* srcp,
                          bool honorExport) {
         if ((!honorExport || srcp->exported())
             && !findIdFlat(name)) {  // Don't insert over existing entry
@@ -189,7 +189,7 @@ private:
             reinsert(name, symp);
         }
     }
-    void exportOneSymbol(VSymGraph* graphp, const string& name, const VSymEnt* srcp) const {
+    void exportOneSymbol(VSymGraph* graphp, const VConstString& name, const VSymEnt* srcp) const {
         if (srcp->exported()) {
             if (VSymEnt* const symp = findIdFlat(name)) {  // Should already exist in current table
                 if (!symp->exported()) symp->exported(true);
@@ -206,7 +206,8 @@ public:
             importOneSymbol(graphp, it->first, it->second, false);
         }
     }
-    void importFromPackage(VSymGraph* graphp, const VSymEnt* srcp, const string& id_or_star) {
+    void importFromPackage(VSymGraph* graphp, const VSymEnt* srcp,
+                           const VConstString& id_or_star) {
         // Import tokens from source symbol table into this symbol table
         if (id_or_star != "*") {
             const auto it = srcp->m_idNameMap.find(id_or_star);
@@ -220,7 +221,8 @@ public:
             }
         }
     }
-    void exportFromPackage(VSymGraph* graphp, const VSymEnt* srcp, const string& id_or_star) {
+    void exportFromPackage(VSymGraph* graphp, const VSymEnt* srcp,
+                           const VConstString& id_or_star) {
         // Export tokens from source symbol table into this symbol table
         if (id_or_star != "*") {
             const auto it = vlstd::as_const(srcp->m_idNameMap).find(id_or_star);
@@ -244,7 +246,7 @@ public:
         UINFO(9, "     importIf  se" << cvtToHex(this) << " from se" << cvtToHex(srcp) << endl);
         for (IdNameMap::const_iterator it = srcp->m_idNameMap.begin();
              it != srcp->m_idNameMap.end(); ++it) {
-            const string& name = it->first;
+            const VConstString& name = it->first;
             VSymEnt* const subSrcp = it->second;
             const AstVar* const varp = VN_CAST(subSrcp->nodep(), Var);
             if (!onlyUnmodportable || (varp && varp->isParam())) {

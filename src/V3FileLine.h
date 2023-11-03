@@ -20,6 +20,7 @@
 #include "config_build.h"
 #include "verilatedos.h"
 
+#include "V3ConstString.h"
 #include "V3Error.h"
 #include "V3LangCode.h"
 #include "V3Mutex.h"
@@ -52,8 +53,8 @@ class FileLineSingleton final {
 
     // MEMBERS
     V3Mutex m_mutex;  // protects members
-    std::map<const std::string, fileNameIdx_t> m_namemap;  // filenameno for each filename
-    std::deque<string> m_names;  // filename text for each filenameno
+    std::map<VConstString, fileNameIdx_t> m_namemap;  // filenameno for each filename
+    std::deque<VConstString> m_names;  // filename text for each filenameno
     std::deque<V3LangCode> m_languages;  // language for each filenameno
 
     // Map from flag set to the index in m_internedMsgEns for interning
@@ -65,8 +66,10 @@ class FileLineSingleton final {
     FileLineSingleton() = default;
     ~FileLineSingleton() = default;
 
-    fileNameIdx_t nameToNumber(const string& filename);
-    string numberToName(fileNameIdx_t filenameno) const VL_MT_SAFE { return m_names[filenameno]; }
+    fileNameIdx_t nameToNumber(const VConstString& filename);
+    VConstString numberToName(fileNameIdx_t filenameno) const VL_MT_SAFE {
+        return m_names[filenameno];
+    }
     V3LangCode numberToLang(fileNameIdx_t filenameno) const { return m_languages[filenameno]; }
     void numberToLang(fileNameIdx_t filenameno, const V3LangCode& l) {
         m_languages[filenameno] = l;
@@ -177,7 +180,7 @@ private:
         , m_contentLineno{0} {}
 
 public:
-    explicit FileLine(const string& filename)
+    explicit FileLine(const VConstString& filename)
         : m_msgEnIdx{defaultFileLine().m_msgEnIdx}
         , m_filenameno{singleton().nameToNumber(filename)}
         , m_waive{false}
@@ -221,7 +224,7 @@ public:
         m_lastColumn = lastColumn;
     }
     void language(V3LangCode lang) const { singleton().numberToLang(filenameno(), lang); }
-    void filename(const string& name) { m_filenameno = singleton().nameToNumber(name); }
+    void filename(const VConstString& name) { m_filenameno = singleton().nameToNumber(name); }
     void parent(FileLine* fileline) { m_parent = fileline; }
     void lineDirective(const char* textp, int& enterExitRef);
     void lineDirectiveParse(const char* textp, string& filenameRef, int& linenoRef,
@@ -253,7 +256,7 @@ public:
     string ascii() const VL_MT_SAFE;
     string asciiLineCol() const;
     int filenameno() const VL_MT_SAFE { return m_filenameno; }
-    string filename() const VL_MT_SAFE { return singleton().numberToName(filenameno()); }
+    VConstString filename() const VL_MT_SAFE { return singleton().numberToName(filenameno()); }
     bool filenameIsGlobal() const VL_MT_SAFE {
         return (filename() == commandLineFilename() || filename() == builtInFilename());
     }

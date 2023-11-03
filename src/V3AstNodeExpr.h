@@ -225,9 +225,9 @@ class AstNodeFTaskRef VL_NOT_FINAL : public AstNodeExpr {
     // @astgen op4 := scopeNamep : Optional[AstScopeName]
     AstNodeFTask* m_taskp = nullptr;  // [AfterLink] Pointer to task referenced
     AstNodeModule* m_classOrPackagep = nullptr;  // Class/package of the task
-    string m_name;  // Name of variable
-    string m_dotted;  // Dotted part of scope the name()ed task/func is under or ""
-    string m_inlinedDots;  // Dotted hierarchy flattened out
+    VConstString m_name;  // Name of variable
+    VConstString m_dotted;  // Dotted part of scope the name()ed task/func is under or ""
+    VConstString m_inlinedDots;  // Dotted hierarchy flattened out
     bool m_pli = false;  // Pli system call ($name)
     VIsCached m_purity;  // Pure state
 
@@ -248,14 +248,14 @@ public:
     const char* broken() const override;
     void cloneRelink() override;
     void dump(std::ostream& str = std::cout) const override;
-    string name() const override VL_MT_STABLE { return m_name; }  // * = Var name
+    VConstString name() const override VL_MT_STABLE { return m_name; }  // * = Var name
     bool isGateOptimizable() const override;
     string dotted() const { return m_dotted; }  // * = Scope name or ""
     string inlinedDots() const { return m_inlinedDots; }
     void inlinedDots(const string& flag) { m_inlinedDots = flag; }
     AstNodeFTask* taskp() const { return m_taskp; }  // [After Link] Pointer to variable
     void taskp(AstNodeFTask* taskp) { m_taskp = taskp; }
-    void name(const string& name) override { m_name = name; }
+    void name(const VConstString& name) override { m_name = name; }
     void dotted(const string& name) { m_dotted = name; }
     AstNodeModule* classOrPackagep() const { return m_classOrPackagep; }
     void classOrPackagep(AstNodeModule* nodep) { m_classOrPackagep = nodep; }
@@ -561,7 +561,7 @@ class AstArg final : public AstNodeExpr {
     // omitted argument.
     // TODO: AstArg should not be AstNodeExpr, but is currently used as such widely. Fix later.
     // @astgen op1 := exprp : Optional[AstNodeExpr] // nullptr if omitted
-    string m_name;  // Pin name, or "" for number based interconnect
+    VConstString m_name;  // Pin name, or "" for number based interconnect
 public:
     AstArg(FileLine* fl, const string& name, AstNodeExpr* exprp)
         : ASTGEN_SUPER_Arg(fl)
@@ -570,8 +570,10 @@ public:
     }
     ASTGEN_MEMBERS_AstArg;
     bool hasDType() const override { return false; }
-    string name() const override VL_MT_STABLE { return m_name; }  // * = Pin name, ""=go by number
-    void name(const string& name) override { m_name = name; }
+    VConstString name() const override VL_MT_STABLE {
+        return m_name;  // * = Pin name, ""=go by number
+    }
+    void name(const VConstString& name) override { m_name = name; }
     bool emptyConnectNoNext() const { return !exprp() && name() == "" && !nextp(); }
 
     string emitVerilog() override { V3ERROR_NA_RETURN(""); }
@@ -629,7 +631,7 @@ class AstCMethodHard final : public AstNodeExpr {
     // PARENTS: stmt/expr
     // @astgen op1 := fromp : AstNodeExpr // Subject of method call
     // @astgen op2 := pinsp : List[AstNodeExpr] // Arguments
-    string m_name;  // Name of method
+    VConstString m_name;  // Name of method
     bool m_pure = false;  // Pure optimizable
 public:
     AstCMethodHard(FileLine* fl, AstNodeExpr* fromp, const string& name,
@@ -641,8 +643,8 @@ public:
         setPurity();
     }
     ASTGEN_MEMBERS_AstCMethodHard;
-    string name() const override VL_MT_STABLE { return m_name; }  // * = Var name
-    void name(const string& name) override { m_name = name; }
+    VConstString name() const override VL_MT_STABLE { return m_name; }  // * = Var name
+    void name(const VConstString& name) override { m_name = name; }
     bool same(const AstNode* samep) const override {
         const AstCMethodHard* const asamep = VN_DBG_AS(samep, CMethodHard);
         return (m_name == asamep->m_name);
@@ -713,7 +715,7 @@ public:
 class AstCellArrayRef final : public AstNodeExpr {
     // As-of-yet unlinkable reference into an array of cells
     // @astgen op1 := selp : List[AstNodeExpr] // Select expression
-    string m_name;  // Array name
+    VConstString m_name;  // Array name
 public:
     AstCellArrayRef(FileLine* fl, const string& name, AstNodeExpr* selp)
         : ASTGEN_SUPER_CellArrayRef(fl)
@@ -722,7 +724,7 @@ public:
     }
     ASTGEN_MEMBERS_AstCellArrayRef;
     // ACCESSORS
-    string name() const override VL_MT_STABLE { return m_name; }  // * = Array name
+    VConstString name() const override VL_MT_STABLE { return m_name; }  // * = Array name
 
     string emitVerilog() override { V3ERROR_NA_RETURN(""); }
     string emitC() override { V3ERROR_NA_RETURN(""); }
@@ -733,7 +735,7 @@ class AstCellRef final : public AstNodeExpr {
     // @astgen op1 := cellp : AstNode
     // @astgen op2 := exprp : AstNodeExpr
 private:
-    string m_name;  // Cell name
+    VConstString m_name;  // Cell name
 public:
     AstCellRef(FileLine* fl, const string& name, AstNode* cellp, AstNodeExpr* exprp)
         : ASTGEN_SUPER_CellRef(fl)
@@ -743,7 +745,7 @@ public:
     }
     ASTGEN_MEMBERS_AstCellRef;
     // ACCESSORS
-    string name() const override VL_MT_STABLE { return m_name; }  // * = Array name
+    VConstString name() const override VL_MT_STABLE { return m_name; }  // * = Array name
 
     string emitVerilog() override { V3ERROR_NA_RETURN(""); }
     string emitC() override { V3ERROR_NA_RETURN(""); }
@@ -752,7 +754,7 @@ public:
 class AstClassOrPackageRef final : public AstNodeExpr {
     // @astgen op1 := paramsp : List[AstPin]
 private:
-    string m_name;
+    VConstString m_name;
     // Node not NodeModule to appease some early parser usage
     AstNode* m_classOrPackageNodep;  // Pointer to class/package referenced
 public:
@@ -779,7 +781,7 @@ public:
                 == VN_DBG_AS(samep, ClassOrPackageRef)->m_classOrPackageNodep);
     }
     void dump(std::ostream& str = std::cout) const override;
-    string name() const override VL_MT_STABLE { return m_name; }  // * = Var name
+    VConstString name() const override VL_MT_STABLE { return m_name; }  // * = Var name
     AstNode* classOrPackageNodep() const { return m_classOrPackageNodep; }
     void classOrPackageNodep(AstNode* nodep) { m_classOrPackageNodep = nodep; }
     AstNodeModule* classOrPackagep() const;
@@ -1037,7 +1039,7 @@ public:
         initWithNumber();
     }
     ASTGEN_MEMBERS_AstConst;
-    string name() const override VL_MT_STABLE { return num().ascii(); }  // * = Value
+    VConstString name() const override VL_MT_STABLE { return num().ascii(); }  // * = Value
     const V3Number& num() const VL_MT_SAFE { return m_num; }  // * = Value
     V3Number& num() { return m_num; }  // * = Value
     uint32_t toUInt() const { return num().toUInt(); }
@@ -1138,7 +1140,7 @@ public:
     }
     ASTGEN_MEMBERS_AstEnumItemRef;
     void dump(std::ostream& str) const override;
-    string name() const override VL_MT_STABLE { return itemp()->name(); }
+    VConstString name() const override VL_MT_STABLE { return itemp()->name(); }
     int instrCount() const override { return 0; }
     const char* broken() const override;
     void cloneRelink() override;
@@ -1291,7 +1293,7 @@ public:
         this->filep(filep);
     }
     ASTGEN_MEMBERS_AstFScanF;
-    string name() const override VL_MT_STABLE { return m_text; }
+    VConstString name() const override VL_MT_STABLE { return m_text; }
     string verilogKwd() const override { return "$fscanf"; }
     string emitVerilog() override { V3ERROR_NA_RETURN(""); }
     string emitC() override { V3ERROR_NA_RETURN(""); }
@@ -1476,7 +1478,7 @@ class AstLambdaArgRef final : public AstNodeExpr {
     // Lambda argument usage
     // These are not AstVarRefs because we need to be able to delete/clone lambdas during
     // optimizations and AstVar's are painful to remove.
-    string m_name;  // Name of variable
+    VConstString m_name;  // Name of variable
     bool m_index;  // Index, not value
 
 public:
@@ -1490,14 +1492,14 @@ public:
     string emitC() override { V3ERROR_NA_RETURN(""); }
     bool cleanOut() const override { return true; }
     int instrCount() const override { return widthInstrs(); }
-    string name() const override VL_MT_STABLE { return m_name; }  // * = Var name
-    void name(const string& name) override { m_name = name; }
+    VConstString name() const override VL_MT_STABLE { return m_name; }  // * = Var name
+    void name(const VConstString& name) override { m_name = name; }
     bool index() const { return m_index; }
 };
 class AstMemberSel final : public AstNodeExpr {
     // @astgen op1 := fromp : AstNodeExpr
     // Don't need the class we are extracting from, as the "fromp()"'s datatype can get us to it
-    string m_name;
+    VConstString m_name;
     VAccess m_access;  // Read or write, as in AstNodeVarRef
     AstVar* m_varp = nullptr;  // Post link, variable within class that is target of selection
 public:
@@ -1517,8 +1519,8 @@ public:
     void cloneRelink() override;
     const char* broken() const override;
     void dump(std::ostream& str) const override;
-    string name() const override VL_MT_STABLE { return m_name; }
-    void name(const string& name) override { m_name = name; }
+    VConstString name() const override VL_MT_STABLE { return m_name; }
+    void name(const VConstString& name) override { m_name = name; }
     VAccess access() const { return m_access; }
     void access(const VAccess& flag) { m_access = flag; }
     string emitVerilog() override { V3ERROR_NA_RETURN(""); }
@@ -1571,7 +1573,7 @@ class AstParseRef final : public AstNodeExpr {
     // @astgen op2 := ftaskrefp : Optional[AstNodeFTaskRef]
 
     VParseRefExp m_expect;  // Type we think it should resolve to
-    string m_name;
+    VConstString m_name;
 
 public:
     AstParseRef(FileLine* fl, VParseRefExp expect, const string& name, AstNode* lhsp = nullptr,
@@ -1584,12 +1586,12 @@ public:
     }
     ASTGEN_MEMBERS_AstParseRef;
     void dump(std::ostream& str) const override;
-    string name() const override VL_MT_STABLE { return m_name; }  // * = Var name
+    VConstString name() const override VL_MT_STABLE { return m_name; }  // * = Var name
     bool same(const AstNode* samep) const override {
         const AstParseRef* const asamep = VN_DBG_AS(samep, ParseRef);
         return (expect() == asamep->expect() && m_name == asamep->m_name);
     }
-    void name(const string& name) override { m_name = name; }
+    void name(const VConstString& name) override { m_name = name; }
     VParseRefExp expect() const { return m_expect; }
     void expect(VParseRefExp exp) { m_expect = exp; }
 
@@ -1778,7 +1780,7 @@ public:
         addExprsp(exprsp);
     }
     ASTGEN_MEMBERS_AstSFormatF;
-    string name() const override VL_MT_STABLE { return m_text; }
+    VConstString name() const override VL_MT_STABLE { return m_text; }
     int instrCount() const override { return INSTR_COUNT_PLI; }
     bool same(const AstNode* samep) const override {
         return text() == VN_DBG_AS(samep, SFormatF)->text();
@@ -1787,7 +1789,7 @@ public:
     string text() const { return m_text; }  // * = Text to display
     void text(const string& text) { m_text = text; }
     bool formatScopeTracking() const {  // Track scopeNamep();  Ok if false positive
-        return (name().find("%m") != string::npos || name().find("%M") != string::npos);
+        return name().str().find("%m") != string::npos || name().str().find("%M") != string::npos;
     }
     bool hidden() const { return m_hidden; }
     void hasFormat(bool flag) { m_hasFormat = flag; }
@@ -1813,7 +1815,7 @@ public:
         this->fromp(fromp);
     }
     ASTGEN_MEMBERS_AstSScanF;
-    string name() const override VL_MT_STABLE { return m_text; }
+    VConstString name() const override VL_MT_STABLE { return m_text; }
     string verilogKwd() const override { return "$sscanf"; }
     string emitVerilog() override { V3ERROR_NA_RETURN(""); }
     string emitC() override { V3ERROR_NA_RETURN(""); }
@@ -1989,7 +1991,7 @@ class AstStructSel final : public AstNodeExpr {
     // Children: varref, math
     // @astgen op1 := fromp : AstNodeExpr
 private:
-    string m_name;  // Name of the member
+    VConstString m_name;  // Name of the member
 public:
     AstStructSel(FileLine* fl, AstNodeExpr* fromp, const string& name)
         : ASTGEN_SUPER_StructSel(fl)
@@ -1998,8 +2000,8 @@ public:
         dtypep(nullptr);  // V3Width will resolve
     }
     ASTGEN_MEMBERS_AstStructSel;
-    string name() const override VL_MT_STABLE { return m_name; }
-    void name(const string& name) override { m_name = name; }
+    VConstString name() const override VL_MT_STABLE { return m_name; }
+    void name(const VConstString& name) override { m_name = name; }
     string emitVerilog() override { V3ERROR_NA_RETURN(""); }
     string emitC() override { V3ERROR_NA_RETURN(""); }
     bool cleanOut() const override {
@@ -2155,7 +2157,7 @@ class AstUnlinkedRef final : public AstNodeExpr {
     // @astgen op1 := refp : AstNode
     // @astgen op2 := cellrefp : AstNode
 
-    string m_name;  // Var name // TODO: There is no way to access this, fix or remove
+    VConstString m_name;  // Var name // TODO: There is no way to access this, fix or remove
 public:
     AstUnlinkedRef(FileLine* fl, AstNode* refp, const string& name, AstNode* cellrefp)
         : ASTGEN_SUPER_UnlinkedRef(fl)
@@ -2310,7 +2312,7 @@ public:
     void numberOperate(V3Number& out, const V3Number& lhs, const V3Number& rhs) override {
         out.opCompareNN(lhs, rhs, m_ignoreCase);
     }
-    string name() const override VL_MT_STABLE { return m_ignoreCase ? "icompare" : "compare"; }
+    VConstString name() const override VL_MT_STABLE { return m_ignoreCase ? "icompare" : "compare"; }
     string emitVerilog() override {
         return m_ignoreCase ? "%k(%l.icompare(%r))" : "%k(%l.compare(%r))";
     }
@@ -2534,7 +2536,7 @@ public:
     void numberOperate(V3Number& out, const V3Number& lhs, const V3Number& rhs) override {
         out.opGetcN(lhs, rhs);
     }
-    string name() const override VL_MT_STABLE { return "getc"; }
+    VConstString name() const override VL_MT_STABLE { return "getc"; }
     string emitVerilog() override { return "%k(%l.getc(%r))"; }
     string emitC() override { return "VL_GETC_N(%li,%ri)"; }
     string emitSimpleOperator() override { return ""; }
@@ -4486,7 +4488,7 @@ public:
                        const V3Number& ths) override {
         out.opPutcN(lhs, rhs, ths);
     }
-    string name() const override VL_MT_STABLE { return "putc"; }
+    VConstString name() const override VL_MT_STABLE { return "putc"; }
     string emitVerilog() override { return "%k(%l.putc(%r,%t))"; }
     string emitC() override { return "VL_PUTC_N(%li,%ri,%ti)"; }
     string emitSimpleOperator() override { return ""; }
@@ -4593,7 +4595,7 @@ public:
                        const V3Number& ths) override {
         out.opSubstrN(lhs, rhs, ths);
     }
-    string name() const override VL_MT_STABLE { return "substr"; }
+    VConstString name() const override VL_MT_STABLE { return "substr"; }
     string emitVerilog() override { return "%k(%l.substr(%r,%t))"; }
     string emitC() override { return "VL_SUBSTR_N(%li,%ri,%ti)"; }
     string emitSimpleOperator() override { return ""; }
@@ -4670,7 +4672,7 @@ public:
     }
     ASTGEN_MEMBERS_AstAtoN;
     void numberOperate(V3Number& out, const V3Number& lhs) override { out.opAtoN(lhs, m_fmt); }
-    string name() const override VL_MT_STABLE {
+    VConstString name() const override VL_MT_STABLE {
         switch (m_fmt) {
         case ATOI: return "atoi";
         case ATOHEX: return "atohex";
@@ -5518,7 +5520,7 @@ public:
     // This form only allowed post-link (see above)
     inline AstVarRef(FileLine* fl, AstVarScope* varscp, const VAccess& access);
     ASTGEN_MEMBERS_AstVarRef;
-    inline string name() const override;  // * = Var name
+    inline VConstString name() const override;  // * = Var name
     void dump(std::ostream& str) const override;
     const char* broken() const override;
     bool same(const AstNode* samep) const override;
@@ -5532,9 +5534,9 @@ public:
 class AstVarXRef final : public AstNodeVarRef {
     // A VarRef to something in another module before AstScope.
     // Includes pin on a cell, as part of a ASSIGN statement to connect I/Os until AstScope
-    string m_name;
-    string m_dotted;  // Dotted part of scope the name()'ed reference is under or ""
-    string m_inlinedDots;  // Dotted hierarchy flattened out
+    VConstString m_name;
+    VConstString m_dotted;  // Dotted part of scope the name()'ed reference is under or ""
+    VConstString m_inlinedDots;  // Dotted hierarchy flattened out
 public:
     AstVarXRef(FileLine* fl, const string& name, const string& dotted, const VAccess& access)
         : ASTGEN_SUPER_VarXRef(fl, nullptr, access)
@@ -5542,9 +5544,9 @@ public:
         , m_dotted{dotted} {}
     inline AstVarXRef(FileLine* fl, AstVar* varp, const string& dotted, const VAccess& access);
     ASTGEN_MEMBERS_AstVarXRef;
-    string name() const override VL_MT_STABLE { return m_name; }  // * = Var name
+    VConstString name() const override VL_MT_STABLE { return m_name; }  // * = Var name
     void dump(std::ostream& str) const override;
-    string dotted() const { return m_dotted; }
+    VConstString dotted() const { return m_dotted; }
     void dotted(const string& dotted) { m_dotted = dotted; }
     string inlinedDots() const { return m_inlinedDots; }
     void inlinedDots(const string& flag) { m_inlinedDots = flag; }

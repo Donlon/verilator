@@ -67,11 +67,11 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 // Hierarchical block and parameter db (modules without parameter is also handled)
 
 class ParameterizedHierBlocks final {
-    using HierBlockOptsByOrigName = std::multimap<std::string, const V3HierarchicalBlockOption*>;
+    using HierBlockOptsByOrigName = std::multimap<VConstString, const V3HierarchicalBlockOption*>;
     using HierMapIt = HierBlockOptsByOrigName::const_iterator;
-    using HierBlockModMap = std::map<const std::string, AstNodeModule*>;
-    using ParamConstMap = std::map<const std::string, std::unique_ptr<AstConst>>;
-    using GParamsMap = std::map<const std::string, AstVar*>;  // key:parameter name value:parameter
+    using HierBlockModMap = std::map<VConstString, AstNodeModule*>;
+    using ParamConstMap = std::map<VConstString, std::unique_ptr<AstConst>>;
+    using GParamsMap = std::map<VConstString, AstVar*>;  // key:parameter name value:parameter
 
     // MEMBERS
     const bool m_hierSubRun;  // Is in sub-run for hierarchical verilation
@@ -83,7 +83,7 @@ class ParameterizedHierBlocks final {
     HierBlockModMap m_hierBlockMod;
     // Overridden parameters of the hierarchical block
     std::map<const V3HierarchicalBlockOption*, ParamConstMap> m_hierParams;
-    std::map<const std::string, GParamsMap>
+    std::map<VConstString, GParamsMap>
         m_modParams;  // Parameter variables of hierarchical blocks
 
     // METHODS
@@ -127,7 +127,7 @@ public:
         }
     }
     bool hierSubRun() const { return m_hierSubRun; }
-    bool isHierBlock(const string& origName) const {
+    bool isHierBlock(const VConstString& origName) const {
         return m_hierBlockOptsByOrigName.find(origName) != m_hierBlockOptsByOrigName.end();
     }
     AstNodeModule* findByParams(const string& origName, AstPin* firstPinp,
@@ -254,9 +254,9 @@ class ParamProcessor final {
         explicit ModInfo(AstNodeModule* modp)
             : m_modp{modp} {}
     };
-    std::map<const std::string, ModInfo> m_modNameMap;  // Hash of created module flavors by name
+    std::map<VConstString, ModInfo> m_modNameMap;  // Hash of created module flavors by name
 
-    std::map<const std::string, std::string>
+    std::map<VConstString, VConstString>
         m_longMap;  // Hash of very long names to unique identity number
     int m_longId = 0;
 
@@ -275,7 +275,7 @@ class ParamProcessor final {
     // Database to get lib-create wrapper that matches parameters in hierarchical Verilation
     ParameterizedHierBlocks m_hierBlocks;
     // Default parameter values key:parameter name, value:default value (can be nullptr)
-    using DefaultValueMap = std::map<std::string, AstConst*>;
+    using DefaultValueMap = std::map<VConstString, AstConst*>;
     // Default parameter values of hierarchical blocks
     std::map<AstNodeModule*, DefaultValueMap> m_defaultParameterValues;
     VNDeleter m_deleter;  // Used to delay deletion of nodes
@@ -438,7 +438,7 @@ class ParamProcessor final {
         }
     }
     void relinkPinsByName(AstPin* startpinp, AstNodeModule* modp) {
-        std::map<const string, AstVar*> nameToPin;
+        std::map<VConstString, AstVar*> nameToPin;
         for (AstNode* stmtp = modp->stmtsp(); stmtp; stmtp = stmtp->nextp()) {
             if (AstVar* const varp = VN_CAST(stmtp, Var)) {
                 if (varp->isIO() || varp->isGParam() || varp->isIfaceRef()) {
@@ -474,7 +474,7 @@ class ParamProcessor final {
                           << " has hier_block metacomment, but 'parameter type' is not supported");
         }
     }
-    bool moduleExists(const string& modName) const {
+    bool moduleExists(const VConstString& modName) const {
         if (m_allModuleNames.find(modName) != m_allModuleNames.end()) return true;
         if (m_modNameMap.find(modName) != m_modNameMap.end()) return true;
         return false;
@@ -487,7 +487,7 @@ class ParamProcessor final {
         //  - Hash the long name to get valid Verilog symbol
         UASSERT_OBJ(modp->hierBlock(), modp, "should be used for hierarchical block");
 
-        std::map<string, AstConst*> pins;
+        std::map<VConstString, AstConst*> pins;
         for (AstPin* pinp = paramPinsp; pinp; pinp = VN_AS(pinp->nextp(), Pin)) {
             checkSupportedParam(modp, pinp);
             if (const AstVar* const varp = pinp->modVarp()) {
@@ -574,7 +574,7 @@ class ParamProcessor final {
         if (nodep->nextp()) replaceRefsRecurse(nodep->nextp(), oldClassp, newClassp);
     }
     void deepCloneModule(AstNodeModule* srcModp, AstNode* cellp, AstPin* paramsp,
-                         const string& newname, const IfaceRefRefs& ifaceRefRefs) {
+                         const VConstString& newname, const IfaceRefRefs& ifaceRefRefs) {
         // Deep clone of new module
         // Note all module internal variables will be re-linked to the new modules by clone
         // However links outside the module (like on the upper cells) will not.
@@ -664,7 +664,7 @@ class ParamProcessor final {
         }
     }
     const ModInfo* moduleFindOrClone(AstNodeModule* srcModp, AstNode* cellp, AstPin* paramsp,
-                                     const string& newname, const IfaceRefRefs& ifaceRefRefs) {
+                                     const VConstString& newname, const IfaceRefRefs& ifaceRefRefs) {
         // Already made this flavor?
         auto it = m_modNameMap.find(newname);
         if (it != m_modNameMap.end()) {
@@ -986,7 +986,7 @@ class ParamVisitor final : public VNVisitor {
 
     bool m_iterateModule = false;  // Iterating module body
     string m_generateHierName;  // Generate portion of hierarchy name
-    string m_unlinkedTxt;  // Text for AstUnlinkedRef
+    VConstString m_unlinkedTxt;  // Text for AstUnlinkedRef
     AstNodeModule* m_modp;  // Module iterating
     std::vector<AstDot*> m_dots;  // Dot references to process
     std::multimap<bool, AstNode*> m_cellps;  // Cells left to process (in current module)
@@ -1177,7 +1177,7 @@ class ParamVisitor final : public VNVisitor {
     }
     void visit(AstVarXRef* nodep) override {
         // Check to see if the scope is just an interface because interfaces are special
-        const string dotted = nodep->dotted();
+        const VConstString dotted = nodep->dotted();
         if (!dotted.empty() && nodep->varp() && nodep->varp()->isParam()) {
             const AstNode* backp = nodep;
             while ((backp = backp->backp())) {
@@ -1266,12 +1266,14 @@ class ParamVisitor final : public VNVisitor {
         if (const AstConst* const constp = VN_CAST(nodep->selp(), Const)) {
             const string index = AstNode::encodeNumber(constp->toSInt());
             const string replacestr = nodep->name() + "__BRA__??__KET__";
-            const size_t pos = m_unlinkedTxt.find(replacestr);
+            string unlinkedTxt = m_unlinkedTxt;
+            const size_t pos = unlinkedTxt.find(replacestr);
             UASSERT_OBJ(pos != string::npos, nodep,
                         "Could not find array index in unlinked text: '"
-                            << m_unlinkedTxt << "' for node: " << nodep);
-            m_unlinkedTxt.replace(pos, replacestr.length(),
-                                  nodep->name() + "__BRA__" + index + "__KET__");
+                            << unlinkedTxt << "' for node: " << nodep);
+            unlinkedTxt.replace(pos, replacestr.length(),
+                                nodep->name() + "__BRA__" + index + "__KET__");
+            m_unlinkedTxt = unlinkedTxt;
         } else {
             nodep->v3error("Could not expand constant selection inside dotted reference: "
                            << nodep->selp()->prettyNameQ());
@@ -1318,7 +1320,7 @@ class ParamVisitor final : public VNVisitor {
             // doesn't conflict in V3LinkDot resolution with other genvars
             // Now though we need to change BEGIN("zzz", GENFOR(...)) to
             // a BEGIN("zzz__BRA__{loop#}__KET__")
-            const string beginName = nodep->name();
+            const string& beginName = nodep->name();
             // Leave the original Begin, as need a container for the (possible) GENVAR
             // Note V3Unroll will replace some AstVarRef's to the loop variable with constants
             // Don't remove any deleted nodes in m_unroller until whole process finishes,

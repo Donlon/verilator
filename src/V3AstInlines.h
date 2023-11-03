@@ -165,7 +165,7 @@ AstVarRef::AstVarRef(FileLine* fl, AstVarScope* varscp, const VAccess& access)
     varScopep(varscp);
 }
 
-string AstVarRef::name() const { return varp() ? varp()->name() : "<null>"; }
+VConstString AstVarRef::name() const { return varp() ? varp()->name() : "<null>"; }
 
 bool AstVarRef::same(const AstVarRef* samep) const {
     if (varScopep()) {

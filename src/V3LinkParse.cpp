@@ -42,7 +42,7 @@ private:
     const VNUser2InUse m_inuser2;
 
     // TYPES
-    using ImplTypedefMap = std::map<const std::pair<void*, std::string>, AstTypedef*>;
+    using ImplTypedefMap = std::map<const std::pair<void*, VConstString>, AstTypedef*>;
 
     // STATE
     AstPackage* const m_stdPackagep;  // SystemVerilog std package

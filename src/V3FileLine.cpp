@@ -62,7 +62,7 @@ string FileLineSingleton::filenameLetters(fileNameIdx_t fileno) VL_PURE {
 
 //! We associate a language with each source file, so we also set the default
 //! for this.
-FileLineSingleton::fileNameIdx_t FileLineSingleton::nameToNumber(const string& filename) {
+FileLineSingleton::fileNameIdx_t FileLineSingleton::nameToNumber(const VConstString& filename) {
     const auto pair = m_namemap.emplace(filename, 0);
     fileNameIdx_t& idx = pair.first->second;
     if (pair.second) {

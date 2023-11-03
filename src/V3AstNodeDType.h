@@ -200,7 +200,7 @@ class AstNodeUOrStructDType VL_NOT_FINAL : public AstNodeDType {
     // @astgen op1 := membersp : List[AstMemberDType]
 private:
     // MEMBERS
-    string m_name;  // Name from upper typedef, if any
+    VConstString m_name;  // Name from upper typedef, if any
     AstNodeModule* m_classOrPackagep = nullptr;  // Package it will be emitted with
     const int m_uniqueNum;
     bool m_packed;
@@ -239,8 +239,8 @@ public:
     bool similarDType(const AstNodeDType* samep) const override {
         return this == samep;  // We don't compare members, require exact equivalence
     }
-    string name() const override VL_MT_STABLE { return m_name; }
-    void name(const string& flag) override { m_name = flag; }
+    VConstString name() const override VL_MT_STABLE { return m_name; }
+    void name(const VConstString& name) override { m_name = name; }
     bool packed() const VL_MT_SAFE { return m_packed; }
     void packed(bool flag) { m_packed = flag; }
     // packed() but as don't support unpacked, presently all structs
@@ -261,21 +261,21 @@ class AstEnumItem final : public AstNode {
     // @astgen op1 := rangep : Optional[AstRange] // Range for name appending
     // @astgen op2 := valuep : Optional[AstNodeExpr]
 private:
-    string m_name;
+    VConstString m_name;
 
 public:
     // Parents: ENUM
-    AstEnumItem(FileLine* fl, const string& name, AstRange* rangep, AstNodeExpr* valuep)
+    AstEnumItem(FileLine* fl, const VConstString& name, AstRange* rangep, AstNodeExpr* valuep)
         : ASTGEN_SUPER_EnumItem(fl)
         , m_name{name} {
         this->rangep(rangep);
         this->valuep(valuep);
     }
     ASTGEN_MEMBERS_AstEnumItem;
-    string name() const override VL_MT_STABLE { return m_name; }
+    VConstString name() const override VL_MT_STABLE { return m_name; }
     bool maybePointedTo() const override { return true; }
     bool hasDType() const override { return true; }
-    void name(const string& flag) override { m_name = flag; }
+    void name(const VConstString& name) override { m_name = name; }
 };
 
 // === AstNodeDType ===
@@ -398,7 +398,7 @@ public:
     bool similarDType(const AstNodeDType* samep) const override {
         return type() == samep->type() && same(samep);
     }
-    string name() const override VL_MT_STABLE { return m.m_keyword.ascii(); }
+    VConstString name() const override VL_MT_STABLE { return m.m_keyword.ascii(); }
     string prettyDTypeName() const override;
     const char* broken() const override {
         BROKEN_RTN(dtypep() != this);
@@ -497,9 +497,9 @@ public:
 };
 class AstCDType final : public AstNodeDType {
     // Raw "C" data type passed directly to output
-    string m_name;  // Name of data type, printed when do V3EmitC
+    VConstString m_name;  // Name of data type, printed when do V3EmitC
 public:
-    AstCDType(FileLine* fl, const string& name)
+    AstCDType(FileLine* fl, const VConstString& name)
         : ASTGEN_SUPER_CDType(fl)
         , m_name{name} {
         this->dtypep(this);
@@ -512,7 +512,7 @@ public:
         return m_name == asamep->m_name;
     }
     bool similarDType(const AstNodeDType* samep) const override { return same(samep); }
-    string name() const override VL_MT_STABLE { return m_name; }
+    VConstString name() const override VL_MT_STABLE { return m_name; }
     string prettyDTypeName() const override { return m_name; }
     const char* broken() const override { return nullptr; }
     // METHODS
@@ -556,7 +556,7 @@ public:
     }
     void dump(std::ostream& str = std::cout) const override;
     void dumpSmall(std::ostream& str) const override;
-    string name() const override VL_MT_STABLE;
+    VConstString name() const override VL_MT_STABLE;
     AstBasicDType* basicp() const override VL_MT_STABLE { return nullptr; }
     AstNodeDType* skipRefp() const override VL_MT_STABLE { return (AstNodeDType*)this; }
     AstNodeDType* skipRefToConstp() const override { return (AstNodeDType*)this; }
@@ -628,13 +628,13 @@ class AstDefImplicitDType final : public AstNodeDType {
     // After link, these become typedefs
     // @astgen op1 := childDTypep : Optional[AstNodeDType]
 private:
-    string m_name;
+    VConstString m_name;
     void* m_containerp;  // In what scope is the name unique, so we can know what are duplicate
                          // definitions (arbitrary value)
     const int m_uniqueNum;
 
 public:
-    AstDefImplicitDType(FileLine* fl, const string& name, void* containerp, VFlagChildDType,
+    AstDefImplicitDType(FileLine* fl, const VConstString& name, void* containerp, VFlagChildDType,
                         AstNodeDType* dtp)
         : ASTGEN_SUPER_DefImplicitDType(fl)
         , m_name{name}
@@ -666,8 +666,8 @@ public:
     AstNodeDType* skipRefToEnump() const override { return (AstNodeDType*)this; }
     int widthAlignBytes() const override { return dtypep()->widthAlignBytes(); }
     int widthTotalBytes() const override { return dtypep()->widthTotalBytes(); }
-    string name() const override VL_MT_STABLE { return m_name; }
-    void name(const string& flag) override { m_name = flag; }
+    VConstString name() const override VL_MT_STABLE { return m_name; }
+    void name(const VConstString& name) override { m_name = name; }
     bool isCompound() const override { return false; }
 };
 class AstDynArrayDType final : public AstNodeDType {
@@ -760,7 +760,7 @@ public:
     using TableMap = std::map<VAttrType, AstVar*>;
 
 private:
-    string m_name;  // Name from upper typedef, if any
+    VConstString m_name;  // Name from upper typedef, if any
     AstNodeDType* m_refDTypep = nullptr;  // Elements are of this type after V3Width
     const int m_uniqueNum = 0;
     TableMap m_tableMap;  // Created table for V3Width only to remove duplicates
@@ -800,8 +800,8 @@ public:
     void refDTypep(AstNodeDType* nodep) { m_refDTypep = nodep; }
     AstNodeDType* virtRefDTypep() const override { return m_refDTypep; }
     void virtRefDTypep(AstNodeDType* nodep) override { refDTypep(nodep); }
-    string name() const override VL_MT_STABLE { return m_name; }
-    void name(const string& flag) override { m_name = flag; }
+    VConstString name() const override VL_MT_STABLE { return m_name; }
+    void name(const VConstString& name) override { m_name = name; }
     void dump(std::ostream& str = std::cout) const override;
     void dumpSmall(std::ostream& str) const override;
     // METHODS
@@ -826,28 +826,28 @@ class AstIfaceRefDType final : public AstNodeDType {
     // @astgen op1 := paramsp : List[AstPin]
 private:
     FileLine* m_modportFileline;  // Where modport token was
-    string m_cellName;  // "" = no cell, such as when connects to 'input' iface
-    string m_ifaceName;  // Interface name
-    string m_modportName;  // "" = no modport
+    VConstString m_cellName;  // "" = no cell, such as when connects to 'input' iface
+    VConstString m_ifaceName;  // Interface name
+    VConstString m_modportName;  // "" = no modport
     AstIface* m_ifacep = nullptr;  // Pointer to interface; note cellp() should override
     AstCell* m_cellp = nullptr;  // When exact parent cell known; not a guess
     AstModport* m_modportp = nullptr;  // nullptr = unlinked or no modport
 public:
-    AstIfaceRefDType(FileLine* fl, const string& cellName, const string& ifaceName)
+    AstIfaceRefDType(FileLine* fl, const VConstString& cellName, const VConstString& ifaceName)
         : ASTGEN_SUPER_IfaceRefDType(fl)
         , m_modportFileline{nullptr}
         , m_cellName{cellName}
         , m_ifaceName{ifaceName}
         , m_modportName{""} {}
-    AstIfaceRefDType(FileLine* fl, FileLine* modportFl, const string& cellName,
-                     const string& ifaceName, const string& modport)
+    AstIfaceRefDType(FileLine* fl, FileLine* modportFl, const VConstString& cellName,
+                     const VConstString& ifaceName, const VConstString& modport)
         : ASTGEN_SUPER_IfaceRefDType(fl)
         , m_modportFileline{modportFl}
         , m_cellName{cellName}
         , m_ifaceName{ifaceName}
         , m_modportName{modport} {}
-    AstIfaceRefDType(FileLine* fl, FileLine* modportFl, const string& cellName,
-                     const string& ifaceName, const string& modport, AstPin* paramsp)
+    AstIfaceRefDType(FileLine* fl, FileLine* modportFl, const VConstString& cellName,
+                     const VConstString& ifaceName, const VConstString& modport, AstPin* paramsp)
         : ASTGEN_SUPER_IfaceRefDType(fl)
         , m_modportFileline{modportFl}
         , m_cellName{cellName}
@@ -868,11 +868,11 @@ public:
     int widthAlignBytes() const override { return 1; }
     int widthTotalBytes() const override { return 1; }
     FileLine* modportFileline() const { return m_modportFileline; }
-    string cellName() const { return m_cellName; }
-    void cellName(const string& name) { m_cellName = name; }
-    string ifaceName() const { return m_ifaceName; }
-    void ifaceName(const string& name) { m_ifaceName = name; }
-    string modportName() const { return m_modportName; }
+    VConstString cellName() const { return m_cellName; }
+    void cellName(const VConstString& name) { m_cellName = name; }
+    VConstString ifaceName() const { return m_ifaceName; }
+    void ifaceName(const VConstString& name) { m_ifaceName = name; }
+    VConstString modportName() const { return m_modportName; }
     AstIface* ifaceViaCellp() const;  // Use cellp or ifacep
     AstIface* ifacep() const { return m_ifacep; }
     void ifacep(AstIface* nodep) { m_ifacep = nodep; }
@@ -914,7 +914,7 @@ public:
     }
     ASTGEN_MEMBERS_AstMemberDType;
     void dumpSmall(std::ostream& str) const override;
-    string name() const override VL_MT_STABLE { return m_name; }  // * = Var name
+    VConstString name() const override VL_MT_STABLE { return m_name; }  // * = Var name
     bool hasDType() const override { return true; }
     bool maybePointedTo() const override { return true; }
     const char* broken() const override {
@@ -947,7 +947,7 @@ public:
     // (Slow) recurses - Width in bytes rounding up 1,2,4,8,12,...
     int widthTotalBytes() const override { return subDTypep()->widthTotalBytes(); }
     // METHODS
-    void name(const string& name) override { m_name = name; }
+    void name(const VConstString& name) override { m_name = name; }
     void tag(const string& text) override { m_tag = text; }
     string tag() const override { return m_tag; }
     int lsb() const { return m_lsb; }
@@ -991,10 +991,10 @@ public:
     int widthAlignBytes() const override { return dtypep()->widthAlignBytes(); }
     int widthTotalBytes() const override { return dtypep()->widthTotalBytes(); }
     // METHODS
-    string name() const override VL_MT_STABLE { return m_name; }
+    VConstString name() const override VL_MT_STABLE { return m_name; }
     bool maybePointedTo() const override { return true; }
     bool hasDType() const override { return true; }
-    void name(const string& flag) override { m_name = flag; }
+    void name(const VConstString& name) override { m_name = name; }
     VVarType varType() const { return m_varType; }  // * = Type of variable
     bool isParam() const { return true; }
     bool isGParam() const { return (varType() == VVarType::GPARAM); }
@@ -1131,7 +1131,7 @@ public:
     }
     void dump(std::ostream& str = std::cout) const override;
     void dumpSmall(std::ostream& str) const override;
-    string name() const override VL_MT_STABLE { return m_name; }
+    VConstString name() const override VL_MT_STABLE { return m_name; }
     string prettyDTypeName() const override {
         return subDTypep() ? prettyName(subDTypep()->name()) : prettyName();
     }
@@ -1166,7 +1166,7 @@ public:
     }
     int widthAlignBytes() const override { return dtypeSkipRefp()->widthAlignBytes(); }
     int widthTotalBytes() const override { return dtypeSkipRefp()->widthTotalBytes(); }
-    void name(const string& flag) override { m_name = flag; }
+    void name(const VConstString& name) override { m_name = name; }
     AstNodeDType* dtypeSkipRefp() const { return subDTypep()->skipRefp(); }
     AstTypedef* typedefp() const VL_MT_SAFE { return m_typedefp; }
     void typedefp(AstTypedef* nodep) { m_typedefp = nodep; }

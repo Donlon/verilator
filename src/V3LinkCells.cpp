@@ -115,8 +115,8 @@ private:
     LibraryVertex* m_libVertexp = nullptr;  // Vertex at root of all libraries
     int m_dedupNum = 0;  // Package dedup number
     const V3GraphVertex* m_topVertexp = nullptr;  // Vertex of top module
-    std::unordered_set<string> m_declfnWarned;  // Files we issued DECLFILENAME on
-    string m_origTopModuleName;  // original name of the top module
+    std::unordered_set<VConstString> m_declfnWarned;  // Files we issued DECLFILENAME on
+    VConstString m_origTopModuleName;  // original name of the top module
 
     // METHODS
     V3GraphVertex* vertex(AstNodeModule* nodep) {
@@ -125,7 +125,7 @@ private:
         return nodep->user1u().toGraphVertex();
     }
 
-    AstNodeModule* findModuleSym(const string& modName) {
+    AstNodeModule* findModuleSym(const VConstString& modName) {
         const VSymEnt* const foundp = m_mods.rootp()->findIdFallback(modName);
         if (!foundp) {
             return nullptr;
@@ -134,7 +134,7 @@ private:
         }
     }
 
-    AstNodeModule* resolveModule(AstNode* nodep, const string& modName) {
+    AstNodeModule* resolveModule(AstNode* nodep, const VConstString& modName) {
         AstNodeModule* modp = findModuleSym(modName);
         if (!modp) {
             // Read-subfile
@@ -371,14 +371,15 @@ private:
         if (nodep->modp()) {
             nodep->modName(nodep->modp()->name());
             // Note what pins exist
-            std::unordered_set<string> ports;  // Symbol table of all connected port names
+            std::unordered_set<VConstString> ports;  // Symbol table of all connected port names
             for (AstPin* pinp = nodep->pinsp(); pinp; pinp = VN_AS(pinp->nextp(), Pin)) {
-                if ((pinStar || pinDotName) && pinp->name().substr(0, 11) == "__pinNumber") {
+                const bool isPinList = pinp->name().str().find("__pinNumber") == 0;
+                if ((pinStar || pinDotName) && isPinList) {
                     pinp->v3error("Mixing positional and .*/named instantiation connection"
                                   " (IEEE 1800-2017 23.3.2)");
                 }
                 if (!pinp->exprp()) {
-                    if (pinp->name().substr(0, 11) == "__pinNumber") {
+                    if (isPinList) {
                         pinp->v3warn(PINNOCONNECT,
                                      "Cell pin is not connected: " << pinp->prettyNameQ());
                     } else {

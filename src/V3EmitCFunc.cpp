@@ -20,7 +20,6 @@
 
 #include "V3TSP.h"
 
-#include <map>
 #include <vector>
 
 // We use a static char array in VL_VALUE_STRING
@@ -724,7 +723,8 @@ string EmitCFunc::emitVarResetRecurse(const AstVar* varp, const string& varNameP
             = (varp->attrFileDescr()  // Zero so we don't do file IO if never $fopen
                || varp->isFuncLocal()  // Randomization too slow
                || (basicp && basicp->isZeroInit())
-               || (v3Global.opt.underlineZero() && !varp->name().empty() && varp->name()[0] == '_')
+               || (v3Global.opt.underlineZero() && !varp->name()->empty()
+                   && varp->name()[0] == '_')
                || (v3Global.opt.xInitial() == "fast" || v3Global.opt.xInitial() == "0"));
         const bool slow = !varp->isFuncLocal() && !varp->isClassMember();
         splitSizeInc(1);

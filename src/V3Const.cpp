@@ -3236,7 +3236,7 @@ private:
                 UINFO(9, "  Display out " << nodep << endl);
             }
         }
-        if (!nodep->exprsp() && nodep->name().find('%') == string::npos && !nodep->hidden()) {
+        if (!nodep->exprsp() && nodep->name()->find('%') == string::npos && !nodep->hidden()) {
             // Just a simple constant string - the formatting is pointless
             VL_DO_DANGLING(replaceConstString(nodep, nodep->name()), nodep);
         }

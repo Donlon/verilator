@@ -26,13 +26,13 @@
 
 #include "verilatedos.h"
 
+#include "V3ConstString.h"
 #include "V3Error.h"
 #include "V3FileLine.h"
 #include "V3Mutex.h"
 #include "V3Options.h"
 #include "V3ThreadSafety.h"
 
-#include <string>
 #include <unordered_map>
 
 class AstNetlist;

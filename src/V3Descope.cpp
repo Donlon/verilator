@@ -40,7 +40,7 @@ private:
     const VNUser1InUse m_inuser1;
 
     // TYPES
-    using FuncMmap = std::multimap<std::string, AstCFunc*>;
+    using FuncMmap = std::multimap<VConstString, AstCFunc*>;
     struct ScopeSelfPtr final {
         VSelfPointerText thisPtr = VSelfPointerText{VSelfPointerText::Empty()};
         VSelfPointerText vlSymsPtr = VSelfPointerText{VSelfPointerText::Empty()};
@@ -127,7 +127,7 @@ private:
         // If for any given name only one function exists, we can use that function directly.
         // If multiple functions exist, we need to select the appropriate scope.
         for (FuncMmap::iterator it = m_modFuncs.begin(); it != m_modFuncs.end(); ++it) {
-            const string name = it->first;
+            VConstString name = it->first;
             AstCFunc* const topFuncp = it->second;
             auto nextIt1 = it;
             ++nextIt1;

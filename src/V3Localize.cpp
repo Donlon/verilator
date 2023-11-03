@@ -102,7 +102,7 @@ private:
                 // Create the new local variable.
                 const string newName
                     = nodep->scopep() == funcp->scopep()
-                          ? oldVarp->name()
+                          ? oldVarp->name().str()
                           : nodep->scopep()->nameDotless() + "__DOT__" + oldVarp->name();
                 AstVar* const newVarp
                     = new AstVar{oldVarp->fileline(), oldVarp->varType(), newName, oldVarp};

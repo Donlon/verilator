@@ -20,6 +20,7 @@
 #include "config_build.h"
 #include "verilatedos.h"
 
+#include "V3ConstString.h"
 #include "V3Error.h"
 #include "V3List.h"
 #include "V3Rtti.h"
@@ -262,7 +263,7 @@ public:
     }
 
     // ACCESSORS
-    virtual string name() const { return ""; }
+    virtual string name() const { return VConstString{}; }
     virtual string dotColor() const { return "black"; }
     virtual string dotShape() const { return ""; }
     virtual string dotStyle() const { return ""; }

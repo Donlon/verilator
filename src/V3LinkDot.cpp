@@ -147,9 +147,9 @@ private:
     // MEMBERS
     VSymGraph m_syms;  // Symbol table
     VSymEnt* m_dunitEntp = nullptr;  // $unit entry
-    std::multimap<std::string, VSymEnt*>
+    std::multimap<VConstString, VSymEnt*>
         m_nameScopeSymMap;  // Map of scope referenced by non-pretty textual name
-    std::set<std::pair<AstNodeModule*, std::string>>
+    std::set<std::pair<AstNodeModule*, VConstString>>
         m_implicitNameSet;  // For [module][signalname] if we can implicitly create it
     std::array<ScopeAliasMap, SAMN__MAX> m_scopeAliasMap;  // Map of <lhs,rhs> aliases
     std::vector<VSymEnt*> m_ifaceVarSyms;  // List of AstIfaceRefDType's to be imported
@@ -250,7 +250,7 @@ public:
 
     VSymEnt* rootEntp() const { return m_syms.rootp(); }
     VSymEnt* dunitEntp() const { return m_dunitEntp; }
-    void checkDuplicate(VSymEnt* lookupSymp, AstNode* nodep, const string& name) {
+    void checkDuplicate(VSymEnt* lookupSymp, AstNode* nodep, const VConstString& name) {
         // Lookup the given name under current symbol table
         // Insert if not found
         // Report error if there's a duplicate
@@ -303,7 +303,7 @@ public:
         UASSERT_OBJ(!m_dunitEntp, nodep, "Call insertDUnit only once");
         m_dunitEntp = symp;
     }
-    VSymEnt* insertTopCell(AstNodeModule* nodep, const string& scopename) {
+    VSymEnt* insertTopCell(AstNodeModule* nodep, const VConstString& scopename) {
         // Only called on the module at the very top of the hierarchy
         VSymEnt* const symp = new VSymEnt{&m_syms, nodep};
         UINFO(9,
@@ -316,7 +316,7 @@ public:
         if (forScopeCreation()) m_nameScopeSymMap.emplace(scopename, symp);
         return symp;
     }
-    VSymEnt* insertTopIface(AstCell* nodep, const string& scopename) {
+    VSymEnt* insertTopIface(AstCell* nodep, const VConstString& scopename) {
         VSymEnt* const symp = new VSymEnt{&m_syms, nodep};
         UINFO(9, "      INSERTtopiface se" << cvtToHex(symp) << "  " << scopename << " " << nodep
                                            << endl);
@@ -330,7 +330,7 @@ public:
         return symp;
     }
     VSymEnt* insertCell(VSymEnt* abovep, VSymEnt* modSymp, AstCell* nodep,
-                        const string& scopename) {
+                        const VConstString& scopename) {
         UASSERT_OBJ(abovep, nodep, "Null symbol table inserting node");
         VSymEnt* const symp = new VSymEnt{&m_syms, nodep};
         UINFO(9, "      INSERTcel se" << cvtToHex(symp) << "  " << scopename << " above=se"
@@ -351,12 +351,12 @@ public:
         if (forScopeCreation()) m_nameScopeSymMap.emplace(scopename, symp);
         return symp;
     }
-    void insertMap(VSymEnt* symp, const string& scopename) {
+    void insertMap(VSymEnt* symp, const VConstString& scopename) {
         if (forScopeCreation()) m_nameScopeSymMap.emplace(scopename, symp);
     }
 
     VSymEnt* insertInline(VSymEnt* abovep, VSymEnt* modSymp, AstCellInline* nodep,
-                          const string& basename) {
+                          const VConstString& basename) {
         // A fake point in the hierarchy, corresponding to an inlined module
         // This references to another Sym, and eventually resolves to a module with a prefix
         UASSERT_OBJ(abovep, nodep, "Null symbol table inserting node");
@@ -376,7 +376,7 @@ public:
         }
         return symp;
     }
-    VSymEnt* insertBlock(VSymEnt* abovep, const string& name, AstNode* nodep,
+    VSymEnt* insertBlock(VSymEnt* abovep, const VConstString& name, AstNode* nodep,
                          AstNodeModule* classOrPackagep) {
         // A fake point in the hierarchy, corresponding to a begin or function/task block
         // After we remove begins these will go away
@@ -396,7 +396,7 @@ public:
         abovep->reinsert(name, symp);
         return symp;
     }
-    VSymEnt* insertSym(VSymEnt* abovep, const string& name, AstNode* nodep,
+    VSymEnt* insertSym(VSymEnt* abovep, const VConstString& name, AstNode* nodep,
                        AstNodeModule* classOrPackagep) {
         UASSERT_OBJ(abovep, nodep, "Null symbol table inserting node");
         VSymEnt* const symp = new VSymEnt{&m_syms, nodep};
@@ -427,14 +427,14 @@ public:
                     "Scope never assigned a symbol entry '" << nodep->name() << "'");
         return it->second;
     }
-    void implicitOkAdd(AstNodeModule* nodep, const string& varname) {
+    void implicitOkAdd(AstNodeModule* nodep, const VConstString& varname) {
         // Mark the given variable name as being allowed to be implicitly declared
         if (nodep) {
             const auto it = m_implicitNameSet.find(std::make_pair(nodep, varname));
             if (it == m_implicitNameSet.end()) m_implicitNameSet.emplace(nodep, varname);
         }
     }
-    bool implicitOk(AstNodeModule* nodep, const string& varname) {
+    bool implicitOk(AstNodeModule* nodep, const VConstString& varname) {
         return nodep
                && (m_implicitNameSet.find(std::make_pair(nodep, varname))
                    != m_implicitNameSet.end());
@@ -564,7 +564,7 @@ public:
     }
 
 private:
-    VSymEnt* findWithAltFallback(VSymEnt* symp, const string& name, const string& altname) {
+    VSymEnt* findWithAltFallback(VSymEnt* symp, const VConstString& name, const VConstString& altname) {
         VSymEnt* findp = symp->findIdFallback(name);
         if (findp) return findp;
         if (altname != "") {
@@ -575,7 +575,7 @@ private:
     }
 
 public:
-    VSymEnt* findDotted(FileLine* refLocationp, VSymEnt* lookupSymp, const string& dotname,
+    VSymEnt* findDotted(FileLine* refLocationp, VSymEnt* lookupSymp, const VConstString& dotname,
                         string& baddot, VSymEnt*& okSymp) {
         // Given a dotted hierarchy name, return where in scope it is
         // Note when dotname=="" we just fall through and return lookupSymp
@@ -707,7 +707,7 @@ public:
                      << ((lookupSymp->symPrefix() == "") ? "" : " as ")
                      << ((lookupSymp->symPrefix() == "") ? "" : lookupSymp->symPrefix() + dotname)
                      << "  at se" << lookupSymp << endl);
-        string prefix = lookupSymp->symPrefix();
+        VConstString prefix = lookupSymp->symPrefix();
         VSymEnt* foundp = nullptr;
         while (!foundp) {
             foundp = lookupSymp->findIdFallback(prefix + dotname);  // Might be nullptr
@@ -748,7 +748,7 @@ class LinkDotFindVisitor final : public VNVisitor {
     AstClocking* m_clockingp = nullptr;  // Current clocking block
     VSymEnt* m_modSymp = nullptr;  // Symbol Entry for current module
     VSymEnt* m_curSymp = nullptr;  // Symbol Entry for current table, where to lookup/insert
-    string m_scope;  // Scope text
+    VConstString m_scope;  // Scope text
     const AstNodeBlock* m_blockp = nullptr;  // Current Begin/end block
     const AstNodeFTask* m_ftaskp = nullptr;  // Current function/task
     bool m_inRecursion = false;  // Inside a recursive module
@@ -768,7 +768,7 @@ class LinkDotFindVisitor final : public VNVisitor {
         m_statep->insertBlock(m_curSymp, newp->name(), newp, m_classOrPackagep);
     }
 
-    bool isHierBlockWrapper(const string& name) const {
+    bool isHierBlockWrapper(const VConstString& name) const {
         const V3HierBlockOptSet& hierBlocks = v3Global.opt.hierBlocks();
         return hierBlocks.find(name) != hierBlocks.end();
     }
@@ -1161,7 +1161,7 @@ class LinkDotFindVisitor final : public VNVisitor {
             if (m_curSymp->nodep() == m_clockingp) iterate(nodep->varp());
             return;
         }
-        std::string varname;
+        VConstString varname;
         AstNodeDType* dtypep;
         if (AstAssign* const assignp = nodep->assignp()) {
             AstNodeExpr* const rhsp = assignp->rhsp()->unlinkFrBack();
@@ -1845,8 +1845,9 @@ class LinkDotScopeVisitor final : public VNVisitor {
             VSymEnt* symp = nullptr;
             string scopename;
             while (!symp) {
-                scopename
-                    = refp ? refp->name() : (inl.size() ? (inl + xrefp->name()) : xrefp->name());
+                scopename = refp
+                                ? refp->name().str()
+                                : (inl.size() ? (inl + xrefp->name().str()) : xrefp->name().str());
                 string baddot;
                 VSymEnt* okSymp;
                 symp = m_statep->findDotted(nodep->rhsp()->fileline(), m_modSymp, scopename,
@@ -1871,8 +1872,8 @@ class LinkDotScopeVisitor final : public VNVisitor {
 
             UASSERT_OBJ(refp || xrefp, nodep,
                         "Unsupported: Non Var(X)Ref attached to interface pin");
-            const string scopename
-                = refp ? refp->varp()->name() : xrefp->dotted() + "." + xrefp->name();
+            string scopename = refp ? refp->varp()->name().str()
+                                          : xrefp->dotted() + "." + xrefp->name();
             string baddot;
             VSymEnt* okSymp;
             VSymEnt* const symp = m_statep->findDotted(nodep->lhsp()->fileline(), m_modSymp,
@@ -2025,7 +2026,7 @@ private:
     AstNodeFTask* m_ftaskp = nullptr;  // Current function/task
     int m_modportNum = 0;  // Uniqueify modport numbers
     bool m_inSens = false;  // True if in senitem
-    std::set<std::string> m_ifClassImpNames;  // Names imported from interface class
+    std::set<VConstString> m_ifClassImpNames;  // Names imported from interface class
     std::set<AstClass*> m_extendsParam;  // Classes that have a parameterized super class
                                          // (except the default instances)
                                          // They are added to the set only in linkDotPrimary.
@@ -2051,7 +2052,6 @@ private:
             m_dotp = nullptr;
             m_super = false;
             m_dotErr = false;
-            m_dotText = "";
             m_unresolvedCell = false;
             m_unresolvedClass = false;
             m_unlinkedScopep = nullptr;
@@ -2590,7 +2590,7 @@ private:
             VL_DO_DANGLING(pushDeletep(nodep), nodep);
         } else {
             //
-            string expectWhat;
+            const char* expectWhat;
             bool allowScope = false;
             bool allowVar = false;
             bool allowFTask = false;
@@ -2720,7 +2720,7 @@ private:
                         }
                         m_ds.m_dotText = "";
                         if (m_ds.m_unresolvedCell && m_ds.m_unlinkedScopep) {
-                            const string dotted = refp->dotted();
+                            const string &dotted = refp->dotted();
                             const size_t pos = dotted.find("__BRA__??__KET__");
                             // Arrays of interfaces all have the same parameters
                             if (pos != string::npos && varp->isParam()

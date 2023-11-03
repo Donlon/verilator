@@ -54,6 +54,7 @@ set(HEADERS
     V3Common.h
     V3Config.h
     V3Const.h
+    V3ConstString.h
     V3Coverage.h
     V3CoverageJoin.h
     V3Dead.h

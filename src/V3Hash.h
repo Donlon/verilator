@@ -25,6 +25,8 @@
 //######################################################################
 // V3Hash -- Generic hashing
 
+class VConstString;
+
 class V3Hash final {
     uint32_t m_value;  // The 32-bit hash value.
 
@@ -45,6 +47,7 @@ public:
     explicit V3Hash(int64_t val)
         : m_value{combine(static_cast<uint32_t>(val), static_cast<uint32_t>(val >> 32))} {}
     explicit V3Hash(const std::string& val);
+    explicit V3Hash(const VConstString& val);
 
     // METHODS
     uint32_t value() const VL_MT_SAFE { return m_value; }

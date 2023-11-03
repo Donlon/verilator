@@ -659,7 +659,7 @@ private:
     void addDebugInfo(AstCMethodHard* const methodp) const {
         if (v3Global.opt.protectIds()) return;
         FileLine* const flp = methodp->fileline();
-        AstCExpr* const ap = new AstCExpr{flp, '"' + flp->filename() + '"', 0};
+        AstCExpr* const ap = new AstCExpr{flp, '"' + flp->filename().str() + '"', 0};
         ap->dtypeSetString();
         methodp->addPinsp(ap);
         AstCExpr* const bp = new AstCExpr{flp, cvtToStr(flp->lineno()), 0};
@@ -700,7 +700,7 @@ private:
         return cscopep;
     }
     // Create a temp variable and optionally put it before the specified node (mark local if so)
-    AstVarScope* createTemp(FileLine* const flp, const std::string& name,
+    AstVarScope* createTemp(FileLine* const flp, const VConstString& name,
                             AstNodeDType* const dtypep, AstNode* const insertBeforep = nullptr) {
         AstVar* varp;
         if (insertBeforep) {
@@ -1049,7 +1049,7 @@ private:
         addCLocalScope(flp, insertBeforep);
         // Function for replacing values with intermediate variables
         const auto replaceWithIntermediate = [&](AstNodeExpr* const valuep,
-                                                 const std::string& name) {
+                                                 const VConstString& name) {
             AstVarScope* const newvscp = createTemp(flp, name, valuep->dtypep(), insertBeforep);
             valuep->replaceWith(new AstVarRef{flp, newvscp, VAccess::READ});
             controlp->addHereThisAsNext(
@@ -1083,7 +1083,7 @@ private:
         // V3SchedAcyclic recognize awaits and prevent it from treating this kind of logic as
         // cyclic
         AstNodeExpr* const lhsp = nodep->lhsp()->unlinkFrBack();
-        std::string varname;
+        VConstString varname;
         if (auto* const refp = VN_CAST(lhsp, VarRef)) {
             varname = m_contAssignVarNames.get(refp->name());
         } else {

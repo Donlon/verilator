@@ -40,10 +40,10 @@ class CUseVisitor final : public VNVisitor {
 
     // MEMBERS
     AstNodeModule* const m_modp;  // Current module
-    std::map<std::string, std::pair<FileLine*, VUseType>> m_didUse;  // What we already used
+    std::map<VConstString, std::pair<FileLine*, VUseType>> m_didUse;  // What we already used
 
     // METHODS
-    void addNewUse(AstNode* nodep, VUseType useType, const string& name) {
+    void addNewUse(AstNode* nodep, VUseType useType, const VConstString& name) {
         auto e = m_didUse.emplace(name, std::make_pair(nodep->fileline(), useType));
         if (e.second || ((e.first->second.second & useType) != useType)) {
             e.first->second.second = e.first->second.second | useType;

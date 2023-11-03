@@ -190,6 +190,7 @@ private:
 //######################################################################
 // VName - string which contains a possibly hashed string
 // TODO use this wherever there is currently a "string m_name"
+// TODO: VConstString?
 
 class VName final {
     string m_name;
