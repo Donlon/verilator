@@ -563,7 +563,7 @@ private:
 
         VL_RESTORER(m_forkLocalsp);
         VL_RESTORER(m_newProcess);
-        VL_RESTORER(m_forkDepth)
+        VL_RESTORER(m_forkDepth);
         if (!nodep->joinType().join()) {
             ++m_forkDepth;
             m_newProcess = true;
@@ -625,7 +625,7 @@ private:
         iterateChildren(nodep);
     }
     void visit(AstNode* nodep) override {
-        VL_RESTORER(m_newProcess)
+        VL_RESTORER(m_newProcess);
         VL_RESTORER(m_forkDepth);
         if (nodep->user1()) --m_forkDepth;
         m_newProcess = false;
