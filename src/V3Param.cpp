@@ -248,7 +248,7 @@ public:
     void dumpSelf(std::ostream& os) const {
         const char* const hierBlk = hierBlock() ? "  [HIERBLK]" : "";
         os << m_origModp->prettyTypeName() << hierBlk << " (" << m_origModp << ")\n";
-        for (const auto& item : m_paramsMap) {
+        for (const auto& item : m_paramModList) {
             os << "- Instance " << item.second->prettyNameQ() << ": " << item.second << "\n";
             os << "    Hash: " << ModParamSet::Hash()(item.first) << "\n";
             const ModParamSet* const paramSet = item.first;
@@ -1084,29 +1084,15 @@ class ParamVisitor final : public VNVisitor {
     // METHODS
 
     void visitModule(AstNodeModule* modp) {
-        // m_generateHierName = "";
-        UINFO(9, "Visit module " << modp << endl);
-
-        // Process once; note user5 will be cleared on specialization, so we will do the
-        // specialized module if needed
         void* const user2p = modp->user2p();
-        if (!BaseModInfo::isVisited(user2p)) {
-            modp->user2p(BaseModInfo::setVisited(user2p));
-            // FIXME: move to visit(AstNodeModule*)
-
-            // TODO: this really should be an assert, but classes and hier_blocks are
-            // special...
-            if (modp->someInstanceName().empty()) modp->someInstanceName(modp->origName());
-
-            // Iterate the body
-            {
-                VL_RESTORER(m_modp);
-                m_modp = modp;
-                iterateChildren(modp);
-            }
-        }
-        //
-        // m_iterateModule = false;
+        if (BaseModInfo::isVisited(user2p)) return;  // Skip already processed modules
+        modp->user2p(BaseModInfo::setVisited(user2p));
+        // TODO: this really should be an assert, but classes and hier_blocks are special...
+        if (modp->someInstanceName().empty()) modp->someInstanceName(modp->origName());
+        // Iterate the body
+        VL_RESTORER(m_modp);
+        m_modp = modp;
+        iterateChildren(modp);
     }
 
     // Fix up level of module, based on who instantiates it
@@ -1122,47 +1108,33 @@ class ParamVisitor final : public VNVisitor {
     }
 
     // A generic visitor for cells and class refs
-    void visitCellOrClassRef(AstNode* nodep, bool isIface) {
-        // Must do ifaces first, so push to list and do in proper order
-        string* const genHierNamep = new std::string{m_generateHierName};
-        nodep->user2p(genHierNamep);
+    void visitCellOrClassRef(AstNode* cellp) {
         // Visit parameters in the instantiation.
-        iterateChildren(nodep);
-        // m_cellps.emplace(!isIface, nodep);
-        // const auto itim = m_cellps.cbegin();
-        // AstNode* const cellp = itim->second;
-        // m_cellps.erase(itim);
-        AstNode* const cellp = nodep;
+        iterateChildren(cellp);
         AstNodeModule* srcModp = nullptr;
         if (const auto* modCellp = VN_CAST(cellp, Cell)) {
             srcModp = modCellp->modp();
         } else if (const auto* classRefp = VN_CAST(cellp, ClassOrPackageRef)) {
             const AstNode* const clsOrPkgNodep = classRefp->classOrPackageNodep();
-            if (VN_IS(clsOrPkgNodep, Typedef) || VN_IS(clsOrPkgNodep, ParamTypeDType))
-                return;
+            if (VN_IS(clsOrPkgNodep, Typedef) || VN_IS(clsOrPkgNodep, ParamTypeDType)) return;
             srcModp = classRefp->classOrPackagep();
-        } else if (const auto* classRefp = VN_CAST(cellp, ClassRefDType)) {
-            srcModp = classRefp->classp();
+        } else if (const auto* classPkgRefp = VN_CAST(cellp, ClassRefDType)) {
+            srcModp = classPkgRefp->classp();
         } else {
             cellp->v3fatalSrc("Expected module parameterization");
         }
         UASSERT_OBJ(srcModp, cellp, "Unlinked class ref");
 
         // Update path
-        string someInstanceName(m_modp->someInstanceName());
-        if (const string* const genHierNamep = cellp->user2u().to<string*>()) {
-            someInstanceName += *genHierNamep;
-            cellp->user2p(nullptr);
-            VL_DO_DANGLING(delete genHierNamep, genHierNamep);
-        }
+        const string someInstanceName = m_modp->someInstanceName() + m_generateHierName;
 
         // Apply parameter specialization
         m_processor.nodeDeparam(cellp, srcModp /* ref */, m_modp, someInstanceName);
 
         visitModule(srcModp);
 
-        // // Add to the hierarchy registry
-        // m_parentps[srcModp].insert(m_modp);
+        // Add to the hierarchy registry
+        m_parentps[srcModp].insert(m_modp);
     }
 
     // RHSs of AstDots need a relink when LHS is a parameterized class reference
@@ -1229,10 +1201,10 @@ class ParamVisitor final : public VNVisitor {
             relinkPinsByName(nodep->pinsp(), item);
         }
         /*************** FIXME: temporarily fix ***************/
-        visitCellOrClassRef(nodep, VN_IS(nodep->modp(), Iface));
+        visitCellOrClassRef(nodep);
     }
-    void visit(AstClassRefDType* nodep) override { visitCellOrClassRef(nodep, false); }
-    void visit(AstClassOrPackageRef* nodep) override { visitCellOrClassRef(nodep, false); }
+    void visit(AstClassRefDType* nodep) override { visitCellOrClassRef(nodep); }
+    void visit(AstClassOrPackageRef* nodep) override { visitCellOrClassRef(nodep); }
 
     // Make sure all parameters are constantified
     void visit(AstVar* nodep) override {
@@ -1403,6 +1375,10 @@ class ParamVisitor final : public VNVisitor {
             // so process here rather than at the generate to avoid iteration problems
             UINFO(9, "  BEGIN " << nodep << endl);
             UINFO(9, "  GENFOR " << forp << endl);
+            // Visit child nodes before unrolling
+            iterateAndNextNull(forp->initsp());
+            iterateAndNextNull(forp->condp());
+            iterateAndNextNull(forp->incsp());
             V3Width::widthParamsEdit(forp);  // Param typed widthing will NOT recurse the body
             // Outer wrapper around generate used to hold genvar, and to ensure genvar
             // doesn't conflict in V3LinkDot resolution with other genvars
