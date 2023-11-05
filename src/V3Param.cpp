@@ -984,13 +984,13 @@ class ParamVisitor final : public VNVisitor {
     ParamProcessor m_processor;  // De-parameterize a cell, build modules
     UnrollStateful m_unroller;  // Loop unroller
 
-    bool m_iterateModule = false;  // Iterating module body
+    // bool m_iterateModule = false;  // Iterating module body
     string m_generateHierName;  // Generate portion of hierarchy name
     string m_unlinkedTxt;  // Text for AstUnlinkedRef
     AstNodeModule* m_modp;  // Module iterating
     std::vector<AstDot*> m_dots;  // Dot references to process
-    std::multimap<bool, AstNode*> m_cellps;  // Cells left to process (in current module)
-    std::multimap<int, AstNodeModule*> m_workQueue;  // Modules left to process
+    // std::multimap<bool, AstNode*> m_cellps;  // Cells left to process (in current module)
+    // std::multimap<int, AstNodeModule*> m_workQueue;  // Modules left to process
     std::vector<AstClass*> m_paramClasses;  // Parameterized classes
 
     // Map from AstNodeModule to set of all AstNodeModules that instantiates it.
@@ -998,76 +998,28 @@ class ParamVisitor final : public VNVisitor {
 
     // METHODS
 
-    void visitCells(AstNodeModule* nodep) {
-        UASSERT_OBJ(!m_iterateModule, nodep, "Should not nest");
-        std::multimap<int, AstNodeModule*> workQueue;
-        workQueue.emplace(nodep->level(), nodep);
-        m_generateHierName = "";
-        m_iterateModule = true;
+    void visitModule(AstNodeModule* modp) {
+        // m_generateHierName = "";
+        UINFO(9, "Visit module " << modp << endl);
 
-        // Visit all cells under module, recursively
-        do {
-            const auto itm = workQueue.cbegin();
-            AstNodeModule* const modp = itm->second;
-            workQueue.erase(itm);
+        // Process once; note user2 will be cleared on specialization, so we will do the
+        // specialized module if needed
+        if (!modp->user2SetOnce()) {
+            // FIXME: move to visit(AstNodeModule*)
 
-            // Process once; note user2 will be cleared on specialization, so we will do the
-            // specialized module if needed
-            if (!modp->user2SetOnce()) {
+            // TODO: this really should be an assert, but classes and hier_blocks are
+            // special...
+            if (modp->someInstanceName().empty()) modp->someInstanceName(modp->origName());
 
-                // TODO: this really should be an assert, but classes and hier_blocks are
-                // special...
-                if (modp->someInstanceName().empty()) modp->someInstanceName(modp->origName());
-
-                // Iterate the body
-                {
-                    VL_RESTORER(m_modp);
-                    m_modp = modp;
-                    iterateChildren(modp);
-                }
+            // Iterate the body
+            {
+                VL_RESTORER(m_modp);
+                m_modp = modp;
+                iterateChildren(modp);
             }
-
-            // Process interface cells, then non-interface cells, which may reference an interface
-            // cell.
-            while (!m_cellps.empty()) {
-                const auto itim = m_cellps.cbegin();
-                AstNode* const cellp = itim->second;
-                m_cellps.erase(itim);
-
-                AstNodeModule* srcModp = nullptr;
-                if (const auto* modCellp = VN_CAST(cellp, Cell)) {
-                    srcModp = modCellp->modp();
-                } else if (const auto* classRefp = VN_CAST(cellp, ClassOrPackageRef)) {
-                    srcModp = classRefp->classOrPackagep();
-                    if (VN_IS(classRefp->classOrPackageNodep(), ParamTypeDType)) continue;
-                } else if (const auto* classRefp = VN_CAST(cellp, ClassRefDType)) {
-                    srcModp = classRefp->classp();
-                } else {
-                    cellp->v3fatalSrc("Expected module parameterization");
-                }
-                UASSERT_OBJ(srcModp, cellp, "Unlinked class ref");
-
-                // Update path
-                string someInstanceName(modp->someInstanceName());
-                if (const string* const genHierNamep = cellp->user2u().to<string*>()) {
-                    someInstanceName += *genHierNamep;
-                    cellp->user2p(nullptr);
-                    VL_DO_DANGLING(delete genHierNamep, genHierNamep);
-                }
-
-                // Apply parameter specialization
-                m_processor.nodeDeparam(cellp, srcModp /* ref */, modp, someInstanceName);
-
-                // Add the (now potentially specialized) child module to the work queue
-                workQueue.emplace(srcModp->level(), srcModp);
-
-                // Add to the hierarchy registry
-                m_parentps[srcModp].insert(modp);
-            }
-            if (workQueue.empty()) std::swap(workQueue, m_workQueue);
-        } while (!workQueue.empty());
-
-        m_iterateModule = false;
+        }
+        //
+        // m_iterateModule = false;
     }
 
     // Fix up level of module, based on who instantiates it
@@ -1089,7 +1041,39 @@ class ParamVisitor final : public VNVisitor {
         nodep->user2p(genHierNamep);
         // Visit parameters in the instantiation.
         iterateChildren(nodep);
-        m_cellps.emplace(!isIface, nodep);
+        // m_cellps.emplace(!isIface, nodep);
+        // const auto itim = m_cellps.cbegin();
+        // AstNode* const cellp = itim->second;
+        // m_cellps.erase(itim);
+        AstNode* const cellp = nodep;
+        AstNodeModule* srcModp = nullptr;
+        if (const auto* modCellp = VN_CAST(cellp, Cell)) {
+            srcModp = modCellp->modp();
+        } else if (const auto* classRefp = VN_CAST(cellp, ClassOrPackageRef)) {
+            srcModp = classRefp->classOrPackagep();
+            if (VN_IS(classRefp->classOrPackageNodep(), ParamTypeDType)) return;
+        } else if (const auto* classRefp = VN_CAST(cellp, ClassRefDType)) {
+            srcModp = classRefp->classp();
+        } else {
+            cellp->v3fatalSrc("Expected module parameterization");
+        }
+        UASSERT_OBJ(srcModp, cellp, "Unlinked class ref");
+
+        // Update path
+        string someInstanceName(m_modp->someInstanceName());
+        if (const string* const genHierNamep = cellp->user2u().to<string*>()) {
+            someInstanceName += *genHierNamep;
+            cellp->user2p(nullptr);
+            VL_DO_DANGLING(delete genHierNamep, genHierNamep);
+        }
+
+        // Apply parameter specialization
+        m_processor.nodeDeparam(cellp, srcModp /* ref */, m_modp, someInstanceName);
+
+        visitModule(srcModp);
+
+        // // Add to the hierarchy registry
+        // m_parentps[srcModp].insert(m_modp);
     }
 
     // RHSs of AstDots need a relink when LHS is a parameterized class reference
@@ -1113,25 +1097,14 @@ class ParamVisitor final : public VNVisitor {
         if (nodep->dead()) return;  // Marked by LinkDot (and above)
         if (AstClass* const classp = VN_CAST(nodep, Class)) {
             if (classp->isParameterized()) {
-                // Don't enter into a definition.
-                // If a class is used, it will be visited through a reference
+                // Collect param classes
                 m_paramClasses.push_back(classp);
-                return;
             }
         }
 
-        if (m_iterateModule) {  // Iterating body
-            UINFO(4, " MOD-under-MOD.  " << nodep << endl);
-            m_workQueue.emplace(nodep->level(), nodep);  // Delay until current module is done
-            return;
-        }
-
-        // Start traversal at root-like things
-        if (nodep->level() <= 2  // Haven't added top yet, so level 2 is the top
-            || VN_IS(nodep, Class)  // Nor moved classes
-            || VN_IS(nodep, Package)) {  // Likewise haven't done wrapTopPackages yet
-            visitCells(nodep);
-        }
+        // Only do root module & package here. Modules & classes used in parent module will be
+        // visited from visitCellOrClassRef()
+        if (nodep->level() <= 2 || VN_IS(nodep, Package)) visitModule(nodep);
     }
 
     void visit(AstCell* nodep) override {
@@ -1177,11 +1150,13 @@ class ParamVisitor final : public VNVisitor {
     }
     void visit(AstVarXRef* nodep) override {
         // Check to see if the scope is just an interface because interfaces are special
+        UINFO(9, "Relink " << nodep << endl);
         const string dotted = nodep->dotted();
         if (!dotted.empty() && nodep->varp() && nodep->varp()->isParam()) {
             const AstNode* backp = nodep;
             while ((backp = backp->backp())) {
                 if (VN_IS(backp, NodeModule)) {
+                    nodep->v3error("Failed to find referenced target");
                     UINFO(9, "Hit module boundary, done looking for interface" << endl);
                     break;
                 }
@@ -1197,22 +1172,16 @@ class ParamVisitor final : public VNVisitor {
                         ifacerefp = VN_CAST(VN_CAST(backp, Var)->childDTypep()->getChildDTypep(),
                                             IfaceRefDType);
                     }
+
                     // Interfaces passed in on the port map have ifaces
-                    if (const AstIface* const ifacep = ifacerefp->ifacep()) {
-                        if (dotted == backp->name()) {
-                            UINFO(9, "Iface matching scope:  " << ifacep << endl);
-                            if (ifaceParamReplace(nodep, ifacep->stmtsp())) {  //
-                                return;
-                            }
-                        }
-                    }
-                    // Interfaces declared in this module have cells
-                    else if (const AstCell* const cellp = ifacerefp->cellp()) {
-                        if (dotted == cellp->name()) {
-                            UINFO(9, "Iface matching scope:  " << cellp << endl);
-                            if (ifaceParamReplace(nodep, cellp->paramsp())) {  //
-                                return;
-                            }
+                    const AstIface* ifacep = ifacerefp->ifaceViaCellp();
+                    const string name
+                        = ifacerefp->cellp() ? ifacerefp->cellp()->name() : backp->name();
+                    if (dotted == name) {
+                        UINFO(9, "Iface matching scope:  " << ifacep << endl);
+                        if (ifaceParamReplace(nodep, ifacep->stmtsp())) {  //
+                            UINFO(9, "Relpaced " << nodep << " -> iface " << ifacep << endl);
+                            return;
                         }
                     }
                 }

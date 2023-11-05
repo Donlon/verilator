@@ -10,12 +10,12 @@ interface simple_bus #(PARAMETER = 0);
    parameter [6:0] dummy = 22;
 endinterface
 
+interface simple_bus2 #(PARAMETER = 0);
+   parameter [6:0] dummy = 22;
+   if (PARAMETER != 7) $error("Wrong parameter");
+endinterface
+
 module t ();
    simple_bus sb_intf();
-   simple_bus #(.PARAMETER($bits(sb_intf.dummy))) simple();
-   initial begin
-      if (simple.PARAMETER != 7) $stop;
-      $write("*-* All Finished *-*\n");
-      $finish;
-   end
+   simple_bus2 #(.PARAMETER($bits(sb_intf.dummy))) simple();
 endmodule
