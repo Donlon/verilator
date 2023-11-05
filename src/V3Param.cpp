@@ -238,7 +238,7 @@ public:
         m_paramModList.push_back({paramSet, nodep});
     }
     void insertParamedModMap(const ModParamSet* paramSet, AstNodeModule* nodep) {
-        m_paramsMap.insert(paramSet, nodep);
+        m_paramsMap.insert(paramSet, nodep);  // Acquires ownership of paramSet
     }
     AstNodeModule* findParamedNode(const ModParamSet* paramSet) {
         return m_paramsMap.findNode(paramSet);
@@ -742,25 +742,7 @@ class ParamProcessor final {
         checkIfacePinConnection(pinsp);
         return true;
     }
-    //! Find specialized module with given overridden parameters and interface pins. If not exists,
-    //! clone a new one.
-    AstNodeModule* findOrCloneDeparamedMod(AstNodeModule* modp, AstPin* paramsp, AstPin* pinsp) {
-        BaseModInfo* baseModInfop = modp->user2u().to<BaseModInfo*>();
-        UASSERT_OBJ(!baseModInfop->isDeparamed(), modp, "Should use original node for deparam");
-        ModInfo* modInfop = static_cast<ModInfo*>(baseModInfop);
-
-        std::unique_ptr<ModParamSet> overriddenParams;
-        overriddenParams.reset(collectOverriddenParamSet(modInfop, paramsp, pinsp));
-        AstNodeModule* foundp = modInfop->findParamedNode(overriddenParams.get());
-        if (foundp) {
-            UINFO(7, "  module found with overridden param set\n");
-            return foundp;
-        }
-
-        const bool checkOk = checkCellParamSet(modInfop, overriddenParams.get(), pinsp);
-        if (!checkOk) return nullptr;
-
-        auto collectedParams = std::make_unique<ModParamSet>(*overriddenParams);
+    void collectConstants(ModInfo* modInfop, ModParamSet* collectedParams) {
         // Collect constants from original module for not overridden parameters, so potentially
         // don't need to clone a new module
         bool hasEmptyParam = false;
@@ -791,6 +773,28 @@ class ParamProcessor final {
         }
         (void)hasEmptyParam;
         collectedParams->rehash();
+    }
+    //! Find specialized module with given overridden parameters and interface pins. If not exists,
+    //! clone a new one.
+    AstNodeModule* findOrCloneDeparamedMod(AstNodeModule* modp, AstPin* paramsp, AstPin* pinsp) {
+        BaseModInfo* baseModInfop = modp->user2u().to<BaseModInfo*>();
+        UASSERT_OBJ(!baseModInfop->isDeparamed(), modp, "Should use original node for deparam");
+        ModInfo* modInfop = static_cast<ModInfo*>(baseModInfop);
+
+        std::unique_ptr<ModParamSet> overriddenParams;
+        overriddenParams.reset(collectOverriddenParamSet(modInfop, paramsp, pinsp));
+        AstNodeModule* foundp = modInfop->findParamedNode(overriddenParams.get());
+        if (foundp) {
+            UINFO(7, "  module found with overridden param set\n");
+            return foundp;
+        }
+
+        const bool checkOk = checkCellParamSet(modInfop, overriddenParams.get(), pinsp);
+        if (!checkOk) return nullptr;
+
+        auto collectedParams = std::make_unique<ModParamSet>(*overriddenParams);
+        collectConstants(modInfop, collectedParams.get());
+
         foundp = modInfop->findParamedNode(collectedParams.get());
         if (foundp) {
             UINFO(7, "  module found with collected param set\n");
@@ -798,6 +802,7 @@ class ParamProcessor final {
             modInfop->insertParamedModMap(collectedParams.release(), foundp);
             return foundp;
         }
+
         AstNodeModule* clonedModp = nullptr;
         // Even if there's no unknown parameters, we still have to re-evaluate them under module's
         // context (to perform truncation/extension/type propagation/...)
@@ -828,7 +833,7 @@ class ParamProcessor final {
 
         if (v3Global.opt.hierChild() || !v3Global.opt.hierBlocks().empty()) {
             UASSERT_OBJ(!modInfop->hierBlock(), m_cellNodep,
-                        "Failed to find module for hierarchical block\n");
+                        "Failed to find library wrapper for hierarchical block\n");
         }
         DeparamedModInfo* deparamedModInfo = new DeparamedModInfo;
         deparamedModInfo->hierBlock(modInfop->hierBlock());
@@ -838,9 +843,10 @@ class ParamProcessor final {
         if (!updateClonedModInfo(modInfop, clonedModp, collectedParams.get())) return nullptr;
         collectedParams->skipTypesRef();
         UINFO(6, "  insert new deparamed module: " << clonedModp << endl);
-        modInfop->addParamedMod(evaluatedParams.release(), clonedModp);
+        modInfop->addParamedMod(evaluatedParams.get(), clonedModp);
         modInfop->insertParamedModMap(overriddenParams.release(), clonedModp);
         modInfop->insertParamedModMap(collectedParams.release(), clonedModp);
+        modInfop->insertParamedModMap(evaluatedParams.release(), clonedModp);
         // Keep tree sorted by level. Note: Different parameterizations of the same recursive
         // module end up with the same level, which we will need to fix up at the end, as we do not
         // know up front how recursive modules are expanded, and a later expansion might re-use an
