@@ -1218,10 +1218,11 @@ class ParamVisitor final : public VNVisitor {
 
     void visit(AstCell* nodep) override {
         /*************** FIXME: temporarily fix ***************/
-        size_t pos = nodep->modp()->name().find("__Vrcm");
-        if (pos != string::npos) {
+        size_t pos1 = nodep->modp()->name().find("__Vrcm");
+        size_t pos2 = nodep->modp()->name().find("delay");
+        if (pos1 != string::npos && pos2 == 0) {
             string s = nodep->modp()->name();
-            s.erase(pos);
+            s.erase(pos1);
             AstNodeModule* item = delayModMap[s];
             nodep->modp(item);
             relinkPinsByName(nodep->paramsp(), item);
@@ -1276,7 +1277,7 @@ class ParamVisitor final : public VNVisitor {
             const AstNode* backp = nodep;
             while ((backp = backp->backp())) {
                 if (VN_IS(backp, NodeModule)) {
-                    nodep->v3error("Failed to find referenced target");
+                    // nodep->v3error("Failed to find referenced target");
                     UINFO(9, "Hit module boundary, done looking for interface" << endl);
                     break;
                 }
@@ -1487,6 +1488,7 @@ class ParamVisitor final : public VNVisitor {
         VL_DO_DANGLING(nodep->deleteTree(), nodep);
     }
 
+    void visit(AstNetlist* nodep) override { iterateAndNextNull(nodep->modulesp()); }
     void visit(AstNode* nodep) override { iterateChildren(nodep); }
 
 public:
