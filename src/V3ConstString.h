@@ -103,6 +103,8 @@ inline bool operator!=(const VConstString& lhs, const VConstString& rhs) {
     return lhs.str() != rhs.str();
 }
 
-inline std::ostream& operator<<(std::ostream& os, const VConstString& str) { return os << str.str(); }
+inline std::ostream& operator<<(std::ostream& os, const VConstString& str) {
+    return os << str.str();
+}
 
 #endif  // Guard

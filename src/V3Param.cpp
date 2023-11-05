@@ -83,8 +83,7 @@ class ParameterizedHierBlocks final {
     HierBlockModMap m_hierBlockMod;
     // Overridden parameters of the hierarchical block
     std::map<const V3HierarchicalBlockOption*, ParamConstMap> m_hierParams;
-    std::map<VConstString, GParamsMap>
-        m_modParams;  // Parameter variables of hierarchical blocks
+    std::map<VConstString, GParamsMap> m_modParams;  // Parameter variables of hierarchical blocks
 
     // METHODS
 
@@ -664,7 +663,8 @@ class ParamProcessor final {
         }
     }
     const ModInfo* moduleFindOrClone(AstNodeModule* srcModp, AstNode* cellp, AstPin* paramsp,
-                                     const VConstString& newname, const IfaceRefRefs& ifaceRefRefs) {
+                                     const VConstString& newname,
+                                     const IfaceRefRefs& ifaceRefRefs) {
         // Already made this flavor?
         auto it = m_modNameMap.find(newname);
         if (it != m_modNameMap.end()) {

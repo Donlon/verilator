@@ -564,7 +564,8 @@ public:
     }
 
 private:
-    VSymEnt* findWithAltFallback(VSymEnt* symp, const VConstString& name, const VConstString& altname) {
+    VSymEnt* findWithAltFallback(VSymEnt* symp, const VConstString& name,
+                                 const VConstString& altname) {
         VSymEnt* findp = symp->findIdFallback(name);
         if (findp) return findp;
         if (altname != "") {
@@ -575,7 +576,7 @@ private:
     }
 
 public:
-    VSymEnt* findDotted(FileLine* refLocationp, VSymEnt* lookupSymp, const VConstString& dotname,
+    VSymEnt* findDotted(FileLine* refLocationp, VSymEnt* lookupSymp, const string& dotname,
                         string& baddot, VSymEnt*& okSymp) {
         // Given a dotted hierarchy name, return where in scope it is
         // Note when dotname=="" we just fall through and return lookupSymp
@@ -1872,8 +1873,8 @@ class LinkDotScopeVisitor final : public VNVisitor {
 
             UASSERT_OBJ(refp || xrefp, nodep,
                         "Unsupported: Non Var(X)Ref attached to interface pin");
-            string scopename = refp ? refp->varp()->name().str()
-                                          : xrefp->dotted() + "." + xrefp->name();
+            string scopename
+                = refp ? refp->varp()->name().str() : xrefp->dotted() + "." + xrefp->name();
             string baddot;
             VSymEnt* okSymp;
             VSymEnt* const symp = m_statep->findDotted(nodep->lhsp()->fileline(), m_modSymp,
@@ -2052,6 +2053,7 @@ private:
             m_dotp = nullptr;
             m_super = false;
             m_dotErr = false;
+            m_dotText = "";
             m_unresolvedCell = false;
             m_unresolvedClass = false;
             m_unlinkedScopep = nullptr;
@@ -2720,7 +2722,7 @@ private:
                         }
                         m_ds.m_dotText = "";
                         if (m_ds.m_unresolvedCell && m_ds.m_unlinkedScopep) {
-                            const string &dotted = refp->dotted();
+                            const string& dotted = refp->dotted();
                             const size_t pos = dotted.find("__BRA__??__KET__");
                             // Arrays of interfaces all have the same parameters
                             if (pos != string::npos && varp->isParam()

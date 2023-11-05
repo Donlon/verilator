@@ -2312,7 +2312,9 @@ public:
     void numberOperate(V3Number& out, const V3Number& lhs, const V3Number& rhs) override {
         out.opCompareNN(lhs, rhs, m_ignoreCase);
     }
-    VConstString name() const override VL_MT_STABLE { return m_ignoreCase ? "icompare" : "compare"; }
+    VConstString name() const override VL_MT_STABLE {
+        return m_ignoreCase ? "icompare" : "compare";
+    }
     string emitVerilog() override {
         return m_ignoreCase ? "%k(%l.icompare(%r))" : "%k(%l.compare(%r))";
     }

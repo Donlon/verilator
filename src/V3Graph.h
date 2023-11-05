@@ -263,7 +263,7 @@ public:
     }
 
     // ACCESSORS
-    virtual string name() const { return VConstString{}; }
+    virtual string name() const { return ""; }
     virtual string dotColor() const { return "black"; }
     virtual string dotShape() const { return ""; }
     virtual string dotStyle() const { return ""; }

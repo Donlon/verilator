@@ -2751,6 +2751,7 @@ void VNRelinker::relink(AstNode* newp) { newp->AstNode::relink(this); }
 // VNRef is std::reference_wrapper that can only hold AstNode subtypes
 template <typename T_Node>
 class VNRef final : public std::reference_wrapper<T_Node> {
+    using reference_wrapper = std::reference_wrapper<T_Node>;
     static_assert(std::is_base_of<AstNode, T_Node>::value,
                   "Type parameter 'T_Node' must be a subtype of AstNode");
 
@@ -2758,16 +2759,10 @@ public:
     template <typename U>
     // cppcheck-suppress noExplicitConstructor
     VNRef(U&& x)
-        : std::reference_wrapper<T_Node> {
-        x
-    }
-    {}
+        : reference_wrapper{x} {}
     // cppcheck-suppress noExplicitConstructor
-    VNRef(const std::reference_wrapper<T_Node>& other)
-        : std::reference_wrapper<T_Node> {
-        other
-    }
-    {}
+    VNRef(const reference_wrapper& other)
+        : reference_wrapper{other} {}
 };
 
 static_assert(sizeof(VNRef<AstNode>) == sizeof(std::reference_wrapper<AstNode>),

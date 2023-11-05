@@ -1301,7 +1301,7 @@ class AstPin final : public AstNode {
     // @astgen op1 := exprp : Optional[AstNode] // NodeExpr or NodeDType (nullptr if unconnected)
 private:
     int m_pinNum;  // Pin number
-    VConstString  m_name;  // Pin name, or "" for number based interconnect
+    VConstString m_name;  // Pin name, or "" for number based interconnect
     AstVar* m_modVarp = nullptr;  // Input/output this pin connects to on submodule.
     AstParamTypeDType* m_modPTypep = nullptr;  // Param type this pin connects to on submodule.
     bool m_param = false;  // Pin connects to parameter
@@ -1318,7 +1318,9 @@ public:
     ASTGEN_MEMBERS_AstPin;
     void dump(std::ostream& str) const override;
     const char* broken() const override;
-    VConstString name() const override VL_MT_STABLE { return m_name; }  // * = Pin name, ""=go by number
+    VConstString name() const override VL_MT_STABLE {
+        return m_name;
+    }  // * = Pin name, ""=go by number
     void name(const VConstString& name) override { m_name = name; }
     string prettyOperatorName() const override;
     bool dotStar() const { return name() == ".*"; }  // Fake name for .* connections until linked
@@ -1775,7 +1777,8 @@ class AstVar final : public AstNode {
     }
 
 public:
-    AstVar(FileLine* fl, VVarType type, const VConstString& name, VFlagChildDType, AstNodeDType* dtp)
+    AstVar(FileLine* fl, VVarType type, const VConstString& name, VFlagChildDType,
+           AstNodeDType* dtp)
         : ASTGEN_SUPER_Var(fl)
         , m_name{name}
         , m_origName{name} {
@@ -2161,7 +2164,9 @@ public:
         BROKEN_RTN(!VN_IS(stmtsp(), StmtExpr));
         return nullptr;
     }
-    AstNodeFTask* cloneType(const VConstString& name) override { return new AstLet{fileline(), name}; }
+    AstNodeFTask* cloneType(const VConstString& name) override {
+        return new AstLet{fileline(), name};
+    }
 };
 class AstProperty final : public AstNodeFTask {
     // A property inside a module
