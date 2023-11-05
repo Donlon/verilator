@@ -317,18 +317,18 @@ void BaseModInfo::destroy() {
 
 class ParamProcessor final {
     // NODE STATE - Shared with ParamVisitor
-    //   User1/2/3 used by constant function simulations
-    //   User4 shared with V3Hasher
-    //   AstNodeModule::user5p() // BaseModInfo* 0x1: Not a parameterized module, nor visited
+    //   AstGenFor::user2()      // bool         True if processed
+    //   AstVar::user2()         // bool         True if constant propagated
+    //   AstCell::user2p()       // string*      Generate portion of hierarchical name
+    //   AstNodeModule::user2p() // BaseModInfo* 0x1: Not a parameterized module, nor visited
     //                                           0x2: Not a parameterized module, visited
     //                                           0x3: Module probing. Used to detect circular
     //                                               reference
     //                                           Other non-null values: BaseModInfo for
     //                                               parameterized modules
-    //   AstGenFor::user5()      // bool         True if processed
-    //   AstVar::user5()         // bool         True if constant propagated
-    //   AstCell::user5p()       // string*      Generate portion of hierarchical name
-    const VNUser5InUse m_inuser5;
+    //   User1 used by constant function simulations
+    //   User4 shared with V3Hasher
+    const VNUser2InUse m_inuser2;
 
     // STATE
     AstNodeModule* m_modp = nullptr;  // Current module being processed
@@ -409,8 +409,8 @@ class ParamProcessor final {
     //! port that can be parameterized), and collect the parameters and parameterized interface
     //! ports for further uses.  Not for cloned modules.
     void probeModule(AstNodeModule* modp) {
-        if (modp->user5p()) return;  // Already processed
-        modp->user5p(reinterpret_cast<void*>(0x3));  // Avoid circular reference
+        if (modp->user2p()) return;  // Already processed
+        modp->user2p(reinterpret_cast<void*>(0x3));  // Avoid circular reference
         // Collect all parameters and parameterized interface ports inside source module
         std::vector<const AstNode*> paramList;
         std::vector<const AstVar*> ifaceList;
@@ -421,7 +421,7 @@ class ParamProcessor final {
                 } else if (varp->isIfaceRef()) {
                     AstIface* const ifacep = getIfaceFromVar(varp);
                     probeModule(ifacep);
-                    BaseModInfo* ifaceModInfop = ifacep->user5u().to<BaseModInfo*>();
+                    BaseModInfo* ifaceModInfop = ifacep->user2u().to<BaseModInfo*>();
                     if (ifaceModInfop == reinterpret_cast<BaseModInfo*>(0x3)) {
                         m_cellNodep->v3warn(E_UNSUPPORTED,
                                             "Circular reference on interface ports");
@@ -448,7 +448,7 @@ class ParamProcessor final {
             // 0x1: Not a parameterized module, nor visited
             modInfop = reinterpret_cast<ModInfo*>(0x1);
         }
-        modp->user5p(modInfop);
+        modp->user2p(modInfop);
     }
     template <typename T_KEY, typename T_MAP, typename T_LIST, typename T_VAL>
     void insertOverriddenParamSet(T_KEY* key, const std::map<const T_MAP*, int>& paramIndexMap,
@@ -517,7 +517,7 @@ class ParamProcessor final {
                 AstNodeModule* ifacep = getIfaceFromVar(ifaceVarp);
                 UASSERT_OBJ(ifacep, varrefp, "Ifaceref not linked to module");
                 probeModule(ifacep);
-                if (!BaseModInfo::isParameterized(ifacep->user5p())) continue;
+                if (!BaseModInfo::isParameterized(ifacep->user2p())) continue;
                 insertOverriddenParamSet(modVarp, ifaceIndexMap, ifaces, ifacep, pinp);
             }
         }
@@ -745,7 +745,7 @@ class ParamProcessor final {
     //! Find specialized module with given overridden parameters and interface pins. If not exists,
     //! clone a new one.
     AstNodeModule* findOrCloneDeparamedMod(AstNodeModule* modp, AstPin* paramsp, AstPin* pinsp) {
-        BaseModInfo* baseModInfop = modp->user5u().to<BaseModInfo*>();
+        BaseModInfo* baseModInfop = modp->user2u().to<BaseModInfo*>();
         UASSERT_OBJ(!baseModInfop->isDeparamed(), modp, "Should use original node for deparam");
         ModInfo* modInfop = static_cast<ModInfo*>(baseModInfop);
 
@@ -833,7 +833,7 @@ class ParamProcessor final {
         DeparamedModInfo* deparamedModInfo = new DeparamedModInfo;
         deparamedModInfo->hierBlock(modInfop->hierBlock());
         m_allocatedModInfo.push_back(deparamedModInfo);
-        clonedModp->user5p(deparamedModInfo);
+        clonedModp->user2p(deparamedModInfo);
         deparamedModInfo->setPinMap(std::move(m_clonedModPinMap));
         if (!updateClonedModInfo(modInfop, clonedModp, collectedParams.get())) return nullptr;
         collectedParams->skipTypesRef();
@@ -859,7 +859,7 @@ class ParamProcessor final {
         UINFO(6, "Deparam: processing: " << m_cellNodep << endl);
         UINFO(6, "         src module: " << srcModpr << endl);
         probeModule(srcModpr);
-        BaseModInfo* modInfo = srcModpr->user5u().to<BaseModInfo*>();
+        BaseModInfo* modInfo = srcModpr->user2u().to<BaseModInfo*>();
         if (!BaseModInfo::isParameterized(modInfo)) {  // Not parameterized
             checkIfacePinConnection(pinsp);
             UINFO(6, "  skip not parameterized module" << endl);
@@ -877,7 +877,7 @@ class ParamProcessor final {
             return false;
         }
         newModp->dead(false);
-        relinkPins(newModp->user5u().to<DeparamedModInfo*>(), pinsp);
+        relinkPins(newModp->user2u().to<DeparamedModInfo*>(), pinsp);
         // Delete the parameters from the cell; they're not relevant any longer.
         if (paramsp) m_deleter.pushDeletep(paramsp->unlinkFrBackWithNext());
         srcModpr = newModp;
@@ -936,7 +936,7 @@ class ParamProcessor final {
             AstNodeModule* const origModp = hierModMap[modName];
             UASSERT(origModp, "Can not find original module for " << modName << endl);
             probeModule(origModp);
-            ModInfo* modInfo = origModp->user5u().to<ModInfo*>();
+            ModInfo* modInfo = origModp->user2u().to<ModInfo*>();
             if (!BaseModInfo::isParameterized(modInfo)) continue;
             modInfo->hierBlock(true);
             std::unordered_map<string, AstNode*> origModPinMap;
@@ -989,7 +989,7 @@ class ParamProcessor final {
                 DeparamedModInfo* deparamedModInfo = new DeparamedModInfo;
                 deparamedModInfo->hierBlock(true);
                 m_allocatedModInfo.push_back(deparamedModInfo);
-                paramModp->user5p(deparamedModInfo);
+                paramModp->user2p(deparamedModInfo);
                 deparamedModInfo->setPinMap(std::move(m_clonedModPinMap));
                 auto* paramSetp = new ModParamSet;
                 paramSetp->m_params = std::move(paramsList);
@@ -1089,9 +1089,9 @@ class ParamVisitor final : public VNVisitor {
 
         // Process once; note user5 will be cleared on specialization, so we will do the
         // specialized module if needed
-        void* const user5p = modp->user5p();
-        if (!BaseModInfo::isVisited(user5p)) {
-            modp->user5p(BaseModInfo::setVisited(user5p));
+        void* const user2p = modp->user2p();
+        if (!BaseModInfo::isVisited(user2p)) {
+            modp->user2p(BaseModInfo::setVisited(user2p));
             // FIXME: move to visit(AstNodeModule*)
 
             // TODO: this really should be an assert, but classes and hier_blocks are
@@ -1125,7 +1125,7 @@ class ParamVisitor final : public VNVisitor {
     void visitCellOrClassRef(AstNode* nodep, bool isIface) {
         // Must do ifaces first, so push to list and do in proper order
         string* const genHierNamep = new std::string{m_generateHierName};
-        nodep->user5p(genHierNamep);
+        nodep->user2p(genHierNamep);
         // Visit parameters in the instantiation.
         iterateChildren(nodep);
         // m_cellps.emplace(!isIface, nodep);
@@ -1139,7 +1139,7 @@ class ParamVisitor final : public VNVisitor {
         } else if (const auto* classRefp = VN_CAST(cellp, ClassOrPackageRef)) {
             const AstNode* const clsOrPkgNodep = classRefp->classOrPackageNodep();
             if (VN_IS(clsOrPkgNodep, Typedef) || VN_IS(clsOrPkgNodep, ParamTypeDType))
-                continue;
+                return;
             srcModp = classRefp->classOrPackagep();
         } else if (const auto* classRefp = VN_CAST(cellp, ClassRefDType)) {
             srcModp = classRefp->classp();
@@ -1235,7 +1235,7 @@ class ParamVisitor final : public VNVisitor {
 
     // Make sure all parameters are constantified
     void visit(AstVar* nodep) override {
-        if (nodep->user5SetOnce()) return;  // Process once
+        if (nodep->user2SetOnce()) return;  // Process once
         iterateChildren(nodep);
         if (nodep->isParam()) {
             if (!nodep->valuep() && !VN_IS(m_modp, Class)) {
@@ -1535,7 +1535,7 @@ public:
             for (AstNodeModule* const modp : modps) netlistp->addModulesp(modp);
 
             for (AstClass* const classp : m_paramClasses) {
-                if (!classp->user5p()) {
+                if (!classp->user2p()) {
                     VL_DO_DANGLING(pushDeletep(classp->unlinkFrBack()), classp);
                 }
             }
