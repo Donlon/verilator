@@ -1,4 +1,4 @@
-.. Copyright 2003-2023 by Wilson Snyder.
+.. Copyright 2003-2024 by Wilson Snyder.
 .. SPDX-License-Identifier: LGPL-3.0-only OR Artistic-2.0
 
 verilator_gantt
@@ -30,15 +30,13 @@ Gantt Chart VCD Signals
 In waveforms, there are the following signals. In GTKWave, use "decimal"
 data format to remove the leading zeros and make the traces easier to read.
 
-evals
-  Increments each time when eval_step was measured to be active.  This
-  allow visualization of how much time eval_step was active.
+trace/section
+  Shows the name of the current top of the execution section stack.
+  Set GTKWave data format to "ASCII".
 
-eval_loop
-  Increments each time when the evaluation loop within eval_step was
-  measured to be active.  For best performance, there is only a single
-  evaluation loop within each eval_step call; that is, the eval_loop
-  waveform looks identical to the evals waveform.
+trace/depth
+  Shows the depth of the execution section stack.
+  Set GTKWave data format to "Analog".
 
 measured_parallelism
   The number of mtasks active at this time, for best performance, this will

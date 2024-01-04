@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -136,6 +136,7 @@ public:
         RISEFALLDLY,    // Unsupported: rise/fall/turn-off delays
         SELRANGE,       // Selection index out of range
         SHORTREAL,      // Shortreal not supported
+        SIDEEFFECT,     // Sideeffect ignored
         SPLITVAR,       // Cannot split the variable
         STATICVAR,      // Static variable declared in a loop with a declaration assignment
         STMTDLY,        // Delayed statement
@@ -194,8 +195,8 @@ public:
             "CASEINCOMPLETE", "CASEOVERLAP", "CASEWITHX", "CASEX", "CASTCONST", "CDCRSTLOGIC", "CLKDATA",
             "CMPCONST", "COLONPLUS", "COMBDLY", "CONSTRAINTIGN", "CONTASSREG",
             "DECLFILENAME", "DEFPARAM", "DEPRECATED",
-            "ENCAPSULATED", "ENDLABEL", "ENUMVALUE", "EOFNEWLINE", "GENCLK", "GENUNNAMED",
-            "HIERBLOCK",
+            "ENCAPSULATED", "ENDLABEL", "ENUMVALUE", "EOFNEWLINE", "GENCLK",
+            "GENUNNAMED", "HIERBLOCK",
             "IFDEPTH", "IGNOREDRETURN",
             "IMPERFECTSCH", "IMPLICIT", "IMPLICITSTATIC", "IMPORTSTAR", "IMPURE",
             "INCABSPATH", "INFINITELOOP", "INITIALDLY", "INSECURE",
@@ -203,7 +204,8 @@ public:
             "MULTIDRIVEN", "MULTITOP", "NEWERSTD", "NOLATCH", "NULLPORT", "PINCONNECTEMPTY",
             "PINMISSING", "PINNOCONNECT",  "PINNOTFOUND", "PKGNODECL", "PROCASSWIRE",
             "PROFOUTOFDATE", "PROTECTED", "RANDC", "REALCVT", "REDEFMACRO", "RISEFALLDLY",
-            "SELRANGE", "SHORTREAL", "SPLITVAR", "STATICVAR", "STMTDLY", "SYMRSVDWORD", "SYNCASYNCNET",
+            "SELRANGE", "SHORTREAL", "SIDEEFFECT", "SPLITVAR",
+            "STATICVAR", "STMTDLY", "SYMRSVDWORD", "SYNCASYNCNET",
             "TICKCOUNT", "TIMESCALEMOD",
             "UNDRIVEN", "UNOPT", "UNOPTFLAT", "UNOPTTHREADS",
             "UNPACKED", "UNSIGNED", "UNUSEDGENVAR", "UNUSEDPARAM", "UNUSEDSIGNAL",
@@ -231,7 +233,8 @@ public:
     }
     // Warnings to mention manual
     bool mentionManual() const VL_MT_SAFE {
-        return (m_e == EC_FATALSRC || m_e == SYMRSVDWORD || m_e == ZERODLY || pretendError());
+        return (m_e == EC_FATALSRC || m_e == SIDEEFFECT || m_e == SYMRSVDWORD || m_e == ZERODLY
+                || pretendError());
     }
     // Warnings that are lint only
     bool lintError() const VL_MT_SAFE {
@@ -402,7 +405,6 @@ public:
 // ######################################################################
 class V3Error final {
     // Base class for any object that wants debugging and error reporting
-private:
     // CONSTRUCTORS
     V3Error() {
         std::cerr << ("Static class");

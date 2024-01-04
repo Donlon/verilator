@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -33,7 +33,8 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 
 //######################################################################
 //######################################################################
-// Algorithms - weakly connected components
+// Algorithms - Remove redundancies
+// Changes user() and weight()
 
 class GraphRemoveRedundant final : GraphAlg<> {
     const bool m_sumWeights;  ///< Sum, rather then maximize weights
@@ -92,11 +93,11 @@ public:
     ~GraphRemoveRedundant() = default;
 };
 
-void V3Graph::removeRedundantEdges(V3EdgeFuncP edgeFuncp) {
-    GraphRemoveRedundant(this, edgeFuncp, false);
+void V3Graph::removeRedundantEdgesMax(V3EdgeFuncP edgeFuncp) {
+    GraphRemoveRedundant{this, edgeFuncp, false};
 }
 void V3Graph::removeRedundantEdgesSum(V3EdgeFuncP edgeFuncp) {
-    GraphRemoveRedundant(this, edgeFuncp, true);
+    GraphRemoveRedundant{this, edgeFuncp, true};
 }
 
 //######################################################################
@@ -132,9 +133,9 @@ void V3Graph::removeTransitiveEdges() { GraphAlgRemoveTransitiveEdges{this}.go()
 //######################################################################
 //######################################################################
 // Algorithms - weakly connected components
+// Changes color()
 
 class GraphAlgWeakly final : GraphAlg<> {
-private:
     void main() {
         // Initialize state
         m_graphp->clearColors();
@@ -173,10 +174,10 @@ void V3Graph::weaklyConnected(V3EdgeFuncP edgeFuncp) { GraphAlgWeakly{this, edge
 //######################################################################
 //######################################################################
 // Algorithms - strongly connected components
+// Changes user() and color()
 
 class GraphAlgStrongly final : GraphAlg<> {
-private:
-    uint32_t m_currentDfs;  // DFS count
+    uint32_t m_currentDfs = 0;  // DFS count
     std::vector<V3GraphVertex*> m_callTrace;  // List of everything we hit processing so far
 
     void main() {
@@ -253,7 +254,6 @@ private:
 public:
     GraphAlgStrongly(V3Graph* graphp, V3EdgeFuncP edgeFuncp)
         : GraphAlg<>{graphp, edgeFuncp} {
-        m_currentDfs = 0;
         main();
     }
     ~GraphAlgStrongly() = default;
@@ -264,9 +264,9 @@ void V3Graph::stronglyConnected(V3EdgeFuncP edgeFuncp) { GraphAlgStrongly{this, 
 //######################################################################
 //######################################################################
 // Algorithms - ranking
+// Changes user() and rank()
 
 class GraphAlgRank final : GraphAlg<> {
-private:
     void main() {
         // Rank each vertex, ignoring cutable edges
         // Vertex::m_user begin: 1 indicates processing, 2 indicates completed
@@ -318,12 +318,12 @@ void V3Graph::rank(V3EdgeFuncP edgeFuncp) { GraphAlgRank{this, edgeFuncp}; }
 
 //######################################################################
 //######################################################################
-// Algorithms - ranking
+// Algorithms - report loops
+// Changes user()
 
 class GraphAlgRLoops final : GraphAlg<> {
-private:
     std::vector<V3GraphVertex*> m_callTrace;  // List of everything we hit processing so far
-    bool m_done;  // Exit algorithm
+    bool m_done = false;  // Exit algorithm
 
     void main(V3GraphVertex* vertexp) {
         // Vertex::m_user begin: 1 indicates processing, 2 indicates completed
@@ -360,22 +360,21 @@ private:
 public:
     GraphAlgRLoops(V3Graph* graphp, V3EdgeFuncP edgeFuncp, V3GraphVertex* vertexp)
         : GraphAlg<>{graphp, edgeFuncp} {
-        m_done = false;
         main(vertexp);
     }
     ~GraphAlgRLoops() = default;
 };
 
 void V3Graph::reportLoops(V3EdgeFuncP edgeFuncp, V3GraphVertex* vertexp) {
-    GraphAlgRLoops(this, edgeFuncp, vertexp);
+    GraphAlgRLoops{this, edgeFuncp, vertexp};
 }
 
 //######################################################################
 //######################################################################
 // Algorithms - subtrees
+// Changes user()
 
 class GraphAlgSubtrees final : GraphAlg<> {
-private:
     V3Graph* const m_loopGraphp;
 
     //! Iterate through all connected nodes of a graph with a loop or loops.
@@ -416,7 +415,7 @@ public:
 
 //! Report the entire connected graph with a loop or loops
 void V3Graph::subtreeLoops(V3EdgeFuncP edgeFuncp, V3GraphVertex* vertexp, V3Graph* loopGraphp) {
-    GraphAlgSubtrees(this, loopGraphp, edgeFuncp, vertexp);
+    GraphAlgSubtrees{this, loopGraphp, edgeFuncp, vertexp};
 }
 
 //######################################################################

@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -41,6 +41,10 @@ class V3Partition final {
     // MEMBERS
     const OrderGraph* const m_orderGraphp;  // The OrderGraph
     const V3Graph* const m_fineDepsGraphp;  // Fine-grained dependency graph
+
+    LogicMTask* m_entryMTaskp = nullptr;  // Singular source vertex of the dependency graph
+    LogicMTask* m_exitMTaskp = nullptr;  // Singular sink vertex of the dependency graph
+
 public:
     // CONSTRUCTORS
     explicit V3Partition(const OrderGraph* orderGraphp, const V3Graph* fineDepsGraphp)
@@ -78,7 +82,6 @@ private:
 // Map a pointer into a id, for e.g. nodep to mtask mappings
 
 class PartPtrIdMap final {
-private:
     // TYPES
     // MEMBERS
     mutable uint64_t m_nextId = 0;
@@ -89,10 +92,9 @@ public:
     PartPtrIdMap() = default;
     // METHODS
     uint64_t findId(const void* ptrp) const {
-        const auto it = m_id.find(ptrp);
-        if (it != m_id.end()) return it->second;
-        m_id[ptrp] = m_nextId;
-        return m_nextId++;
+        const auto pair = m_id.emplace(ptrp, m_nextId);
+        if (pair.second) ++m_nextId;
+        return pair.first->second;
     }
 };
 

@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -272,6 +272,17 @@ bool VString::startsWith(const string& str, const string& prefix) {
 bool VString::endsWith(const string& str, const string& suffix) {
     if (str.length() < suffix.length()) return false;
     return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
+}
+string VString::aOrAn(const char* word) {
+    switch (word[0]) {
+    case '\0': return "";
+    case 'a':
+    case 'e':
+    case 'i':
+    case 'o':
+    case 'u': return "an";
+    default: return "a";
+    }
 }
 
 //######################################################################

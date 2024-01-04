@@ -142,7 +142,7 @@ Related Projects
 Open License
 ============
 
-Verilator is Copyright 2003-2023 by Wilson Snyder. (Report bugs to
+Verilator is Copyright 2003-2024 by Wilson Snyder. (Report bugs to
 `Verilator Issues <https://verilator.org/issues>`_.)
 
 Verilator is free software; you can redistribute it and/or modify it under
@@ -150,7 +150,7 @@ the terms of either the GNU Lesser General Public License Version 3 or the
 Perl Artistic License Version 2.0. See the documentation for more details.
 
 .. _CHIPS Alliance: https://chipsalliance.org
-.. _Icarus Verilog: http://iverilog.icarus.com
+.. _Icarus Verilog: https://steveicarus.github.io/iverilog
 .. _Linux Foundation: https://www.linuxfoundation.org
 .. |Logo| image:: https://www.veripool.org/img/verilator_256_200_min.png
 .. |verilator multithreaded performance| image:: https://www.veripool.org/img/verilator_multithreaded_performance_bg-min.png

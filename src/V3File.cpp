@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -14,13 +14,10 @@
 //
 //*************************************************************************
 
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstMT.h"
 
 #include "V3File.h"
 
-#include "V3Ast.h"
-#include "V3Global.h"
 #include "V3Os.h"
 #include "V3String.h"
 
@@ -194,7 +191,7 @@ void V3FileDependImp::writeTimes(const string& filename, const string& cmdlineIn
         // Read stats of files we create after we're done making them
         // (except for this file, of course)
         DependFile* const dfp = const_cast<DependFile*>(&(*iter));
-        V3Options::fileNfsFlush(dfp->filename());
+        V3Os::filesystemFlush(dfp->filename());
         dfp->loadStats();
         off_t showSize = iter->size();
         ino_t showIno = iter->ino();
@@ -259,7 +256,7 @@ bool V3FileDependImp::checkTimes(const string& filename, const string& cmdlineIn
         *ifp >> quote;
         const string chkFilename = V3Os::getline(*ifp, '"');
 
-        V3Options::fileNfsFlush(chkFilename);
+        V3Os::filesystemFlush(chkFilename);
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
         struct stat chkStat;
         const int err = stat(chkFilename.c_str(), &chkStat);
@@ -994,10 +991,8 @@ public:
     string protectIf(const string& old, bool doIt) VL_MT_SAFE_EXCLUDES(m_mutex) {
         if (!v3Global.opt.protectIds() || old.empty() || !doIt) return old;
         const V3LockGuard lock{m_mutex};
-        const auto it = m_nameMap.find(old);
-        if (it != m_nameMap.end()) {
-            return it->second;
-        } else {
+        const auto pair = m_nameMap.emplace(old, "");
+        if (pair.second) {
             string out;
             if (v3Global.opt.debugProtect()) {
                 // This lets us see the symbol being protected to debug cases
@@ -1012,16 +1007,15 @@ public:
                 // See if we can shrink the digest symbol to something smaller
                 for (size_t len = 6; len < out.size() - 3; len += 3) {
                     const string tryout = out.substr(0, len);
-                    if (m_newIdSet.find(tryout) == m_newIdSet.end()) {
+                    if (m_newIdSet.insert(tryout).second) {
                         out = tryout;
                         break;
                     }
                 }
             }
-            m_nameMap.emplace(old, out);
-            m_newIdSet.insert(out);
-            return out;
+            pair.first->second = out;
         }
+        return pair.first->second;
     }
     string protectWordsIf(const string& old, bool doIt) VL_MT_SAFE {
         // Split at " " (for traces), "." (for scopes), "->", "(", "&", ")" (for self pointers)

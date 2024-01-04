@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -116,7 +116,6 @@ public:
 //  Emit statements and expressions
 
 class EmitCFunc VL_NOT_FINAL : public EmitCConstInit {
-private:
     VMemberMap m_memberMap;
     AstVarRef* m_wideTempRefp = nullptr;  // Variable that _WW macros should be setting
     int m_labelNum = 0;  // Next label number
@@ -205,7 +204,7 @@ public:
     }
     void emitOpName(AstNode* nodep, const string& format, AstNode* lhsp, AstNode* rhsp,
                     AstNode* thsp);
-    void emitCCallArgs(const AstNodeCCall* nodep, const string& selfPointer);
+    void emitCCallArgs(const AstNodeCCall* nodep, const string& selfPointer, bool inProcess);
     void emitDereference(const string& pointer);
     void emitCvtPackStr(AstNode* nodep);
     void emitCvtWideArray(AstNode* nodep, AstNode* fromp);
@@ -486,7 +485,7 @@ public:
             // Call static method via the containing class
             puts(prefixNameProtect(funcModp) + "::");
             puts(funcp->nameProtect());
-        } else if (VN_IS(funcModp, Class) && funcModp != m_modp) {
+        } else if (nodep->superReference()) {
             // Calling superclass method
             puts(prefixNameProtect(funcModp) + "::");
             puts(funcp->nameProtect());
@@ -500,7 +499,7 @@ public:
             }
             puts(funcp->nameProtect());
         }
-        emitCCallArgs(nodep, nodep->selfPointerProtect(m_useSelfForThis));
+        emitCCallArgs(nodep, nodep->selfPointerProtect(m_useSelfForThis), m_cfuncp->needProcess());
     }
     void visit(AstCMethodCall* nodep) override {
         const AstCFunc* const funcp = nodep->funcp();
@@ -508,7 +507,7 @@ public:
         iterateConst(nodep->fromp());
         putbs("->");
         puts(funcp->nameProtect());
-        emitCCallArgs(nodep, "");
+        emitCCallArgs(nodep, "", m_cfuncp->needProcess());
     }
     void visit(AstCAwait* nodep) override {
         puts("co_await ");
@@ -603,7 +602,7 @@ public:
         puts(");\n");
     }
     void visit(AstCoverInc* nodep) override {
-        if (v3Global.opt.threads()) {
+        if (v3Global.opt.threads() > 1) {
             puts("vlSymsp->__Vcoverage[");
             puts(cvtToStr(nodep->declp()->dataDeclThisp()->binNum()));
             puts("].fetch_add(1, std::memory_order_relaxed);\n");
@@ -613,6 +612,7 @@ public:
             puts("]);\n");
         }
     }
+    void visit(AstDisableFork* nodep) override { puts("vlProcess->disableFork();\n"); }
     void visit(AstCReturn* nodep) override {
         puts("return (");
         iterateAndNextConstNull(nodep->lhsp());
@@ -1129,6 +1129,10 @@ public:
         // Extending a value of the same word width is just a NOP.
         if (const AstClassRefDType* const classDtypep = VN_CAST(nodep->dtypep(), ClassRefDType)) {
             puts("(" + classDtypep->cType("", false, false) + ")(");
+        } else if (nodep->size() <= VL_BYTESIZE) {
+            puts("(CData)(");
+        } else if (nodep->size() <= VL_SHORTSIZE) {
+            puts("(SData)(");
         } else if (nodep->size() <= VL_IDATASIZE) {
             puts("(IData)(");
         } else {
@@ -1179,25 +1183,25 @@ public:
     }
     void visit(AstSel* nodep) override {
         // Note ASSIGN checks for this on a LHS
-        emitOpName(nodep, nodep->emitC(), nodep->fromp(), nodep->lsbp(), nodep->thsp());
+        emitOpName(nodep, nodep->emitC(), nodep->fromp(), nodep->lsbp(), nodep->widthp());
     }
     void visit(AstReplicate* nodep) override {
-        if (nodep->lhsp()->widthMin() == 1 && !nodep->isWide()) {
-            UASSERT_OBJ((static_cast<int>(VN_AS(nodep->rhsp(), Const)->toUInt())
-                         * nodep->lhsp()->widthMin())
+        if (nodep->srcp()->widthMin() == 1 && !nodep->isWide()) {
+            UASSERT_OBJ((static_cast<int>(VN_AS(nodep->countp(), Const)->toUInt())
+                         * nodep->srcp()->widthMin())
                             == nodep->widthMin(),
                         nodep, "Replicate non-constant or width miscomputed");
             puts("VL_REPLICATE_");
             emitIQW(nodep);
             puts("OI(");
-            if (nodep->lhsp()) puts(cvtToStr(nodep->lhsp()->widthMin()));
+            if (nodep->srcp()) puts(cvtToStr(nodep->srcp()->widthMin()));
             puts(",");
-            iterateAndNextConstNull(nodep->lhsp());
+            iterateAndNextConstNull(nodep->srcp());
             puts(", ");
-            iterateAndNextConstNull(nodep->rhsp());
+            iterateAndNextConstNull(nodep->countp());
             puts(")");
         } else {
-            emitOpName(nodep, nodep->emitC(), nodep->lhsp(), nodep->rhsp(), nullptr);
+            emitOpName(nodep, nodep->emitC(), nodep->srcp(), nodep->countp(), nullptr);
         }
     }
     void visit(AstStreamL* nodep) override {
@@ -1224,9 +1228,9 @@ public:
     }
     void visit(AstCastDynamic* nodep) override {
         putbs("VL_CAST_DYNAMIC(");
-        iterateAndNextConstNull(nodep->lhsp());
+        iterateAndNextConstNull(nodep->fromp());
         puts(", ");
-        iterateAndNextConstNull(nodep->rhsp());
+        iterateAndNextConstNull(nodep->top());
         puts(")");
     }
     void visit(AstCountBits* nodep) override {

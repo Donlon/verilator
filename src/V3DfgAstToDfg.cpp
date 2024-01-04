@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -14,7 +14,7 @@
 //
 //*************************************************************************
 //
-// Convert and AstModule to a DfgGraph. We proceed by visiting convertable logic blocks (e.g.:
+// Convert and AstModule to a DfgGraph. We proceed by visiting convertible logic blocks (e.g.:
 // AstAssignW of appropriate type and with no delays), recursively constructing DfgVertex instances
 // for the expressions that compose the subject logic block. If all expressions in the current
 // logic block can be converted, then we delete the logic block (now represented in the DfgGraph),
@@ -26,16 +26,10 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
-#include "config_build.h"
-#include "verilatedos.h"
-
-#include "V3Ast.h"
 #include "V3Dfg.h"
 #include "V3DfgPasses.h"
-#include "V3Error.h"
-#include "V3Global.h"
 
 VL_DEFINE_DEBUG_FUNCTIONS;
 

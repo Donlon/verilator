@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -18,19 +18,12 @@
 //          Move some attributes around
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3LinkParse.h"
 
-#include "V3Ast.h"
 #include "V3Config.h"
-#include "V3Global.h"
 
-#include <algorithm>
-#include <map>
 #include <set>
 #include <vector>
 
@@ -40,7 +33,6 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 // Link state, as a visitor of each AstNode
 
 class LinkParseVisitor final : public VNVisitor {
-private:
     // NODE STATE
     // Cleared on netlist
     //  AstNode::user1()        -> bool.  True if processed
@@ -249,6 +241,10 @@ private:
         }
     }
     void visit(AstNodeDType* nodep) override { visitIterateNodeDType(nodep); }
+    void visit(AstConstraint* nodep) override {
+        v3Global.useRandomizeMethods(true);
+        iterateChildren(nodep);
+    }
     void visit(AstEnumDType* nodep) override {
         if (nodep->name() == "") {
             nodep->name(nameFromTypedef(nodep));  // Might still remain ""
@@ -299,19 +295,10 @@ private:
             nodep->v3warn(STATICVAR, "Static variable with assignment declaration declared in a "
                                      "loop converted to automatic");
         }
-        if (m_ftaskp) {
-            bool classMethod = m_ftaskp->classMethod();
-            if (!classMethod) {
-                AstClassOrPackageRef* const pkgrefp
-                    = VN_CAST(m_ftaskp->classOrPackagep(), ClassOrPackageRef);
-                if (pkgrefp && VN_IS(pkgrefp->classOrPackagep(), Class)) classMethod = true;
-            }
-            if (classMethod && nodep->lifetime().isNone()) {
-                nodep->lifetime(VLifetime::AUTOMATIC);
-            }
-        }
-        if (nodep->lifetime().isNone() && nodep->varType() != VVarType::PORT) {
-            nodep->lifetime(m_lifetime);
+        if (nodep->varType() != VVarType::PORT) {
+            if (nodep->lifetime().isNone()) nodep->lifetime(m_lifetime);
+        } else if (m_ftaskp) {
+            nodep->lifetime(VLifetime::AUTOMATIC);
         }
 
         if (nodep->isGParam() && !nodep->isAnsi()) {  // shadow some parameters into localparams
@@ -541,8 +528,7 @@ private:
             } else {
                 defp = new AstTypedef{nodep->fileline(), nodep->name(), nullptr, VFlagChildDType{},
                                       dtypep};
-                m_implTypedef.insert(
-                    std::make_pair(std::make_pair(nodep->containerp(), defp->name()), defp));
+                m_implTypedef.emplace(std::make_pair(nodep->containerp(), defp->name()), defp);
                 backp->addNextHere(defp);
             }
         }
@@ -550,7 +536,7 @@ private:
         VL_DO_DANGLING(nodep->deleteTree(), nodep);
     }
 
-    void visit(AstForeach* nodep) override {
+    void visit(AstNodeForeach* nodep) override {
         // FOREACH(array, loopvars, body)
         UINFO(9, "FOREACH " << nodep << endl);
         cleanFileline(nodep);
@@ -574,14 +560,14 @@ private:
             // Convert to AstSelLoopVars so V3LinkDot knows what's being defined
             AstNode* const newp
                 = new AstSelLoopVars{selp->fileline(), selp->fromp()->unlinkFrBack(),
-                                     selp->rhsp()->unlinkFrBackWithNext()};
+                                     selp->bitp()->unlinkFrBackWithNext()};
             selp->replaceWith(newp);
             VL_DO_DANGLING(selp->deleteTree(), selp);
         } else if (VN_IS(bracketp, SelLoopVars)) {
             // Ok
         } else {
-            nodep->v3error("Syntax error; foreach missing bracketed loop variable (IEEE "
-                           "1800-2017 12.7.3)");
+            nodep->v3error("Syntax error; foreach missing bracketed loop variable"
+                           " (IEEE 1800-2017 12.7.3)");
             VL_DO_DANGLING(nodep->unlinkFrBack()->deleteTree(), nodep);
             return;
         }

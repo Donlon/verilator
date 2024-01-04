@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -275,7 +275,7 @@ public:
     void putsHeader() override { puts("// Verilated -*- SystemC -*-\n"); }
     void putsIntTopInclude() override {
         putsForceIncs();
-        puts("#include \"systemc.h\"\n");
+        puts("#include \"systemc\"\n");
         puts("#include \"verilated_sc.h\"\n");
     }
 };

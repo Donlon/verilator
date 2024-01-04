@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -24,13 +24,9 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3EmitCBase.h"
-#include "V3Error.h"
 #include "V3Sched.h"
 
 #include <unordered_map>
@@ -71,11 +67,22 @@ AstCCall* TimingKit::createResume(AstNetlist* const netlistp) {
         m_resumeFuncp->isConst(false);
         m_resumeFuncp->declPrivate(true);
         scopeTopp->addBlocksp(m_resumeFuncp);
+
+        // Put all the timing actives in the resume function
+        AstActive* dlyShedActivep = nullptr;
         for (auto& p : m_lbs) {
-            // Put all the timing actives in the resume function
             AstActive* const activep = p.second;
+            // Hack to ensure that #0 delays will be executed after any other `act` events.
+            // Just handle delayed coroutines last.
+            AstVarRef* const schedrefp = VN_AS(
+                VN_AS(VN_AS(activep->stmtsp(), StmtExpr)->exprp(), CMethodHard)->fromp(), VarRef);
+            if (schedrefp->varScopep()->dtypep()->basicp()->isDelayScheduler()) {
+                dlyShedActivep = activep;
+                continue;
+            }
             m_resumeFuncp->addStmtsp(activep);
         }
+        if (dlyShedActivep) m_resumeFuncp->addStmtsp(dlyShedActivep);
     }
     AstCCall* const callp = new AstCCall{m_resumeFuncp->fileline(), m_resumeFuncp};
     callp->dtypeSetVoid();
@@ -139,7 +146,6 @@ AstCCall* TimingKit::createCommit(AstNetlist* const netlistp) {
 TimingKit prepareTiming(AstNetlist* const netlistp) {
     if (!v3Global.usesTiming()) return {};
     class AwaitVisitor final : public VNVisitor {
-    private:
         // NODE STATE
         //  AstSenTree::user1()  -> bool.  Set true if the sentree has been visited.
         const VNUser1InUse m_inuser1;
@@ -270,7 +276,6 @@ void transformForks(AstNetlist* const netlistp) {
     if (!v3Global.usesTiming()) return;
     // Transform all forked processes into functions
     class ForkVisitor final : public VNVisitor {
-    private:
         // NODE STATE
         //  AstVar::user1()  -> bool.  Set true if the variable was declared before the current
         //                             fork.
@@ -279,7 +284,6 @@ void transformForks(AstNetlist* const netlistp) {
         // STATE
         bool m_inClass = false;  // Are we in a class?
         bool m_beginHasAwaits = false;  // Does the current begin have awaits?
-        bool m_beginNeedProcess = false;  // Does the current begin have process::self dependency?
         AstFork* m_forkp = nullptr;  // Current fork
         AstCFunc* m_funcp = nullptr;  // Current function
 
@@ -293,14 +297,19 @@ void transformForks(AstNetlist* const netlistp) {
             funcp->foreach([&](AstNodeVarRef* refp) {
                 AstVar* const varp = refp->varp();
                 AstBasicDType* const dtypep = varp->dtypep()->basicp();
-                bool passByValue = false;
-                if (VString::startsWith(varp->name(), "__Vintra")) {
-                    // Pass it by value to the new function, as otherwise there are issues with
-                    // -flocalize (see t_timing_intra_assign)
-                    passByValue = true;
-                } else if (!varp->user1() || !varp->isFuncLocal()) {
-                    // Not func local, or not declared before the fork. Their lifetime is longer
-                    // than the forked process. Skip
+                // If not a fork..join, copy. All write refs should've been handled by V3Fork
+                bool passByValue = !m_forkp->joinType().join();
+                if (!varp->isFuncLocal()) {
+                    if (VString::startsWith(varp->name(), "__Vintra")) {
+                        // Pass it by value to the new function, as otherwise there are issues with
+                        // -flocalize (see t_timing_intra_assign)
+                        passByValue = true;
+                    } else {
+                        // Not func local. Its lifetime is longer than the forked process. Skip
+                        return;
+                    }
+                } else if (!varp->user1()) {
+                    // Not declared before the fork. It cannot outlive the forked process
                     return;
                 } else if (dtypep && dtypep->isForkSync()) {
                     // We can just pass it by value to the new function
@@ -358,9 +367,8 @@ void transformForks(AstNetlist* const netlistp) {
             UASSERT_OBJ(m_forkp, nodep, "Begin outside of a fork");
             // Start with children, so later we only find awaits that are actually in this begin
             m_beginHasAwaits = false;
-            m_beginNeedProcess = false;
             iterateChildrenConst(nodep);
-            if (m_beginHasAwaits || m_beginNeedProcess) {
+            if (m_beginHasAwaits || nodep->needProcess()) {
                 UASSERT_OBJ(!nodep->name().empty(), nodep, "Begin needs a name");
                 // Create a function to put this begin's statements in
                 FileLine* const flp = nodep->fileline();
@@ -384,7 +392,7 @@ void transformForks(AstNetlist* const netlistp) {
                 }
                 // Put the begin's statements in the function, delete the begin
                 newfuncp->addStmtsp(nodep->stmtsp()->unlinkFrBackWithNext());
-                if (m_beginNeedProcess) {
+                if (nodep->needProcess()) {
                     newfuncp->setNeedProcess();
                     newfuncp->addStmtsp(new AstCStmt{nodep->fileline(),
                                                      "vlProcess->state(VlProcess::FINISHED);\n"});
@@ -397,16 +405,16 @@ void transformForks(AstNetlist* const netlistp) {
             } else {
                 // The begin has neither awaits nor a process::self call, just inline the
                 // statements
-                nodep->replaceWith(nodep->stmtsp()->unlinkFrBackWithNext());
+                if (nodep->stmtsp()) {
+                    nodep->replaceWith(nodep->stmtsp()->unlinkFrBackWithNext());
+                } else {
+                    nodep->unlinkFrBack();
+                }
             }
             VL_DO_DANGLING(nodep->deleteTree(), nodep);
         }
         void visit(AstCAwait* nodep) override {
             m_beginHasAwaits = true;
-            iterateChildrenConst(nodep);
-        }
-        void visit(AstCCall* nodep) override {
-            if (nodep->funcp()->needProcess()) m_beginNeedProcess = true;
             iterateChildrenConst(nodep);
         }
         void visit(AstExprStmt* nodep) override { iterateChildren(nodep); }

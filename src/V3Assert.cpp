@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2005-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2005-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -14,16 +14,10 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3Assert.h"
 
-#include "V3Ast.h"
-#include "V3Error.h"
-#include "V3Global.h"
 #include "V3Stats.h"
 
 VL_DEFINE_DEBUG_FUNCTIONS;
@@ -32,7 +26,6 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 // Assert class functions
 
 class AssertVisitor final : public VNVisitor {
-private:
     // NODE STATE/TYPES
     // Cleared on netlist
     //  AstNode::user()         -> bool.  True if processed
@@ -160,7 +153,7 @@ private:
             if (m_procedurep) {
                 // To support this need queue of asserts to activate
                 nodep->v3error("Unsupported: Procedural concurrent assertion with"
-                               " clocking event inside always (IEEE 1800-2917 16.14.6)");
+                               " clocking event inside always (IEEE 1800-2017 16.14.6)");
             }
         }
         //

@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -34,13 +34,8 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
-#include "config_build.h"
-#include "verilatedos.h"
-
-#include "V3Ast.h"
-#include "V3Error.h"
 #include "V3Graph.h"
 #include "V3Sched.h"
 
@@ -126,7 +121,8 @@ public:
         : SchedReplicateVertex{graphp}
         , m_vscp{vscp} {
         // Top level inputs are
-        if (varp()->isPrimaryInish() || varp()->isSigUserRWPublic() || varp()->isWrittenByDpi()) {
+        if (varp()->isPrimaryInish() || varp()->isSigUserRWPublic() || varp()->isWrittenByDpi()
+            || varp()->sensIfacep()) {
             addDrivingRegions(INPUT);
         }
         // Currently we always execute suspendable processes at the beginning of

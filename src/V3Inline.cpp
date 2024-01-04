@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -24,21 +24,14 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3Inline.h"
 
-#include "V3Ast.h"
 #include "V3AstUserAllocator.h"
-#include "V3Global.h"
 #include "V3Inst.h"
 #include "V3Stats.h"
-#include "V3String.h"
 
-#include <algorithm>
 #include <unordered_set>
 #include <vector>
 
@@ -66,7 +59,6 @@ using ModuleStateUser1Allocator = AstUser1Allocator<AstNodeModule, ModuleState>;
 // Visitor that determines which modules will be inlined
 
 class InlineMarkVisitor final : public VNVisitor {
-private:
     // NODE STATE
     // Output
     //  AstNodeModule::user1()  // OUTPUT: ModuleState instance (via m_moduleState)
@@ -174,7 +166,7 @@ private:
         // MethodCalls not currently supported by inliner, so keep linked
         if (!nodep->classOrPackagep() && !VN_IS(nodep, MethodCall)) {
             nodep->taskp(nullptr);
-            nodep->clearCachedPurity();
+            VIsCached::clearCacheTree();
         }
         iterateChildren(nodep);
     }
@@ -252,7 +244,6 @@ public:
 // After cell is cloned, relink the new module's contents
 
 class InlineRelinkVisitor final : public VNVisitor {
-private:
     // NODE STATE
     //  Input:
     //   See InlineVisitor
@@ -292,7 +283,7 @@ private:
             // user2p is either a const or a var.
             FileLine* const flp = nodep->fileline();
             AstConst* const exprconstp = VN_CAST(nodep->user2p(), Const);
-            const AstVarRef* const exprvarrefp = VN_CAST(nodep->user2p(), VarRef);
+            AstVarRef* exprvarrefp = VN_CAST(nodep->user2p(), VarRef);
             UINFO(8, "connectto: " << nodep->user2p() << endl);
             UASSERT_OBJ(exprconstp || exprvarrefp, nodep,
                         "Unknown interconnect type; pinReconnectSimple should have cleared up");
@@ -305,30 +296,32 @@ private:
                 // remove the change detection on the output variable.
                 UINFO(9, "public pin assign: " << exprvarrefp << endl);
                 UASSERT_OBJ(!nodep->isNonOutput(), nodep, "Outputs only - inputs use AssignAlias");
-                m_modp->addStmtsp(
-                    new AstAssignW{flp, new AstVarRef{flp, exprvarrefp->varp(), VAccess::WRITE},
-                                   new AstVarRef{flp, nodep, VAccess::READ}});
+                m_modp->addStmtsp(new AstAssignW{flp, exprvarrefp->cloneTree(false),
+                                                 new AstVarRef{flp, nodep, VAccess::READ}});
             } else if (nodep->isSigPublic() && VN_IS(nodep->dtypep(), UnpackArrayDType)) {
                 // Public variable at this end and it is an unpacked array. We need to assign
                 // instead of aliased, because otherwise it will pass V3Slice and invalid
                 // code will be emitted.
                 UINFO(9, "assign to public and unpacked: " << nodep << endl);
+                exprvarrefp = exprvarrefp->cloneTree(false);
+                exprvarrefp->access(VAccess::READ);
                 m_modp->addStmtsp(
-                    new AstAssignW{flp, new AstVarRef{flp, nodep, VAccess::WRITE},
-                                   new AstVarRef{flp, exprvarrefp->varp(), VAccess::READ}});
+                    new AstAssignW{flp, new AstVarRef{flp, nodep, VAccess::WRITE}, exprvarrefp});
             } else if (nodep->isIfaceRef()) {
-                m_modp->addStmtsp(
-                    new AstAssignVarScope{flp, new AstVarRef{flp, nodep, VAccess::WRITE},
-                                          new AstVarRef{flp, exprvarrefp->varp(), VAccess::READ}});
+                exprvarrefp = exprvarrefp->cloneTree(false);
+                exprvarrefp->access(VAccess::READ);
+                m_modp->addStmtsp(new AstAssignVarScope{
+                    flp, new AstVarRef{flp, nodep, VAccess::WRITE}, exprvarrefp});
                 FileLine* const flbp = exprvarrefp->varp()->fileline();
                 flp->modifyStateInherit(flbp);
                 flbp->modifyStateInherit(flp);
             } else {
                 // Do to inlining child's variable now within the same
                 // module, so a AstVarRef not AstVarXRef below
-                m_modp->addStmtsp(
-                    new AstAssignAlias{flp, new AstVarRef{flp, nodep, VAccess::WRITE},
-                                       new AstVarRef{flp, exprvarrefp->varp(), VAccess::READ}});
+                exprvarrefp = exprvarrefp->cloneTree(false);
+                exprvarrefp->access(VAccess::READ);
+                m_modp->addStmtsp(new AstAssignAlias{
+                    flp, new AstVarRef{flp, nodep, VAccess::WRITE}, exprvarrefp});
                 FileLine* const flbp = exprvarrefp->varp()->fileline();
                 flp->modifyStateInherit(flbp);
                 flbp->modifyStateInherit(flp);
@@ -350,8 +343,8 @@ private:
                     newdp->cellName(newcellp->name());
                     // Tag the old ifacerefp to ensure it leaves no stale
                     // reference to the inlined cell.
-                    newdp->user5(false);
-                    ifacerefp->user5(true);
+                    newdp->user1(false);
+                    ifacerefp->user1(true);
                 }
             }
         }
@@ -385,6 +378,7 @@ private:
                 return;
             } else if (const AstVarRef* const vrefp = VN_CAST(varp->user2p(), VarRef)) {
                 nodep->varp(vrefp->varp());
+                nodep->classOrPackagep(vrefp->classOrPackagep());
             } else {
                 nodep->v3fatalSrc("Null connection?");
             }
@@ -458,11 +452,10 @@ public:
 // Inline state, as a visitor of each AstNode
 
 class InlineVisitor final : public VNVisitor {
-private:
     // NODE STATE
     // Cleared entire netlist
-    //  AstIfaceRefDType::user5p()  // Whether the cell pointed to by this
-    //                              // AstIfaceRefDType has been inlined
+    //  AstIfaceRefDType::user1()  // Whether the cell pointed to by this
+    //                             // AstIfaceRefDType has been inlined
     //  Input:
     //   AstNodeModule::user1p()    // ModuleState instance (via m_moduleState)
     // Cleared each cell
@@ -471,7 +464,6 @@ private:
     //   AstVar::user3()        // bool    Don't alias the user2, keep it as signal
     //   AstCell::user4         // AstCell* of the created clone
     const VNUser4InUse m_inuser4;
-    const VNUser5InUse m_inuser5;
 
     ModuleStateUser1Allocator& m_moduleState;
 
@@ -593,7 +585,7 @@ private:
         m_modp = nullptr;
     }
     void visit(AstIfaceRefDType* nodep) override {
-        if (nodep->user5()) {
+        if (nodep->user1()) {
             // The cell has been removed so let's make sure we don't leave a reference to it
             // This dtype may still be in use by the AstAssignVarScope created earlier
             // but that'll get cleared up later
@@ -624,88 +616,6 @@ public:
 };
 
 //######################################################################
-// Track interface references under the Cell they reference
-
-class InlineIntfRefVisitor final : public VNVisitor {
-private:
-    // NODE STATE
-    //   AstVar::user1p()   // AstCell which this Var points to
-    const VNUser1InUse m_inuser1;
-    const VNUser2InUse m_inuser2;
-
-    string m_scope;  // Scope name
-
-    // VISITORS
-    void visit(AstNetlist* nodep) override { iterateChildren(nodep->topModulep()); }
-    void visit(AstCell* nodep) override {
-        VL_RESTORER(m_scope);
-        if (m_scope.empty()) {
-            m_scope = nodep->name();
-        } else {
-            m_scope += "__DOT__" + nodep->name();
-        }
-
-        if (VN_IS(nodep->modp(), Iface)) {
-            nodep->addIntfRefsp(new AstIntfRef{nodep->fileline(), m_scope});
-        }
-        {
-            AstNodeModule* const modp = nodep->modp();
-            // Pass Cell pointers down to the next module
-            for (AstPin* pinp = nodep->pinsp(); pinp; pinp = VN_AS(pinp->nextp(), Pin)) {
-                AstVar* const varp = pinp->modVarp();
-                const AstVarRef* const varrefp = VN_CAST(pinp->exprp(), VarRef);
-                if (!varrefp) continue;
-                const AstVar* const fromVarp = varrefp->varp();
-                const AstIfaceRefDType* const irdtp = VN_CAST(fromVarp->dtypep(), IfaceRefDType);
-                if (!irdtp) continue;
-
-                AstCell* cellp;
-                if ((cellp = VN_CAST(fromVarp->user1p(), Cell)) || (cellp = irdtp->cellp())) {
-                    varp->user1p(cellp);
-                    const string alias = m_scope + "__DOT__" + pinp->name();
-                    cellp->addIntfRefsp(new AstIntfRef{pinp->fileline(), alias});
-                }
-            }
-
-            iterateChildren(modp);
-        }
-    }
-    void visit(AstAssignVarScope* nodep) override {
-        // Reference
-        const AstVarRef* const reflp = VN_CAST(nodep->lhsp(), VarRef);
-        // What the reference refers to
-        const AstVarRef* const refrp = VN_CAST(nodep->rhsp(), VarRef);
-        if (!(reflp && refrp)) return;
-
-        const AstVar* const varlp = reflp->varp();
-        const AstVar* const varrp = refrp->varp();
-        if (!(varlp && varrp)) return;
-
-        AstCell* cellp = VN_CAST(varrp->user1p(), Cell);
-        if (!cellp) {
-            const AstIfaceRefDType* const irdtp = VN_CAST(varrp->dtypep(), IfaceRefDType);
-            if (!irdtp) return;
-
-            cellp = irdtp->cellp();
-        }
-        if (!cellp) return;
-        string alias;
-        if (!m_scope.empty()) alias = m_scope + "__DOT__";
-        alias += varlp->name();
-        cellp->addIntfRefsp(new AstIntfRef{varlp->fileline(), alias});
-    }
-    //--------------------
-    void visit(AstNodeExpr*) override {}  // Accelerate
-    void visit(AstNodeStmt*) override {}  // Accelerate
-    void visit(AstNode* nodep) override { iterateChildren(nodep); }
-
-public:
-    // CONSTRUCTORS
-    explicit InlineIntfRefVisitor(AstNode* nodep) { iterate(nodep); }
-    ~InlineIntfRefVisitor() override = default;
-};
-
-//######################################################################
 // Inline class functions
 
 void V3Inline::inlineAll(AstNetlist* nodep) {
@@ -730,6 +640,5 @@ void V3Inline::inlineAll(AstNetlist* nodep) {
         }
     }
 
-    { InlineIntfRefVisitor{nodep}; }
     V3Global::dumpCheckGlobalTree("inline", 0, dumpTreeLevel() >= 3);
 }

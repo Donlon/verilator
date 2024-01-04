@@ -3,7 +3,7 @@
 //
 // Code available from: https://verilator.org
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you can
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you can
 // redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -133,7 +133,8 @@ enum VerilatedVarType : uint8_t {
     VLVT_UINT32,  // AKA IData
     VLVT_UINT64,  // AKA QData
     VLVT_WDATA,  // AKA WData
-    VLVT_STRING  // C++ string
+    VLVT_STRING,  // C++ string
+    VLVT_REAL  // AKA double
 };
 
 enum VerilatedVarFlags {
@@ -164,7 +165,9 @@ inline constexpr size_t roundUpToMultipleOf(size_t value) {
 // Return current thread ID (or 0), not super fast, cache if needed
 extern uint32_t VL_THREAD_ID() VL_MT_SAFE;
 
+#ifndef VL_LOCK_SPINS
 #define VL_LOCK_SPINS 50000  /// Number of times to spin for a mutex before yielding
+#endif
 
 /// Mutex, wrapped to allow -fthread_safety checks
 class VL_CAPABILITY("mutex") VerilatedMutex final {
@@ -624,8 +627,9 @@ class VerilatedScope final {
 public:
     enum Type : uint8_t {
         SCOPE_MODULE,
-        SCOPE_OTHER
-    };  // Type of a scope, currently module is only interesting
+        SCOPE_OTHER,
+        SCOPE_PACKAGE
+    };  // Type of a scope, currently only module and package are interesting
 private:
     // Fastpath:
     VerilatedSyms* m_symsp = nullptr;  // Symbol table
@@ -919,6 +923,7 @@ public:
 
     // Internal: Called at end of each thread mtask, before finishing eval
     static void endOfThreadMTask(VerilatedEvalMsgQueue* evalMsgQp) VL_MT_SAFE {
+        mtaskId(0);
         if (VL_UNLIKELY(t_s.t_endOfEvalReqd)) endOfThreadMTaskGuts(evalMsgQp);
     }
     // Internal: Called at end of eval loop

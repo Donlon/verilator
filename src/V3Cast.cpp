@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2004-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2004-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -37,17 +37,9 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3Cast.h"
-
-#include "V3Ast.h"
-#include "V3Global.h"
-
-#include <algorithm>
 
 VL_DEFINE_DEBUG_FUNCTIONS;
 
@@ -55,10 +47,9 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 // Cast state, as a visitor of each AstNode
 
 class CastVisitor final : public VNVisitor {
-private:
     // NODE STATE
     // Entire netlist:
-    //   AstNode::user()                // bool.  Indicates node is of known size
+    //   AstNode::user1()               // bool.  Indicates node is of known size
     const VNUser1InUse m_inuser1;
 
     // STATE
@@ -66,12 +57,12 @@ private:
     // METHODS
 
     void insertCast(AstNodeExpr* nodep, int needsize) {  // We'll insert ABOVE passed node
-        UINFO(4, "  NeedCast " << nodep << endl);
         VNRelinker relinkHandle;
         nodep->unlinkFrBack(&relinkHandle);
         //
         AstCCast* const castp
             = new AstCCast{nodep->fileline(), nodep, needsize, nodep->widthMin()};
+        UINFO(4, "  MadeCast " << static_cast<void*>(castp) << " for " << nodep << endl);
         relinkHandle.relink(castp);
         // if (debug() > 8) castp->dumpTree("-  castins: ");
         //
@@ -128,7 +119,7 @@ private:
         // All class types are castable to each other. If they are of different types,
         // a compilation error will be thrown, so an explicit cast is required. Types were
         // already checked by V3Width and dtypep of a condition operator is a type of their
-        // common base class, so both classes can be safetly casted.
+        // common base class, so both classes can be safely casted.
         const AstClassRefDType* const thenClassDtypep
             = VN_CAST(nodep->thenp()->dtypep(), ClassRefDType);
         const AstClassRefDType* const elseClassDtypep
@@ -170,6 +161,15 @@ private:
         ensureLower32Cast(nodep);
         nodep->user1(1);
     }
+    void visit(AstConsPackMember* nodep) override {
+        iterateChildren(nodep);
+        if (VN_IS(nodep->rhsp()->dtypep()->skipRefp(), BasicDType)) ensureCast(nodep->rhsp());
+        nodep->user1(1);
+    }
+    void visit(AstExprStmt* nodep) override {
+        iterateChildren(nodep);
+        nodep->user1(1);
+    }
     void visit(AstNegate* nodep) override {
         iterateChildren(nodep);
         nodep->user1(nodep->lhsp()->user1());
@@ -189,7 +189,7 @@ private:
             && !VN_IS(backp, ArraySel) && !VN_IS(backp, StructSel) && !VN_IS(backp, RedXor)
             && (nodep->varp()->basicp() && !nodep->varp()->basicp()->isTriggerVec()
                 && !nodep->varp()->basicp()->isForkSync()
-                && !nodep->varp()->basicp()->isProcessRef())
+                && !nodep->varp()->basicp()->isProcessRef() && !nodep->varp()->basicp()->isEvent())
             && backp->width() && castSize(nodep) != castSize(nodep->varp())) {
             // Cast vars to IData first, else below has upper bits wrongly set
             //  CData x=3; out = (QData)(x<<30);

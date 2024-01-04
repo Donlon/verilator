@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -266,7 +266,7 @@ void V3Graph::loopsVertexCb(V3GraphVertex* vertexp) {
     if (debug()) std::cerr << "-Info-Loop: " << cvtToHex(vertexp) << " " << vertexp << endl;
 }
 
-void V3Graph::dump(std::ostream& os) {
+void V3Graph::dump(std::ostream& os) const {
     // This generates a file used by graphviz, https://www.graphviz.org
     os << " Graph:\n";
     // Print vertices
@@ -284,7 +284,8 @@ void V3Graph::dump(std::ostream& os) {
     }
 }
 
-void V3Graph::dumpEdge(std::ostream& os, const V3GraphVertex* vertexp, const V3GraphEdge* edgep) {
+void V3Graph::dumpEdge(std::ostream& os, const V3GraphVertex* vertexp,
+                       const V3GraphEdge* edgep) const {
     if (edgep->weight() && (edgep->fromp() == vertexp || edgep->top() == vertexp)) {
         os << "\t\t";
         if (edgep->fromp() == vertexp) os << "-> " << edgep->top()->name();
@@ -292,6 +293,12 @@ void V3Graph::dumpEdge(std::ostream& os, const V3GraphVertex* vertexp, const V3G
         if (edgep->cutable()) os << "  [CUTABLE]";
         os << '\n';
     }
+}
+void V3Graph::dumpEdges(std::ostream& os, const V3GraphVertex* vertexp) const {
+    for (const V3GraphEdge* edgep = vertexp->inBeginp(); edgep; edgep = edgep->inNextp())
+        dumpEdge(os, vertexp, edgep);
+    for (const V3GraphEdge* edgep = vertexp->outBeginp(); edgep; edgep = edgep->outNextp())
+        dumpEdge(os, vertexp, edgep);
 }
 
 void V3Graph::dumpDotFilePrefixed(const string& nameComment, bool colorAsSubgraph) const {
@@ -409,5 +416,5 @@ void V3Graph::dumpDotFile(const string& filename, bool colorAsSubgraph) const {
     *logp << "}\n";
     logp->close();
 
-    cout << "dot -Tpdf -o ~/a.pdf " << filename << endl;
+    cout << "dot -Tpdf -o ~/a.pdf " << filename << "\n";
 }

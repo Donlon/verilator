@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -14,10 +14,7 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3Partition.h"
 
@@ -34,7 +31,6 @@
 #include "V3Stats.h"
 #include "V3UniqueNames.h"
 
-#include <algorithm>
 #include <array>
 #include <list>
 #include <memory>
@@ -422,7 +418,6 @@ using MergeCandidateScoreboard = V3Scoreboard<MergeCandidate, MergeCandidateKey>
 
 // Information associated with scoreboarding a merge candidate
 class MergeCandidate VL_NOT_FINAL : public MergeCandidateScoreboard::Node {
-private:
     // Only the known subclasses can create or delete one of these
     friend class SiblingMC;
     friend class MTaskEdge;
@@ -1060,7 +1055,6 @@ private:
 };
 
 class PartPropagateCpSelfTest final {
-private:
     // MEMBERS
     V3Graph m_graph;  // A graph
     std::array<LogicMTask*, 50> m_vx;  // All vertices within the graph
@@ -1240,7 +1234,6 @@ static void partRedirectEdgesFrom(V3Graph* graphp, LogicMTask* recipientp, Logic
 
 // Perform edge or sibling contraction on the partition graph
 class PartContraction final {
-private:
     // TYPES
     // New CP information for mtaskp reflecting an upcoming merge
     struct NewCp {
@@ -1260,12 +1253,18 @@ private:
     PartPropagateCp<GraphWay::FORWARD> m_forwardPropagator{m_slowAsserts};  // Forward propagator
     PartPropagateCp<GraphWay::REVERSE> m_reversePropagator{m_slowAsserts};  // Reverse propagator
 
+    LogicMTask* const m_entryMTaskp;  // Singular source vertex of the dependency graph
+    LogicMTask* const m_exitMTaskp;  // Singular sink vertex of the dependency graph
+
 public:
     // CONSTRUCTORS
-    PartContraction(V3Graph* mtasksp, uint32_t scoreLimit, bool slowAsserts)
+    PartContraction(V3Graph* mtasksp, uint32_t scoreLimit, LogicMTask* entryMTaskp,
+                    LogicMTask* exitMTaskp, bool slowAsserts)
         : m_mtasksp{mtasksp}
         , m_scoreLimit{scoreLimit}
-        , m_slowAsserts{slowAsserts} {}
+        , m_slowAsserts{slowAsserts}
+        , m_entryMTaskp{entryMTaskp}
+        , m_exitMTaskp{exitMTaskp} {}
 
     // METHODS
     void go() {
@@ -1379,6 +1378,16 @@ public:
                 // elements returned from bestp().
                 doRescore();
                 continue;
+            }
+
+            // Avoid merging the entry/exit nodes. This would create serialization, by forcing the
+            // merged MTask to run before/after everything else. Empirically this helps
+            // performance in a modest way by allowing other MTasks to start earlier.
+            if (MTaskEdge* const edgep = mergeCanp->toMTaskEdge()) {
+                if (edgep->fromp() == m_entryMTaskp || edgep->top() == m_exitMTaskp) {
+                    m_sb.remove(mergeCanp);
+                    continue;
+                }
             }
 
             // Avoid merging any edge that would create a cycle.
@@ -1746,7 +1755,7 @@ private:
         // slowAsserts.
         PartContraction ec{&mtasks,
                            // Any CP limit >chain_len should work:
-                           chain_len * 2, false /* slowAsserts */};
+                           chain_len * 2, nullptr, nullptr, false /* slowAsserts */};
         ec.go();
 
         PartParallelismEst check{&mtasks};
@@ -1800,7 +1809,7 @@ private:
         }
 
         partInitCriticalPaths(&mtasks);
-        PartContraction{&mtasks, 20, true}.go();
+        PartContraction{&mtasks, 20, nullptr, nullptr, true}.go();
 
         PartParallelismEst check{&mtasks};
         check.traverse();
@@ -1834,7 +1843,6 @@ private:
 // Scan node, indicate whether it contains a call to a DPI imported
 // routine.
 class DpiImportCallVisitor final : public VNVisitor {
-private:
     bool m_hasDpiHazard = false;  // Found a DPI import call.
     bool m_tracingCall = false;  // Iterating into a CCall to a CFunc
     // METHODS
@@ -1952,7 +1960,6 @@ private:
 //     parallel mode.
 //
 class PartFixDataHazards final {
-private:
     // TYPES
     using TasksByRank = std::map<uint32_t /*rank*/, std::set<LogicMTask*, MTaskIdLessThan>>;
 
@@ -2574,7 +2581,7 @@ void V3Partition::debugMTaskGraphStats(const V3Graph* graphp, const string& stag
     // Look only at the cost of each mtask, neglect communication cost.
     // This will show us how much parallelism we expect, assuming cache-miss
     // costs are minor and the cost of running logic is the dominant cost.
-    PartParallelismEst vertexParEst(graphp);
+    PartParallelismEst vertexParEst{graphp};
     vertexParEst.traverse();
     vertexParEst.statsReport(stage);
     if (debug() >= 4) {
@@ -2648,11 +2655,11 @@ uint32_t V3Partition::setupMTaskDeps(V3Graph* mtasksp) {
     // Artificial single entry point vertex in the MTask graph to allow sibling merges.
     // This is required as otherwise disjoint sub-graphs could not be merged, but the
     // coarsening algorithm assumes that the graph is connected.
-    LogicMTask* const entryMTask = new LogicMTask{mtasksp, nullptr};
+    m_entryMTaskp = new LogicMTask{mtasksp, nullptr};
 
-    // The V3InstrCount within LogicMTask will set user5 on each AST
+    // The V3InstrCount within LogicMTask will set user1 on each AST
     // node, to assert that we never count any node twice.
-    const VNUser5InUse user5inUse;
+    const VNUser1InUse user1inUse;
 
     // Create the LogicMTasks for each MTaskMoveVertex
     for (V3GraphVertex *vtxp = m_fineDepsGraphp->verticesBeginp(), *nextp; vtxp; vtxp = nextp) {
@@ -2669,7 +2676,7 @@ uint32_t V3Partition::setupMTaskDeps(V3Graph* mtasksp) {
 
     // Artificial single exit point vertex in the MTask graph to allow sibling merges.
     // this enables merging MTasks with no downstream dependents if that is the ideal merge.
-    LogicMTask* const exitMTask = new LogicMTask{mtasksp, nullptr};
+    m_exitMTaskp = new LogicMTask{mtasksp, nullptr};
 
     // Create the mtask->mtask dependency edges based on the dependencies between MTaskMoveVertex
     // vertices.
@@ -2678,7 +2685,7 @@ uint32_t V3Partition::setupMTaskDeps(V3Graph* mtasksp) {
         LogicMTask* const mtaskp = static_cast<LogicMTask*>(vtxp);
 
         // Entry and exit vertices handled separately
-        if (VL_UNLIKELY((mtaskp == entryMTask) || (mtaskp == exitMTask))) continue;
+        if (VL_UNLIKELY((mtaskp == m_entryMTaskp) || (mtaskp == m_exitMTaskp))) continue;
 
         // At this point, there should only be one MTaskMoveVertex per LogicMTask
         UASSERT_OBJ(mtaskp->vertexListp()->size() == 1, mtaskp, "Multiple MTaskMoveVertex");
@@ -2718,11 +2725,11 @@ uint32_t V3Partition::setupMTaskDeps(V3Graph* mtasksp) {
         nextp = vtxp->verticesNextp();
         LogicMTask* const mtaskp = static_cast<LogicMTask*>(vtxp);
 
-        if (VL_UNLIKELY((mtaskp == entryMTask) || (mtaskp == exitMTask))) continue;
+        if (VL_UNLIKELY((mtaskp == m_entryMTaskp) || (mtaskp == m_exitMTaskp))) continue;
 
         // Add the entry/exit edges
-        if (mtaskp->inEmpty()) new MTaskEdge{mtasksp, entryMTask, mtaskp, 1};
-        if (mtaskp->outEmpty()) new MTaskEdge{mtasksp, mtaskp, exitMTask, 1};
+        if (mtaskp->inEmpty()) new MTaskEdge{mtasksp, m_entryMTaskp, mtaskp, 1};
+        if (mtaskp->outEmpty()) new MTaskEdge{mtasksp, mtaskp, m_exitMTaskp, 1};
     }
 
     return totalGraphCost;
@@ -2790,7 +2797,7 @@ void V3Partition::go(V3Graph* mtasksp) {
     // Some tests disable this, hence the test on threadsCoarsen().
     // Coarsening is always enabled in production.
     if (v3Global.opt.threadsCoarsen()) {
-        PartContraction{mtasksp, cpLimit,
+        PartContraction{mtasksp, cpLimit, m_entryMTaskp, m_exitMTaskp,
                         // --debugPartition is used by tests
                         // to enable slow assertions.
                         v3Global.opt.debugPartition()}
@@ -3035,7 +3042,7 @@ static void finalizeCosts(V3Graph* execMTaskGraphp) {
 
     // Record summary stats for final m_tasks graph.
     // (More verbose stats are available with --debugi-V3Partition >= 3.)
-    PartParallelismEst parEst(execMTaskGraphp);
+    PartParallelismEst parEst{execMTaskGraphp};
     parEst.traverse();
     parEst.statsReport("final");
     if (debug() >= 3) {
@@ -3171,6 +3178,10 @@ static void addThreadStartToExecGraph(AstExecGraph* const execGraphp,
         execGraphp->addStmtsp(new AstText{fl, text, /* tracking: */ true});
     };
 
+    if (v3Global.opt.profExec()) {
+        addStrStmt("VL_EXEC_TRACE_ADD_RECORD(vlSymsp).execGraphBegin();\n");
+    }
+
     addStrStmt("vlSymsp->__Vm_even_cycle__" + tag + " = !vlSymsp->__Vm_even_cycle__" + tag
                + ";\n");
 
@@ -3194,6 +3205,10 @@ static void addThreadStartToExecGraph(AstExecGraph* const execGraphp,
 
     addStrStmt("vlSelf->__Vm_mtaskstate_final__" + tag
                + ".waitUntilUpstreamDone(vlSymsp->__Vm_even_cycle__" + tag + ");\n");
+
+    if (v3Global.opt.profExec()) {
+        addStrStmt("VL_EXEC_TRACE_ADD_RECORD(vlSymsp).execGraphEnd();\n");
+    }
 }
 
 static void implementExecGraph(AstExecGraph* const execGraphp) {

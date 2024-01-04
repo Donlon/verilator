@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2004-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2004-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -14,15 +14,11 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3EmitCMake.h"
 
 #include "V3EmitCBase.h"
-#include "V3Global.h"
 #include "V3HierBlock.h"
 #include "V3Os.h"
 
@@ -164,9 +160,7 @@ class CMakeEmitter final {
         if (v3Global.usesTiming()) {
             global.emplace_back("${VERILATOR_ROOT}/include/verilated_timing.cpp");
         }
-        if (v3Global.opt.threads()) {
-            global.emplace_back("${VERILATOR_ROOT}/include/verilated_threads.cpp");
-        }
+        global.emplace_back("${VERILATOR_ROOT}/include/verilated_threads.cpp");
         if (v3Global.opt.usesProfiler()) {
             global.emplace_back("${VERILATOR_ROOT}/include/verilated_profiler.cpp");
         }

@@ -1,7 +1,7 @@
 // -*- mode: C++; c-file-style: "cc-mode" -*-
 //*************************************************************************
 //
-// Copyright 2013-2023 by Wilson Snyder. This program is free software; you can
+// Copyright 2013-2024 by Wilson Snyder. This program is free software; you can
 // redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -31,7 +31,7 @@ public:
         vpi_get_vlog_info(&m_info);
         if (0 == std::strcmp(m_info.product, "Verilator")) {
             m_simulators.verilator = true;
-        } else if (0 == std::strcmp(m_info.product, "Verilator")) {
+        } else if (0 == std::strcmp(m_info.product, "Icarus Verilog")) {
             m_simulators.icarus = true;
         } else if (0
                    == strncmp(m_info.product, "Chronologic Simulation VCS",
@@ -64,7 +64,7 @@ public:
     static bool has_get_scalar() { return !simulators().icarus; }
     // return test level scope
     static const char* top() {
-        if (simulators().verilator) {
+        if (simulators().verilator || simulators().icarus) {
             return "t";
         } else {
             return "top.t";

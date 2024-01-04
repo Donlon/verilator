@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2009-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2009-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -54,9 +54,8 @@ struct VMemberQualifiers {
             uint32_t m_rand : 1;  // Rand property/member qualifier
             uint32_t m_randc : 1;  // Randc property/member qualifier (ignored until supported)
             uint32_t m_virtual : 1;  // Virtual property/method qualifier
-            uint32_t m_automatic : 1;  // Automatic property/method qualifier
             uint32_t m_const : 1;  // Const property/method qualifier
-            uint32_t m_static : 1;  // Static class method
+            uint32_t m_static : 1;  // Static class member
         };
     };
     static VMemberQualifiers none() {
@@ -73,9 +72,8 @@ struct VMemberQualifiers {
         for (AstNodeFTask* nodep = nodesp; nodep; nodep = VN_AS(nodep->nextp(), NodeFTask)) {
             if (m_local) nodep->isHideLocal(true);
             if (m_protected) nodep->isHideProtected(true);
+            if (m_static) nodep->isStatic(true);
             if (m_virtual) nodep->isVirtual(true);
-            if (m_automatic) nodep->lifetime(VLifetime::AUTOMATIC);
-            if (m_static) nodep->lifetime(VLifetime::STATIC);
             if (m_const || m_rand || m_randc) {
                 nodep->v3error("Syntax error: 'const'/'rand'/'randc' not allowed before "
                                "function/task declaration");
@@ -88,7 +86,6 @@ struct VMemberQualifiers {
             if (m_randc) nodep->isRandC(true);
             if (m_local) nodep->isHideLocal(true);
             if (m_protected) nodep->isHideProtected(true);
-            if (m_automatic) nodep->lifetime(VLifetime::AUTOMATIC);
             if (m_static) nodep->lifetime(VLifetime::STATIC);
             if (m_const) nodep->isConst(true);
             if (m_virtual) {
@@ -176,8 +173,8 @@ public:
                       bool precSet, double precVal) VL_MT_DISABLED;
     VTimescale timeLastUnit() const { return m_timeLastUnit; }
 
+    void lexFileline(FileLine* fl) { m_lexFileline = fl; }
     FileLine* lexFileline() const { return m_lexFileline; }
-    FileLine* lexCopyOrSameFileLine() { return lexFileline()->copyOrSameFileLine(); }
     static void lexErrorPreprocDirective(FileLine* fl, const char* textp) VL_MT_DISABLED;
     static string lexParseTag(const char* textp) VL_MT_DISABLED;
     static double lexParseTimenum(const char* text) VL_MT_DISABLED;
@@ -243,7 +240,6 @@ public:
 
     // Return next token, for bison, since bison isn't class based, use a global THIS
     AstNetlist* rootp() const { return m_rootp; }
-    FileLine* copyOrSameFileLine() { return bisonLastFileline()->copyOrSameFileLine(); }
     bool inLibrary() const { return m_inLibrary; }
     VOptionBool unconnectedDrive() const { return m_unconnectedDrive; }
     void unconnectedDrive(const VOptionBool flag) { m_unconnectedDrive = flag; }

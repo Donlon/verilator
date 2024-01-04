@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -37,16 +37,11 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3Force.h"
 
 #include "V3AstUserAllocator.h"
-#include "V3Error.h"
-#include "V3Global.h"
 
 VL_DEFINE_DEBUG_FUNCTIONS;
 
@@ -288,8 +283,8 @@ class ForceConvertVisitor final : public VNVisitor {
         // If this signal is marked externally forceable, create the public force signals
         if (nodep->varp()->isForceable()) {
             const ForceComponentsVarScope& fc = getForceComponents(nodep);
-            fc.m_enVscp->varp()->sigPublic(true);
-            fc.m_valVscp->varp()->sigPublic(true);
+            fc.m_enVscp->varp()->sigUserRWPublic(true);
+            fc.m_valVscp->varp()->sigUserRWPublic(true);
         }
     }
 

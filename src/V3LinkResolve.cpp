@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -24,20 +24,12 @@
 //          SenItems: Convert pos/negedge of non-simple signals to temporaries
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3LinkResolve.h"
 
-#include "V3Ast.h"
-#include "V3Global.h"
 #include "V3String.h"
 #include "V3Task.h"
-
-#include <algorithm>
-#include <map>
 
 VL_DEFINE_DEBUG_FUNCTIONS;
 
@@ -45,7 +37,6 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 // Link state, as a visitor of each AstNode
 
 class LinkResolveVisitor final : public VNVisitor {
-private:
     // NODE STATE
     //  Entire netlist:
     //   AstCaseItem::user2()   // bool     Moved default caseitems
@@ -188,19 +179,6 @@ private:
         }
         if (nodep->taskp() && (nodep->taskp()->dpiContext() || nodep->taskp()->dpiExport())) {
             nodep->scopeNamep(new AstScopeName{nodep->fileline(), false});
-        }
-    }
-    void visit(AstNodePreSel* nodep) override {
-        if (!nodep->attrp()) {
-            iterateChildren(nodep);
-            AstNode* const basefromp = AstArraySel::baseFromp(nodep, false);
-            if (VN_IS(basefromp, Replicate)) {
-                // From {...}[...] syntax in IEEE 2017
-                if (basefromp) UINFO(1, "    Related node: " << basefromp << endl);
-            } else {
-                nodep->attrp(new AstAttrOf{nodep->fileline(), VAttrType::VAR_BASE,
-                                           basefromp->cloneTree(false)});
-            }
         }
     }
 
@@ -501,7 +479,6 @@ public:
 //      from child cells up to the top module.
 
 class LinkBotupVisitor final : public VNVisitorConst {
-private:
     // STATE
     AstNodeModule* m_modp = nullptr;  // Current module
 

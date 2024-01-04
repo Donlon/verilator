@@ -1,7 +1,7 @@
 # pylint: disable=C0103,C0114,C0116,C0301,E0402,W0622
 #
 # Configuration file for Verilator's Sphinx documentation builder.
-# Copyright 2003-2023 by Wilson Snyder.
+# Copyright 2003-2024 by Wilson Snyder.
 # SPDX-License-Identifier: LGPL-3.0-only OR Artistic-2.0
 #
 # This file only contains overridden options. For a full list:
@@ -230,4 +230,4 @@ spelling_ignore_contributor_names = True
 
 breathe_projects = {"verilated": "_build/doxygen/verilated/xml/"}
 breathe_default_project = "verilated"
-breathe_default_members = ('members')
+breathe_default_members = 'members'

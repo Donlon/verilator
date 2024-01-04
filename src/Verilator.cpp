@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -58,6 +58,7 @@
 #include "V3HierBlock.h"
 #include "V3Inline.h"
 #include "V3Inst.h"
+#include "V3Interface.h"
 #include "V3Life.h"
 #include "V3LifePost.h"
 #include "V3LinkDot.h"
@@ -103,6 +104,7 @@
 #include "V3VariableOrder.h"
 #include "V3Waiver.h"
 #include "V3Width.h"
+#include "V3WidthCommit.h"
 
 #include <ctime>
 
@@ -188,7 +190,7 @@ static void process() {
         V3Error::abortIfErrors();
 
         // Commit to the widths we've chosen; Make widthMin==width
-        V3Width::widthCommit(v3Global.rootp());
+        V3WidthCommit::widthCommit(v3Global.rootp());
         v3Global.assertDTypesResolved(true);
         v3Global.widthMinUsage(VWidthMinUsage::MATCHES_WIDTH);
 
@@ -232,10 +234,12 @@ static void process() {
             V3Inst::dearrayAll(v3Global.rootp());
             V3LinkDot::linkDotArrayed(v3Global.rootp());
 
-            // Generate classes and tasks required to maintain proper lifetimes for references in
-            // forks
-            V3Fork::makeDynamicScopes(v3Global.rootp());
-            V3Fork::makeTasks(v3Global.rootp());
+            if (v3Global.opt.timing().isSetTrue()) {
+                // Generate classes and tasks required to maintain proper lifetimes for references
+                // in forks
+                V3Fork::makeDynamicScopes(v3Global.rootp());
+                V3Fork::makeTasks(v3Global.rootp());
+            }
 
             // Task inlining & pushing BEGINs names to variables/cells
             // Begin processing must be after Param, before module inlining
@@ -273,6 +277,8 @@ static void process() {
                 V3LinkDot::linkDotArrayed(v3Global.rootp());  // Cleanup as made new modules
             }
         }
+
+        if (v3Global.opt.trace()) V3Interface::interfaceAll(v3Global.rootp());
 
         if (v3Global.opt.fDfgPostInline()) {
             // Post inline DFG optimization
@@ -555,6 +561,7 @@ static void process() {
             V3EmitC::emitcSyms();
             V3EmitC::emitcConstPool();
             V3EmitC::emitcModel();
+            V3EmitC::emitcPch();
             V3EmitC::emitcHeaders();
         } else if (v3Global.opt.dpiHdrOnly()) {
             V3EmitC::emitcSyms(true);
@@ -583,12 +590,11 @@ static void process() {
             V3EmitC::emitcFiles();
         }
 
-        if (v3Global.opt.stats()) V3Stats::statsStage("emit");
-
-        // Statistics
-        reportStatsIfEnabled();
-
         if (!v3Global.opt.lintOnly() && !v3Global.opt.xmlOnly() && !v3Global.opt.dpiHdrOnly()) {
+            if (v3Global.opt.main()) V3EmitCMain::emit();
+
+            // V3EmitMk/V3EmitCMake must be after all other emitters,
+            // as they and below code visits AstCFiles added earlier
             size_t src_f_cnt = 0;
             for (AstNode* nodep = v3Global.rootp()->filesp(); nodep; nodep = nodep->nextp()) {
                 if (const AstCFile* cfilep = VN_CAST(nodep, CFile))
@@ -596,12 +602,13 @@ static void process() {
             }
             if (src_f_cnt >= V3EmitMk::PARALLEL_FILE_CNT_THRESHOLD)
                 v3Global.useParallelBuild(true);
-
-            // Makefile must be after all other emitters
-            if (v3Global.opt.main()) V3EmitCMain::emit();
             if (v3Global.opt.cmake()) V3EmitCMake::emit();
             if (v3Global.opt.gmake()) V3EmitMk::emitmk();
         }
+
+        // Final statistics
+        if (v3Global.opt.stats()) V3Stats::statsStage("emit");
+        reportStatsIfEnabled();
     }
 }
 
@@ -631,8 +638,10 @@ static void verilate(const string& argString) {
     // --FRONTEND------------------
 
     // Cleanup
-    V3Os::unlinkRegexp(v3Global.opt.hierTopDataDir(), v3Global.opt.prefix() + "_*.tree");
+    // Ideally we'd do prefix + "_*.*", and prefix + ".*", but this seems
+    // potentially disruptive to old behavior, and --skip-identical
     V3Os::unlinkRegexp(v3Global.opt.hierTopDataDir(), v3Global.opt.prefix() + "_*.dot");
+    V3Os::unlinkRegexp(v3Global.opt.hierTopDataDir(), v3Global.opt.prefix() + "_*.tree");
     V3Os::unlinkRegexp(v3Global.opt.hierTopDataDir(), v3Global.opt.prefix() + "_*.txt");
 
     // Internal tests (after option parsing as need debug() setting,
@@ -685,7 +694,7 @@ static void verilate(const string& argString) {
         const V3MtDisabledLockGuard mtDisabler{v3MtDisabledLock()};
 
         UASSERT(v3Global.opt.hierarchical(), "hierarchical must be set");
-        UASSERT(!v3Global.opt.hierChild(), "This must not be a hierarhcical-child run");
+        UASSERT(!v3Global.opt.hierChild(), "This must not be a hierarchical-child run");
         UASSERT(v3Global.opt.hierBlocks().empty(), "hierarchical-block must not be set");
         if (v3Global.opt.gmake()) {
             v3Global.hierPlanp()->writeCommandArgsFiles(false);
@@ -711,6 +720,9 @@ static void verilate(const string& argString) {
                                + "__verFiles.dat",
                            argString);
     }
+
+    V3Os::filesystemFlushBuildDir(v3Global.opt.makeDir());
+    if (v3Global.opt.hierTop()) V3Os::filesystemFlushBuildDir(v3Global.opt.hierTopDataDir());
 
     // Final writing shouldn't throw warnings, but...
     V3Error::abortIfWarnings();
@@ -742,6 +754,7 @@ static void execBuildJob() {
     UINFO(1, "Start Build\n");
 
     const string cmdStr = buildMakeCmd(v3Global.opt.prefix() + ".mk", "");
+    V3Os::filesystemFlushBuildDir(v3Global.opt.hierTopDataDir());
     const int exit_code = V3Os::system(cmdStr);
     if (exit_code != 0) {
         v3error(cmdStr << " exited with " << exit_code << std::endl);
@@ -754,6 +767,7 @@ static void execHierVerilation() {
     const string makefile = v3Global.opt.prefix() + "_hier.mk ";
     const string target = v3Global.opt.build() ? " hier_build" : " hier_verilation";
     const string cmdStr = buildMakeCmd(makefile, target);
+    V3Os::filesystemFlushBuildDir(v3Global.opt.hierTopDataDir());
     const int exit_code = V3Os::system(cmdStr);
     if (exit_code != 0) {
         v3error(cmdStr << " exited with " << exit_code << std::endl);

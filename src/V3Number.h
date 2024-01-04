@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -357,6 +357,7 @@ class V3Number final {
 
 public:
     void nodep(AstNode* nodep) VL_MT_STABLE;
+    AstNode* nodep() const VL_MT_SAFE { return m_nodep; }  // For debug only
     FileLine* fileline() const VL_MT_SAFE { return m_fileline; }
     V3Number& setZero();
     V3Number& setQuad(uint64_t value);
@@ -580,6 +581,7 @@ public:
     V3Number& setAllBitsZ();
     V3Number& setAllBits0();
     V3Number& setAllBits1();
+    V3Number& setValue1();
     V3Number& setMask(int nbits);  // IE if nbits=1, then 0b1, if 2->0b11, if 3->0b111 etc
 
     // ACCESSORS
@@ -637,6 +639,7 @@ public:
     bool isAnyXZ() const;
     bool isAnyZ() const VL_MT_SAFE;
     bool isMsbXZ() const { return bitIsXZ(m_data.width() - 1); }
+    bool fitsInUInt() const VL_MT_SAFE;
     uint32_t toUInt() const VL_MT_SAFE;
     int32_t toSInt() const VL_MT_SAFE;
     uint64_t toUQuad() const VL_MT_SAFE;

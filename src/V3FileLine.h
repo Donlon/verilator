@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -195,7 +195,9 @@ public:
         , m_parent{fromp->m_parent} {
         if (m_contentp) m_contentp->refInc();
     }
+    void applyIgnores();
     FileLine* copyOrSameFileLine();
+    FileLine* copyOrSameFileLineApplied();
     static void deleteAllRemaining();
     ~FileLine();
 #ifdef VL_LEAK_CHECKS
@@ -208,6 +210,7 @@ public:
         lineno(num);
         m_contentLineno = static_cast<unsigned>(num);
     }
+    void contentLinenoFrom(const FileLine* fromp) { m_contentLineno = fromp->m_contentLineno; }
     void lineno(int num) {
         m_firstLineno = num;
         m_lastLineno = num;
@@ -221,6 +224,8 @@ public:
     void filename(const string& name) { m_filenameno = singleton().nameToNumber(name); }
     void parent(FileLine* fileline) { m_parent = fileline; }
     void lineDirective(const char* textp, int& enterExitRef);
+    void lineDirectiveParse(const char* textp, string& filenameRef, int& linenoRef,
+                            int& enterExitRef);
     void linenoInc() {
         m_lastLineno++;
         m_lastColumn = 1;

@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -14,13 +14,10 @@
 //
 //*************************************************************************
 
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstMT.h"
 
 #include "V3EmitCFunc.h"
 
-#include "V3Global.h"
-#include "V3String.h"
 #include "V3TSP.h"
 
 #include <map>
@@ -410,7 +407,8 @@ void EmitCFunc::displayNode(AstNode* nodep, AstScopeName* scopenamep, const stri
     displayEmit(nodep, isScan);
 }
 
-void EmitCFunc::emitCCallArgs(const AstNodeCCall* nodep, const string& selfPointer) {
+void EmitCFunc::emitCCallArgs(const AstNodeCCall* nodep, const string& selfPointer,
+                              bool inProcess) {
     puts("(");
     bool comma = false;
     if (nodep->funcp()->isLoose() && !nodep->funcp()->isStatic()) {
@@ -422,6 +420,8 @@ void EmitCFunc::emitCCallArgs(const AstNodeCCall* nodep, const string& selfPoint
         if (comma) puts(", ");
         if (VN_IS(nodep->backp(), CAwait) || !nodep->funcp()->isCoroutine()) {
             puts("vlProcess");
+        } else if (inProcess) {
+            puts("std::make_shared<VlProcess>(vlProcess)");
         } else {
             puts("std::make_shared<VlProcess>()");
         }

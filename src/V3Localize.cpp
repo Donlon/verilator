@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -22,16 +22,11 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3Localize.h"
 
-#include "V3Ast.h"
 #include "V3AstUserAllocator.h"
-#include "V3Global.h"
 #include "V3Stats.h"
 
 #include <vector>
@@ -42,7 +37,6 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 // LocalizeVisitor
 
 class LocalizeVisitor final : public VNVisitor {
-private:
     // NODE STATE
     //  AstVarScope::user1()    ->  Bool indicating VarScope is not optimizable.
     //  AstCFunc::user1()       ->  Bool indicating CFunc is not a leaf function.
@@ -172,7 +166,7 @@ private:
             && !nodep->varp()->isFuncLocal()  // Not already a function local (e.g.: argument)
             && !nodep->varp()->isStatic()  // Not a static variable
             && !nodep->varp()->isClassMember()  // Statically exists in design hierarchy
-            && !nodep->varp()->isUsedVirtIface()  // Not used through a virtual interface
+            && !nodep->varp()->sensIfacep()  // Not sensitive to an interface
             && !nodep->varp()->valuep()  // Does not have an initializer
         ) {
             UINFO(4, "Consider for localization: " << nodep << endl);

@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -72,17 +72,12 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3MergeCond.h"
 
-#include "V3Ast.h"
 #include "V3AstUserAllocator.h"
 #include "V3DupFinder.h"
-#include "V3Global.h"
 #include "V3Hasher.h"
 #include "V3Stats.h"
 
@@ -164,11 +159,10 @@ class CodeMotionAnalysisVisitor final : public VNVisitorConst {
     // NODE STATE
     // AstNodeStmt::user3   -> StmtProperties (accessed via m_stmtProperties, managed externally,
     //                         see MergeCondVisitor::process)
+    // AstNodeExpr::user3   -> AstNodeStmt*: Set on a condition node, points to the last
+    //                         conditional with that condition so far encountered in the same
+    //                         AstNode list
     // AstNode::user4       -> Used by V3Hasher
-    // AstNode::user5       -> AstNode*: Set on a condition node, points to the last conditional
-    //                         with that condition so far encountered in the same AstNode list
-
-    VNUser5InUse m_user5InUse;
 
     StmtPropertiesAllocator& m_stmtProperties;
 
@@ -217,19 +211,19 @@ class CodeMotionAnalysisVisitor final : public VNVisitorConst {
                     // First time seeing this condition in the current list
                     dupFinder.insert(condp);
                     // Remember last statement with this condition (which is this statement)
-                    condp->user5p(nodep);
+                    condp->user3p(nodep);
                 } else {
                     // Seen a conditional with the same condition earlier in the current list
-                    AstNode* const firstp = dit->second;
+                    AstNodeExpr* const firstp = VN_AS(dit->second, NodeExpr);
                     // Add to properties for easy retrieval during optimization
-                    m_propsp->m_prevWithSameCondp = static_cast<AstNodeStmt*>(firstp->user5p());
+                    m_propsp->m_prevWithSameCondp = static_cast<AstNodeStmt*>(firstp->user3p());
                     // Remember last statement with this condition (which is this statement)
-                    firstp->user5p(nodep);
+                    firstp->user3p(nodep);
                 }
             }
         }
 
-        // Analyse this statement
+        // Analyze this statement
         analyzeNode(nodep);
 
         // If there is an enclosing statement, propagate properties upwards
@@ -267,7 +261,7 @@ class CodeMotionAnalysisVisitor final : public VNVisitorConst {
             if (!singletonListStart) m_stack.emplace_back(m_hasher);
         }
 
-        // Analyse node
+        // Analyze node
         if (AstNodeStmt* const stmtp = VN_CAST(nodep, NodeStmt)) {
             analyzeStmt(stmtp, /*tryCondMatch:*/ !singletonListStart);
         } else if (AstVarRef* const vrefp = VN_CAST(nodep, VarRef)) {
@@ -287,7 +281,7 @@ class CodeMotionAnalysisVisitor final : public VNVisitorConst {
     }
 
 public:
-    // Analyse the statement list starting at nodep, filling in stmtProperties.
+    // Analyze the statement list starting at nodep, filling in stmtProperties.
     static void analyze(AstNode* nodep, StmtPropertiesAllocator& stmtProperties) {
         CodeMotionAnalysisVisitor{nodep, stmtProperties};
     }
@@ -431,17 +425,16 @@ public:
 // Conditional merging
 
 class MergeCondVisitor final : public VNVisitor {
-private:
     // NODE STATE
     // AstVar::user1        -> bool: Set for variables referenced by m_mgCondp
     //                         (Only below MergeCondVisitor::process).
-    // AstNode::user2       -> bool: Marking node as included in merge because cheap to
-    //                         duplicate
+    // AstNode::user2       -> bool: Marking node as included in merge because cheap to duplicate
     //                         (Only below MergeCondVisitor::process).
     // AstNodeStmt::user3   -> StmtProperties
     //                         (Only below MergeCondVisitor::process).
+    // AstNodeExpr::user3   -> See CodeMotionAnalysisVisitor
+    //                         (Only below MergeCondVisitor::process).
     // AstNode::user4       -> See CodeMotionAnalysisVisitor/CodeMotionOptimizeVisitor
-    // AstNode::user5       -> See CodeMotionAnalysisVisitor
 
     // STATE
     VDouble0 m_statMerges;  // Statistic tracking
@@ -481,7 +474,7 @@ private:
             AstNode* currp = m_workQueuep->front();
             m_workQueuep->pop();
 
-            // Analyse sub-tree list for code motion and conditional merging
+            // Analyze sub-tree list for code motion and conditional merging
             CodeMotionAnalysisVisitor::analyze(currp, stmtProperties);
             // Perform the code motion within the whole sub-tree list
             if (v3Global.opt.fMergeCondMotion()) {

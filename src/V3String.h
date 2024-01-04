@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -130,6 +130,9 @@ public:
     static bool endsWith(const string& str, const string& suffix);
     // Return true if char is valid character in word
     static bool isWordChar(char c) { return isalnum(c) || c == '_'; }
+    // Return proper article (a/an) for a word. May be inaccurate for some special words
+    static string aOrAn(const char* word);
+    static string aOrAn(const string& word) { return aOrAn(word.c_str()); }
 };
 
 //######################################################################
@@ -171,7 +174,7 @@ public:
     uint64_t digestUInt64();  // Return 64-bits of digest
     static void selfTest();  // Test this class
 
-    // Inerting hash data
+    // Inserting hash data
     void insert(const void* datap, size_t length);  // Process data into the digest
     void insert(const string& data) {
         insert(data.data(), data.length());

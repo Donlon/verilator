@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -72,15 +72,30 @@ V3ParseImp::~V3ParseImp() {
 
 void V3ParseImp::lexPpline(const char* textp) {
     // Handle lexer `line directive
-    FileLine* const prevFl = copyOrSameFileLine();
-    int enterExit;
-    lexFileline()->lineDirective(textp, enterExit /*ref*/);
+    // FileLine* const prevFl = lexFileline();
+    string newFilename;
+    int newLineno = -1;
+    int enterExit = 0;
+    lexFileline()->lineDirectiveParse(textp, newFilename /*ref*/, newLineno /*ref*/,
+                                      enterExit /*ref*/);
     if (enterExit == 1) {  // Enter
+        FileLine* const prevFl = lexFileline()->copyOrSameFileLine();  // Without applyIgnores
+        FileLine* const newFl
+            = new FileLine{prevFl};  // Not copyOrSameFileLine as need to keep old value
+        lexFileline(newFl);
         lexFileline()->parent(prevFl);
     } else if (enterExit == 2) {  // Exit
-        FileLine* upFl = lexFileline()->parent();
-        if (upFl) upFl = upFl->parent();
-        if (upFl) lexFileline()->parent(upFl);
+        const FileLine* const prevFl = lexFileline();
+        if (FileLine* upFl = lexFileline()->parent()) {
+            // Must copy upFl as may be existing nodes that use the FileLine value
+            lexFileline(new FileLine{upFl});  // Restore warning state to upper file
+            lexFileline()->contentLinenoFrom(prevFl);
+        }
+    }
+    if (enterExit != -1) {  // Line/fn change
+        lexFileline()->filename(newFilename);
+        lexFileline()->lineno(newLineno);
+        lexFileline()->applyIgnores();
     }
 }
 

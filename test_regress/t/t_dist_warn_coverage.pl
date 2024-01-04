@@ -31,7 +31,6 @@ foreach my $s (
     'Unsupported: Ranges ignored in port-lists',  # Hard to hit
     'dynamic new() not expected in this context (expected under an assign)',  # Instead get syntax error
     # Not yet analyzed
-    ' is not an in/out/inout/param/interface: ',
     ' loading non-variable',
     '--pipe-filter protocol error, unexpected: ',
     '/*verilator sformat*/ can only be applied to last argument of ',
@@ -39,7 +38,6 @@ foreach my $s (
     'Array initialization has too few elements, need element ',
     'Assigned pin is neither input nor output',
     'Assignment pattern with no members',
-    'Attempted parameter setting of non-parameter: Param ',
     'Can\'t find varpin scope of ',
     'Can\'t resolve module reference: \'',
     'Cannot write preprocessor output: ',
@@ -60,7 +58,6 @@ foreach my $s (
     'Modport not referenced as <interface>.',
     'Modport not referenced from underneath an interface: ',
     'Non-interface used as an interface: ',
-    'Parameter not found in sub-module: Param ',
     'Parameter type pin value isn\'t a type: Param ',
     'Parameter type variable isn\'t a type: Param ',
     'Pattern replication value of 0 is not legal.',

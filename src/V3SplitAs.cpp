@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -21,26 +21,18 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3SplitAs.h"
 
-#include "V3Ast.h"
-#include "V3Global.h"
 #include "V3Stats.h"
-
-#include <map>
 
 VL_DEFINE_DEBUG_FUNCTIONS;
 
 //######################################################################
 // Find all split variables in a block
 
-class SplitAsFindVisitor final : public VNVisitor {
-private:
+class SplitAsFindVisitor final : public VNVisitorConst {
     // STATE - across all visitors
     AstVarScope* m_splitVscp = nullptr;  // Variable we want to split
 
@@ -56,11 +48,11 @@ private:
         // This will break if the m_splitVscp is a "ref" argument to the function,
         // but little we can do.
     }
-    void visit(AstNode* nodep) override { iterateChildren(nodep); }
+    void visit(AstNode* nodep) override { iterateChildrenConst(nodep); }
 
 public:
     // CONSTRUCTORS
-    explicit SplitAsFindVisitor(AstAlways* nodep) { iterate(nodep); }
+    explicit SplitAsFindVisitor(AstAlways* nodep) { iterateConst(nodep); }
     ~SplitAsFindVisitor() override = default;
     // METHODS
     AstVarScope* splitVscp() const { return m_splitVscp; }
@@ -70,7 +62,6 @@ public:
 // Remove nodes not containing proper references
 
 class SplitAsCleanVisitor final : public VNVisitor {
-private:
     // STATE - across all visitors
     const AstVarScope* const m_splitVscp;  // Variable we want to split
     const bool m_modeMatch;  // Remove matching Vscp, else non-matching
@@ -132,7 +123,6 @@ public:
 // SplitAs class functions
 
 class SplitAsVisitor final : public VNVisitor {
-private:
     // NODE STATE
     //  AstAlways::user()       -> bool.  True if already processed
     const VNUser1InUse m_inuser1;

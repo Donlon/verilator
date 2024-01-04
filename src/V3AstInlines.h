@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -39,6 +39,10 @@ bool AstNode::isDouble() const VL_MT_STABLE {
 bool AstNode::isString() const VL_MT_STABLE {
     return dtypep() && dtypep()->basicp() && dtypep()->basicp()->isString();
 }
+bool AstNode::isEvent() const VL_MT_STABLE {
+    return dtypep() && dtypep()->basicp() && dtypep()->basicp()->isEvent();
+}
+
 bool AstNode::isSigned() const VL_MT_STABLE { return dtypep() && dtypep()->isSigned(); }
 
 bool AstNode::isClassHandleValue() const {

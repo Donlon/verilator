@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -20,20 +20,14 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3VariableOrder.h"
 
-#include "V3Ast.h"
 #include "V3AstUserAllocator.h"
 #include "V3EmitCBase.h"
-#include "V3Global.h"
 #include "V3TSP.h"
 
-#include <algorithm>
 #include <vector>
 
 VL_DEFINE_DEBUG_FUNCTIONS;
@@ -42,7 +36,6 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 // Establish mtask variable sort order in mtasks mode
 
 class VarTspSorter final : public V3TSP::TspStateBase {
-private:
     // MEMBERS
     const MTaskIdSet& m_mtaskIds;  // Mtask we're ordering
     static unsigned s_serialNext;  // Unique ID to establish serial order

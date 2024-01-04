@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -20,15 +20,10 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3Class.h"
 
-#include "V3Ast.h"
-#include "V3Global.h"
 #include "V3UniqueNames.h"
 
 VL_DEFINE_DEBUG_FUNCTIONS;
@@ -36,7 +31,6 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 //######################################################################
 
 class ClassVisitor final : public VNVisitor {
-private:
     // NODE STATE
     //  AstClass::user1()       -> bool.  True if iterated already
     //  AstVar::user1p()        -> AstVarScope*  Scope used with this var
@@ -123,17 +117,17 @@ private:
     void visit(AstVar* nodep) override {
         iterateChildren(nodep);
         if (m_packageScopep) {
-            if (m_ftaskp && m_ftaskp->lifetime().isStatic()) {
+            if (m_ftaskp && m_ftaskp->isStatic()) {
                 // Move later, or we wouldn't keep iterating the class
                 // We're really moving the VarScope but we might not
                 // have a pointer to it yet
-                m_toScopeMoves.emplace_back(std::make_pair(nodep, m_packageScopep));
+                m_toScopeMoves.emplace_back(nodep, m_packageScopep);
             }
             if (!m_ftaskp && nodep->lifetime().isStatic()) {
-                m_toPackageMoves.emplace_back(std::make_pair(nodep, m_classPackagep));
+                m_toPackageMoves.emplace_back(nodep, m_classPackagep);
                 // We're really moving the VarScope but we might not
                 // have a pointer to it yet
-                m_toScopeMoves.emplace_back(std::make_pair(nodep, m_packageScopep));
+                m_toScopeMoves.emplace_back(nodep, m_packageScopep);
             }
         }
     }
@@ -148,8 +142,8 @@ private:
         {
             m_ftaskp = nodep;
             iterateChildren(nodep);
-            if (m_packageScopep && nodep->lifetime().isStatic()) {
-                m_toScopeMoves.emplace_back(std::make_pair(nodep, m_packageScopep));
+            if (m_packageScopep && nodep->isStatic()) {
+                m_toScopeMoves.emplace_back(nodep, m_packageScopep);
             }
         }
     }
@@ -158,7 +152,7 @@ private:
         // Don't move now, or wouldn't keep iterating the class
         // TODO move function statics only
         // if (m_classScopep) {
-        //    m_toScopeMoves.push_back(std::make_pair(nodep, m_classScopep));
+        //    m_toScopeMoves.emplace_back(nodep, m_classScopep);
         //}
     }
     void visit(AstCoverDecl* nodep) override {
@@ -169,16 +163,12 @@ private:
     void visit(AstInitial* nodep) override {
         // But not AstInitialAutomatic, which remains under the class
         iterateChildren(nodep);
-        if (m_packageScopep) {
-            m_toScopeMoves.emplace_back(std::make_pair(nodep, m_packageScopep));
-        }
+        if (m_packageScopep) { m_toScopeMoves.emplace_back(nodep, m_packageScopep); }
     }
     void visit(AstInitialStatic* nodep) override {
         // But not AstInitialAutomatic, which remains under the class
         iterateChildren(nodep);
-        if (m_packageScopep) {
-            m_toScopeMoves.emplace_back(std::make_pair(nodep, m_packageScopep));
-        }
+        if (m_packageScopep) { m_toScopeMoves.emplace_back(nodep, m_packageScopep); }
     }
 
     void setStructModulep(AstNodeUOrStructDType* const dtypep) {

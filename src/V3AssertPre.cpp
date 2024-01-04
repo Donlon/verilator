@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2005-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2005-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -15,20 +15,15 @@
 //*************************************************************************
 //  Pre steps:
 //      Attach clocks to each assertion
-//      Substitute property references by property body (IEEE Std 1800-2012, section 16.12.1).
+//      Substitute property references by property body (IEEE 1800-2012 16.12.1).
 //      Transform clocking blocks into imperative logic
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3AssertPre.h"
 
-#include "V3Ast.h"
 #include "V3Const.h"
-#include "V3Global.h"
 #include "V3Task.h"
 #include "V3UniqueNames.h"
 

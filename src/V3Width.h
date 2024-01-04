@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -33,10 +33,6 @@ public:
     static void width(AstNetlist* nodep) VL_MT_DISABLED;
     static AstNode* widthParamsEdit(AstNode* nodep) VL_MT_DISABLED;
     static AstNode* widthGenerateParamsEdit(AstNode* nodep) VL_MT_DISABLED;
-    // Final step... Mark all widths as equal
-    static void widthCommit(AstNetlist* nodep) VL_MT_DISABLED;
-
-    static AstNodeDType* getCommonClassTypep(AstNode* nodep1, AstNode* nodep2) VL_MT_DISABLED;
 
     // For use only in WidthVisitor
     // Replace AstSelBit, etc with AstSel/AstArraySel

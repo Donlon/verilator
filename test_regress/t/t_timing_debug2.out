@@ -35,16 +35,16 @@
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::new
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::_ctor_var_reset
 -V{t#,#}+    Vt_timing_debug2___024root___eval_initial
--V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__0
+-V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__Vtiming__0
 -V{t#,#}         Suspending process waiting for @([event] t.ec.e) at t/t_timing_class.v:111
--V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__1
--V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__2
--V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__3
--V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__4
+-V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__Vtiming__1
+-V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__Vtiming__2
+-V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__Vtiming__3
+-V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__Vtiming__4
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_count_5
 -V{t#,#}         Suspending process waiting for @(posedge t::ClkClass.clk) at t/t_timing_class.v:97
--V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__5
--V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__6
+-V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__Vtiming__5
+-V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__Vtiming__6
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aDelayClass::new
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aDelayClass::_ctor_var_reset
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aDelay10::new
@@ -64,7 +64,7 @@
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aAssignDelayClass::new
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aAssignDelayClass::_ctor_var_reset
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aDelay10::__VnoInFunc_do_delay
--V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__7
+-V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__Vtiming__7
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aForkClass::new
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aForkClass::_ctor_var_reset
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aForkClass::__VnoInFunc_do_fork
@@ -74,12 +74,12 @@
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aForkClass::__VnoInFunc_do_fork____Vfork_1__1____Vfork_2__1
 -V{t#,#}             Awaiting join of fork at: t/t_timing_class.v:250
 -V{t#,#}             Awaiting join of fork at: t/t_timing_class.v:245
--V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__8
--V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__9
+-V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__Vtiming__8
+-V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__Vtiming__9
 -V{t#,#}+    Vt_timing_debug2___024root___eval_settle
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:97
@@ -90,12 +90,13 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
 -V{t#,#}         Committing processes waiting for @([event] t.ec.e):
 -V{t#,#}           - Process waiting at t/t_timing_class.v:111
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:97
@@ -109,17 +110,18 @@
 -V{t#,#}             Awaiting time 5: Process waiting at t/t_timing_class.v:131
 -V{t#,#}             Awaiting time 10: Process waiting at t/t_timing_class.v:173
 -V{t#,#}             Awaiting time 10: Process waiting at t/t_timing_class.v:247
--V{t#,#}             Awaiting time 30: Process waiting at t/t_timing_class.v:257
 -V{t#,#}             Awaiting time 20: Process waiting at t/t_timing_class.v:119
--V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
 -V{t#,#}             Awaiting time 20: Process waiting at t/t_timing_class.v:252
+-V{t#,#}             Awaiting time 30: Process waiting at t/t_timing_class.v:257
+-V{t#,#}             Awaiting time 40: Process waiting at t/t_timing_class.v:120
+-V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
 -V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
--V{t#,#}             Awaiting time 40: Process waiting at t/t_timing_class.v:120
 -V{t#,#}         Resuming delayed processes
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:97
@@ -134,6 +136,7 @@
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:97
 -V{t#,#}         Suspending process waiting for @(posedge t::ClkClass.clk) at t/t_timing_class.v:98
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:98
@@ -142,7 +145,9 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:98
@@ -151,12 +156,13 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:98
@@ -167,25 +173,26 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
 -V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         Delayed processes:
--V{t#,#}             Awaiting time 10: Process waiting at t/t_timing_class.v:247
 -V{t#,#}             Awaiting time 10: Process waiting at t/t_timing_class.v:173
+-V{t#,#}             Awaiting time 10: Process waiting at t/t_timing_class.v:247
+-V{t#,#}             Awaiting time 10: Process waiting at t/t_timing_class.v:131
+-V{t#,#}             Awaiting time 20: Process waiting at t/t_timing_class.v:119
 -V{t#,#}             Awaiting time 20: Process waiting at t/t_timing_class.v:252
 -V{t#,#}             Awaiting time 30: Process waiting at t/t_timing_class.v:257
--V{t#,#}             Awaiting time 10: Process waiting at t/t_timing_class.v:131
--V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
 -V{t#,#}             Awaiting time 40: Process waiting at t/t_timing_class.v:120
+-V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
 -V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
--V{t#,#}             Awaiting time 20: Process waiting at t/t_timing_class.v:119
 -V{t#,#}         Resuming delayed processes
--V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:247
--V{t#,#}             Process forked at t/t_timing_class.v:246 finished
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:173
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aDelay10::__VnoInFunc_do_sth_else
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aDelay20::__VnoInFunc_do_delay
+-V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:247
+-V{t#,#}             Process forked at t/t_timing_class.v:246 finished
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:98
@@ -194,7 +201,9 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:98
@@ -203,12 +212,13 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:98
@@ -220,18 +230,19 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         Delayed processes:
 -V{t#,#}             Awaiting time 15: Process waiting at t/t_timing_class.v:131
--V{t#,#}             Awaiting time 20: Process waiting at t/t_timing_class.v:252
--V{t#,#}             Awaiting time 30: Process waiting at t/t_timing_class.v:174
 -V{t#,#}             Awaiting time 20: Process waiting at t/t_timing_class.v:119
--V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
--V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
--V{t#,#}             Awaiting time 40: Process waiting at t/t_timing_class.v:120
--V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
+-V{t#,#}             Awaiting time 20: Process waiting at t/t_timing_class.v:252
 -V{t#,#}             Awaiting time 30: Process waiting at t/t_timing_class.v:257
+-V{t#,#}             Awaiting time 30: Process waiting at t/t_timing_class.v:174
+-V{t#,#}             Awaiting time 40: Process waiting at t/t_timing_class.v:120
+-V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
+-V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
+-V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
 -V{t#,#}         Resuming delayed processes
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:98
@@ -246,6 +257,7 @@
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:98
 -V{t#,#}         Suspending process waiting for @(posedge t::ClkClass.clk) at t/t_timing_class.v:99
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:99
@@ -254,7 +266,9 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:99
@@ -263,12 +277,13 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:99
@@ -279,25 +294,26 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
 -V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         Delayed processes:
--V{t#,#}             Awaiting time 20: Process waiting at t/t_timing_class.v:252
 -V{t#,#}             Awaiting time 20: Process waiting at t/t_timing_class.v:119
--V{t#,#}             Awaiting time 30: Process waiting at t/t_timing_class.v:174
+-V{t#,#}             Awaiting time 20: Process waiting at t/t_timing_class.v:252
 -V{t#,#}             Awaiting time 20: Process waiting at t/t_timing_class.v:131
--V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
--V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
--V{t#,#}             Awaiting time 40: Process waiting at t/t_timing_class.v:120
--V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
 -V{t#,#}             Awaiting time 30: Process waiting at t/t_timing_class.v:257
+-V{t#,#}             Awaiting time 30: Process waiting at t/t_timing_class.v:174
+-V{t#,#}             Awaiting time 40: Process waiting at t/t_timing_class.v:120
+-V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
+-V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
+-V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
 -V{t#,#}         Resuming delayed processes
+-V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:119
+-V{t#,#}+        Vt_timing_debug2_t__03a__03aEventClass::__VnoInFunc_wake
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:252
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aForkDelayClass::new
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aForkDelayClass::_ctor_var_reset
 -V{t#,#}             Process forked at t/t_timing_class.v:251 finished
--V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:119
--V{t#,#}+        Vt_timing_debug2_t__03a__03aEventClass::__VnoInFunc_wake
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:99
@@ -314,6 +330,7 @@
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aEventClass::__VnoInFunc_sleep
 -V{t#,#}         Suspending process waiting for @([event] t::EventClass.e) at t/t_timing_class.v:37
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:99
@@ -330,9 +347,11 @@
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:37
 -V{t#,#}         Suspending process waiting for @([event] t::EventClass.e) at t/t_timing_class.v:37
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
 -V{t#,#}+      Vt_timing_debug2_t___nba_sequent__TOP__t__0
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aEventClass::__VnoInFunc_inc_trig_count
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:99
@@ -349,12 +368,13 @@
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:37
 -V{t#,#}         Suspending process waiting for @([event] t::EventClass.e) at t/t_timing_class.v:37
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:99
@@ -376,14 +396,15 @@
 -V{t#,#}             Awaiting time 25: Process waiting at t/t_timing_class.v:131
 -V{t#,#}             Awaiting time 30: Process waiting at t/t_timing_class.v:257
 -V{t#,#}             Awaiting time 30: Process waiting at t/t_timing_class.v:174
+-V{t#,#}             Awaiting time 40: Process waiting at t/t_timing_class.v:120
+-V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
 -V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
--V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
--V{t#,#}             Awaiting time 40: Process waiting at t/t_timing_class.v:120
 -V{t#,#}         Resuming delayed processes
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:99
@@ -406,6 +427,7 @@
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:99
 -V{t#,#}         Suspending process waiting for @(posedge t::ClkClass.clk) at t/t_timing_class.v:100
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:37
@@ -422,7 +444,9 @@
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:37
 -V{t#,#}         Suspending process waiting for @([event] t::EventClass.e) at t/t_timing_class.v:37
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:100
@@ -439,12 +463,13 @@
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:37
 -V{t#,#}         Suspending process waiting for @([event] t::EventClass.e) at t/t_timing_class.v:37
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:100
@@ -463,22 +488,23 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
 -V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         Delayed processes:
--V{t#,#}             Awaiting time 30: Process waiting at t/t_timing_class.v:174
 -V{t#,#}             Awaiting time 30: Process waiting at t/t_timing_class.v:257
+-V{t#,#}             Awaiting time 30: Process waiting at t/t_timing_class.v:174
 -V{t#,#}             Awaiting time 30: Process waiting at t/t_timing_class.v:131
+-V{t#,#}             Awaiting time 40: Process waiting at t/t_timing_class.v:120
+-V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
 -V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
--V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
--V{t#,#}             Awaiting time 40: Process waiting at t/t_timing_class.v:120
 -V{t#,#}         Resuming delayed processes
+-V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:257
+-V{t#,#}+        Vt_timing_debug2_t__03a__03aForkDelayClass::__VnoInFunc_do_delay
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:174
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aDelay20::__VnoInFunc_do_sth_else
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aDelay40::__VnoInFunc_do_delay
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
--V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:257
--V{t#,#}+        Vt_timing_debug2_t__03a__03aForkDelayClass::__VnoInFunc_do_delay
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:100
@@ -495,7 +521,9 @@
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:37
 -V{t#,#}         Suspending process waiting for @([event] t::EventClass.e) at t/t_timing_class.v:37
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:100
@@ -512,12 +540,13 @@
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:37
 -V{t#,#}         Suspending process waiting for @([event] t::EventClass.e) at t/t_timing_class.v:37
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:100
@@ -537,16 +566,17 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         Delayed processes:
 -V{t#,#}             Awaiting time 35: Process waiting at t/t_timing_class.v:131
--V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
 -V{t#,#}             Awaiting time 40: Process waiting at t/t_timing_class.v:120
--V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
--V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
 -V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
 -V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:238
+-V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
+-V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
+-V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
 -V{t#,#}         Resuming delayed processes
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:100
@@ -569,6 +599,7 @@
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:100
 -V{t#,#}         Suspending process waiting for @(posedge t::ClkClass.clk) at t/t_timing_class.v:101
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:37
@@ -585,7 +616,9 @@
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:37
 -V{t#,#}         Suspending process waiting for @([event] t::EventClass.e) at t/t_timing_class.v:37
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:101
@@ -602,12 +635,13 @@
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:37
 -V{t#,#}         Suspending process waiting for @([event] t::EventClass.e) at t/t_timing_class.v:37
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:101
@@ -627,17 +661,18 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         Delayed processes:
 -V{t#,#}             Awaiting time 40: Process waiting at t/t_timing_class.v:120
--V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
 -V{t#,#}             Awaiting time 40: Process waiting at t/t_timing_class.v:131
+-V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
+-V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:238
+-V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
 -V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
--V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:238
--V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
 -V{t#,#}         Resuming delayed processes
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:120
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:101
@@ -649,6 +684,7 @@
 -V{t#,#}         Process waiting for @([event] t::EventClass.e) at t/t_timing_class.v:37 awaiting the post update step
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         'act' region trigger index 0 is active: @([event] t.ec.e)
+-V{t#,#}         'act' region trigger index 2 is active: @([true] __VdynSched.evaluate())
 -V{t#,#}         Doing post updates for processes:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:37
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:37
@@ -657,16 +693,6 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         No ready processes waiting for @([event] t.ec.e)
 -V{t#,#}         Resuming processes waiting for @([event] t.ec.e)
--V{t#,#}+    Vt_timing_debug2___024root___eval_act
--V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
--V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
--V{t#,#}           - Process waiting at t/t_timing_class.v:101
--V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:101
--V{t#,#}         Suspending process waiting for @(posedge t::ClkClass.clk) at t/t_timing_class.v:101
--V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
--V{t#,#}         'act' region trigger index 2 is active: @([true] __VdynSched.evaluate())
--V{t#,#}+    Vt_timing_debug2___024root___timing_commit
--V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         Resuming processes:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:37
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:37
@@ -674,6 +700,7 @@
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aWaitClass::__VnoInFunc_await
 -V{t#,#}         Suspending process waiting for @([true] ((32'sh4 == t::WaitClass.a) & (32'sh10 < t::WaitClass.b))) at t/t_timing_class.v:58
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:101
@@ -686,9 +713,11 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
 -V{t#,#}+      Vt_timing_debug2_t___nba_sequent__TOP__t__0
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aEventClass::__VnoInFunc_inc_trig_count
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:101
@@ -701,12 +730,13 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:101
@@ -722,15 +752,16 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         Delayed processes:
 -V{t#,#}             Awaiting time 45: Process waiting at t/t_timing_class.v:131
--V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
 -V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
+-V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:238
+-V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
 -V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
--V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:238
 -V{t#,#}         Resuming delayed processes
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:101
@@ -748,6 +779,7 @@
 -V{t#,#}           - Process waiting at t/t_timing_class.v:101
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:101
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:58
@@ -756,7 +788,9 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:58
@@ -765,12 +799,13 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:58
@@ -782,16 +817,17 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         Delayed processes:
 -V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:122
--V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
 -V{t#,#}             Awaiting time 50: Process waiting at t/t_timing_class.v:131
+-V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:238
+-V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
 -V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
--V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:238
 -V{t#,#}         Resuming delayed processes
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:122
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:58
@@ -800,7 +836,9 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:58
@@ -809,12 +847,13 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:58
@@ -826,15 +865,16 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         Delayed processes:
 -V{t#,#}             Awaiting time 55: Process waiting at t/t_timing_class.v:131
--V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
 -V{t#,#}             Awaiting time 60: Process waiting at t/t_timing_class.v:123
+-V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:238
+-V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
 -V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
--V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:238
 -V{t#,#}         Resuming delayed processes
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:58
@@ -843,7 +883,9 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:58
@@ -852,12 +894,13 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:58
@@ -869,16 +912,17 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         Delayed processes:
 -V{t#,#}             Awaiting time 60: Process waiting at t/t_timing_class.v:123
--V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
 -V{t#,#}             Awaiting time 60: Process waiting at t/t_timing_class.v:131
+-V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:238
+-V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
 -V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
--V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:238
 -V{t#,#}         Resuming delayed processes
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:123
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:58
@@ -897,6 +941,7 @@
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aLocalWaitClass::__VnoInFunc_await____Vfork_1__1
 -V{t#,#}             Awaiting join of fork at: t/t_timing_class.v:74
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:75
@@ -905,7 +950,9 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:75
@@ -914,12 +961,13 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:75
@@ -932,14 +980,15 @@
 -V{t#,#}         Delayed processes:
 -V{t#,#}             Awaiting time 65: Process waiting at t/t_timing_class.v:131
 -V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:238
+-V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
 -V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:76
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
--V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
 -V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
 -V{t#,#}         Resuming delayed processes
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:75
@@ -948,7 +997,9 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:75
@@ -957,12 +1008,13 @@
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:75
@@ -973,17 +1025,13 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
 -V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         Delayed processes:
--V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:76
 -V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:238
+-V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
+-V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:76
 -V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:131
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
--V{t#,#}             Awaiting time 70: Process waiting at t/t_timing_class.v:175
 -V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
 -V{t#,#}         Resuming delayed processes
--V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:76
--V{t#,#}             Process forked at t/t_timing_class.v:76 finished
--V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
--V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:238
 -V{t#,#}             Process forked at t/t_timing_class.v:256 finished
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:250
@@ -993,9 +1041,14 @@
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aDelay40::__VnoInFunc_do_sth_else
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aNoDelay::__VnoInFunc_do_delay
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aNoDelay::__VnoInFunc_do_sth_else
--V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__6____Vfork_1__0
+-V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__Vtiming__6____Vfork_1__0
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aAssignDelayClass::__VnoInFunc_do_assign
+-V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:76
+-V{t#,#}             Process forked at t/t_timing_class.v:76 finished
+-V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
+-V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         Suspended processes waiting for dynamic trigger evaluation:
 -V{t#,#}           - Process waiting at t/t_timing_class.v:75
@@ -1011,25 +1064,29 @@
 -V{t#,#}             Process forked at t/t_timing_class.v:75 finished
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:74
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aForkDelayClass::~
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aForkClass::~
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
@@ -1037,33 +1094,37 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
 -V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         Delayed processes:
--V{t#,#}             Awaiting time 75: Process waiting at t/t_timing_class.v:131
 -V{t#,#}             Awaiting time 75: Process waiting at t/t_timing_class.v:224
--V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
+-V{t#,#}             Awaiting time 75: Process waiting at t/t_timing_class.v:131
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:190
+-V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
 -V{t#,#}         Resuming delayed processes
+-V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:224
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
--V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:224
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
@@ -1073,33 +1134,37 @@
 -V{t#,#}         Delayed processes:
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:136
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:190
--V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
 -V{t#,#}             Awaiting time 80: Process waiting at t/t_timing_class.v:131
+-V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
 -V{t#,#}         Resuming delayed processes
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:136
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:190
--V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__6____Vfork_2__0
+-V{t#,#}+      Vt_timing_debug2_t___eval_initial__TOP__t__Vtiming__6____Vfork_2__0
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aAssignDelayClass::__VnoInFunc_do_assign
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
@@ -1116,23 +1181,27 @@
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
@@ -1142,31 +1211,35 @@
 -V{t#,#}         Delayed processes:
 -V{t#,#}             Awaiting time 90: Process waiting at t/t_timing_class.v:190
 -V{t#,#}             Awaiting time 90: Process waiting at t/t_timing_class.v:131
--V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
 -V{t#,#}             Awaiting time 100: Process waiting at t/t_timing_class.v:231
+-V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
 -V{t#,#}         Resuming delayed processes
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:190
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aAssignDelayClass::~
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
@@ -1175,29 +1248,33 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         Delayed processes:
 -V{t#,#}             Awaiting time 95: Process waiting at t/t_timing_class.v:131
--V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
 -V{t#,#}             Awaiting time 100: Process waiting at t/t_timing_class.v:231
+-V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
 -V{t#,#}         Resuming delayed processes
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+++++TOP Evaluate Vt_timing_debug2::eval_step
 -V{t#,#}+    Vt_timing_debug2___024root___eval_debug_assertions
--V{t#,#}MTask0 starting
 -V{t#,#}+ Eval
 -V{t#,#}+    Vt_timing_debug2___024root___eval
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
@@ -1206,25 +1283,29 @@
 -V{t#,#}+    Vt_timing_debug2___024root___timing_resume
 -V{t#,#}         Delayed processes:
 -V{t#,#}             Awaiting time 100: Process waiting at t/t_timing_class.v:231
--V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
 -V{t#,#}             Awaiting time 100: Process waiting at t/t_timing_class.v:131
+-V{t#,#}             Awaiting time 101: Process waiting at t/t_timing_class.v:274
 -V{t#,#}         Resuming delayed processes
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:231
 *-* All Finished *-*
 -V{t#,#}             Resuming: Process waiting at t/t_timing_class.v:131
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aClkClass::__VnoInFunc_flip
 -V{t#,#}+    Vt_timing_debug2___024root___eval_act
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}+    Vt_timing_debug2___024root___eval_nba
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__act
 -V{t#,#}+    Vt_timing_debug2___024root___eval_triggers__act
 -V{t#,#}         No suspended processes waiting for dynamic trigger evaluation
 -V{t#,#}+    Vt_timing_debug2___024root___dump_triggers__act
 -V{t#,#}         No triggers active
 -V{t#,#}+    Vt_timing_debug2___024root___timing_commit
+-V{t#,#}+    Vt_timing_debug2___024root___eval_phase__nba
 -V{t#,#}End-of-eval cleanup
 -V{t#,#}+    Vt_timing_debug2___024root___eval_final
 -V{t#,#}+        Vt_timing_debug2_t__03a__03aDelay40::~

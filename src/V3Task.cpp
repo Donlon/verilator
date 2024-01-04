@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -23,21 +23,14 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3Task.h"
 
-#include "V3Ast.h"
 #include "V3Const.h"
 #include "V3EmitCBase.h"
-#include "V3Global.h"
 #include "V3Graph.h"
-#include "V3LinkLValue.h"
 
-#include <map>
 #include <tuple>
 
 VL_DEFINE_DEBUG_FUNCTIONS;
@@ -98,7 +91,6 @@ public:
 //######################################################################
 
 class TaskStateVisitor final : public VNVisitor {
-private:
     // NODE STATE
     //  Output:
     //   AstNodeFTask::user3p   // AstScope* this FTask is under
@@ -180,8 +172,7 @@ private:
             if (AstVarScope* const vscp = VN_CAST(stmtp, VarScope)) {
                 if (vscp->varp()->isFuncLocal() || vscp->varp()->isUsedLoopIdx()) {
                     UINFO(9, "   funcvsc " << vscp << endl);
-                    m_varToScopeMap.insert(
-                        std::make_pair(std::make_pair(nodep, vscp->varp()), vscp));
+                    m_varToScopeMap.emplace(std::make_pair(nodep, vscp->varp()), vscp);
                 }
             }
         }
@@ -280,8 +271,6 @@ public:
     // CONSTRUCTORS
     explicit TaskStateVisitor(AstNetlist* nodep) {
         m_curVxp = new TaskCodeVertex{&m_callGraph};
-        AstNode::user3ClearTree();
-        AstNode::user4ClearTree();
         //
         iterate(nodep);
         //
@@ -340,7 +329,6 @@ struct TaskDpiUtils {
 // Task state, as a visitor of each AstNode
 
 class TaskVisitor final : public VNVisitor {
-private:
     // NODE STATE
     // Each module:
     //    AstNodeFTask::user1   // True if its been expanded
@@ -514,7 +502,6 @@ private:
                 }
             } else if (portp->isInoutish()) {
                 // if (debug() >= 9) pinp->dumpTree("-pinrsize- ");
-                V3LinkLValue::linkLValueSet(pinp);
 
                 AstVarScope* const newvscp
                     = createVarScope(portp, namePrefix + "__" + portp->shortName());
@@ -535,12 +522,6 @@ private:
                 beginp->addNext(postassp);
                 // if (debug() >= 9) beginp->dumpTreeAndNext(cout, "-pinrsize-out- ");
             } else if (portp->isWritable()) {
-                // Make output variables
-                // Correct lvalue; we didn't know when we linked
-                // This is slightly scary; are we sure no decisions were made
-                // before here based on this not being a lvalue?
-                // Doesn't seem so; V3Unknown uses it earlier, but works ok.
-                V3LinkLValue::linkLValueSet(pinp);
                 // Even if it's referencing a varref, we still make a temporary
                 // Else task(x,x,x) might produce incorrect results
                 AstVarScope* const newvscp
@@ -642,6 +623,12 @@ private:
             ccallp = new AstCCall{refp->fileline(), cfuncp};
             ccallp->dtypeSetVoid();
             beginp->addNext(ccallp->makeStmt());
+        }
+
+        if (const AstFuncRef* const funcRefp = VN_CAST(refp, FuncRef)) {
+            ccallp->superReference(funcRefp->superReference());
+        } else if (const AstTaskRef* const taskRefp = VN_CAST(refp, TaskRef)) {
+            ccallp->superReference(taskRefp->superReference());
         }
 
         // Convert complicated outputs to temp signals
@@ -972,19 +959,21 @@ private:
         // Only create one DPI Import prototype or DPI Export entry point for each unique cname as
         // it is illegal for the user to attach multiple tasks with different signatures to one DPI
         // cname.
-        const auto it = m_dpiNames.find(nodep->cname());
-        if (it == m_dpiNames.end()) {
+        const auto pair = m_dpiNames.emplace(std::piecewise_construct,  //
+                                             std::forward_as_tuple(nodep->cname()),
+                                             std::forward_as_tuple(nodep, signature, nullptr));
+        if (pair.second) {
             // First time encountering this cname. Create Import prototype / Export entry point
             AstCFunc* const funcp = nodep->dpiExport() ? makeDpiExportDispatcher(nodep, rtnvarp)
                                                        : makeDpiImportPrototype(nodep, rtnvarp);
-            m_dpiNames.emplace(nodep->cname(), std::make_tuple(nodep, signature, funcp));
+            std::get<2>(pair.first->second) = funcp;
             return funcp;
         } else {
             // Seen this cname import before. Check if it's the same prototype.
             const AstNodeFTask* firstNodep;
             string firstSignature;
             AstCFunc* firstFuncp;
-            std::tie(firstNodep, firstSignature, firstFuncp) = it->second;
+            std::tie(firstNodep, firstSignature, firstFuncp) = pair.first->second;
             if (signature != firstSignature) {
                 // Different signature, so error.
                 nodep->v3error("Duplicate declaration of DPI function with different signature: '"
@@ -1226,6 +1215,7 @@ private:
         cfuncp->dpiExportImpl(nodep->dpiExport());
         cfuncp->dpiImportWrapper(nodep->dpiImport());
         cfuncp->dpiTraceInit(nodep->dpiTraceInit());
+        cfuncp->recursive(nodep->recursive());
         if (nodep->dpiImport() || nodep->dpiExport()) {
             cfuncp->isStatic(true);
             cfuncp->isLoose(true);
@@ -1469,9 +1459,9 @@ private:
             beginp = new AstExprStmt{nodep->fileline(), beginp, outrefp};
             // AstExprStmt is currently treated as impure, so clear the cached purity of its
             // parents
-            nodep->clearCachedPurity();
             nodep->replaceWith(beginp);
             VL_DO_DANGLING(nodep->deleteTree(), nodep);
+            VIsCached::clearCacheTree();
         } else {
             insertBeforeStmt(nodep, beginp);
             if (nodep->taskp()->isFunction()) {
@@ -1622,9 +1612,8 @@ V3TaskConnects V3Task::taskConnects(AstNodeFTaskRef* nodep, AstNode* taskStmtsp,
     for (AstNode* stmtp = taskStmtsp; stmtp; stmtp = stmtp->nextp()) {
         if (AstVar* const portp = VN_CAST(stmtp, Var)) {
             if (portp->isIO()) {
-                tconnects.push_back(std::make_pair(portp, static_cast<AstArg*>(nullptr)));
-                nameToIndex.insert(
-                    std::make_pair(portp->name(), tpinnum));  // For name based connections
+                tconnects.emplace_back(portp, static_cast<AstArg*>(nullptr));
+                nameToIndex.emplace(portp->name(), tpinnum);  // For name based connections
                 tpinnum++;
                 if (portp->attrSFormat()) {
                     sformatp = portp;
@@ -1664,7 +1653,7 @@ V3TaskConnects V3Task::taskConnects(AstNodeFTaskRef* nodep, AstNode* taskStmtsp,
         } else {  // By pin number
             if (ppinnum >= tpinnum) {
                 if (sformatp) {
-                    tconnects.push_back(std::make_pair(sformatp, static_cast<AstArg*>(nullptr)));
+                    tconnects.emplace_back(sformatp, static_cast<AstArg*>(nullptr));
                     tconnects[ppinnum].second = argp;
                     tpinnum++;
                 } else {
@@ -1692,7 +1681,7 @@ V3TaskConnects V3Task::taskConnects(AstNodeFTaskRef* nodep, AstNode* taskStmtsp,
                 newvaluep = new AstConst{nodep->fileline(), AstConst::Unsized32{}, 0};
             } else if (AstFuncRef* const funcRefp = VN_CAST(portp->valuep(), FuncRef)) {
                 const AstNodeFTask* const funcp = funcRefp->taskp();
-                if (funcp->classMethod() && funcp->lifetime().isStatic()) newvaluep = funcRefp;
+                if (funcp->classMethod() && funcp->isStatic()) newvaluep = funcRefp;
             } else if (AstConst* const constp = VN_CAST(portp->valuep(), Const)) {
                 newvaluep = constp;
             }
@@ -1780,16 +1769,13 @@ void V3Task::taskConnectWrap(AstNodeFTaskRef* nodep, const V3TaskConnects& tconn
     // Make wrapper name such that is same iff same args are defaulted
     std::string newname = nodep->name() + "__Vtcwrap";
     for (const AstVar* varp : argWrap) newname += "_" + cvtToStr(varp->pinNum());
-    const auto namekey = std::make_pair(nodep->taskp(), newname);
-    auto& wrapMapr = statep->wrapMap();
-    const auto it = wrapMapr.find(namekey);
-    AstNodeFTask* newTaskp;
-    if (it != wrapMapr.end()) {
-        newTaskp = it->second;
-    } else {
-        newTaskp = taskConnectWrapNew(nodep->taskp(), newname, tconnects, argWrap);
-        wrapMapr.emplace(namekey, newTaskp);
+    const auto pair = statep->wrapMap().emplace(std::piecewise_construct,
+                                                std::forward_as_tuple(nodep->taskp(), newname),
+                                                std::forward_as_tuple(nullptr));
+    if (pair.second) {
+        pair.first->second = taskConnectWrapNew(nodep->taskp(), newname, tconnects, argWrap);
     }
+    AstNodeFTask* const newTaskp = pair.first->second;
 
     // Remove the defaulted arguments from original outside call
     for (const auto& tconnect : tconnects) {
@@ -1865,9 +1851,9 @@ AstNodeFTask* V3Task::taskConnectWrapNew(AstNodeFTask* taskp, const string& newn
             newTaskp->addStmtsp(newAssignp);
         }
         oldNewVars.emplace(portp, newPortp);
-        AstArg* const newArgp
-            = new AstArg{portp->fileline(), portp->name(),
-                         new AstVarRef{portp->fileline(), newPortp, VAccess::READ}};
+        const VAccess pinAccess = portp->isWritable() ? VAccess::WRITE : VAccess::READ;
+        AstArg* const newArgp = new AstArg{portp->fileline(), portp->name(),
+                                           new AstVarRef{portp->fileline(), newPortp, pinAccess}};
         newCallp->addPinsp(newArgp);
     }
     // Create wrapper call to original, passing arguments, adding setting of return value

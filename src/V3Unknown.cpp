@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -28,27 +28,19 @@
 //
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3Unknown.h"
 
-#include "V3Ast.h"
 #include "V3Const.h"
-#include "V3Global.h"
 #include "V3Stats.h"
 #include "V3UniqueNames.h"
-
-#include <algorithm>
 
 VL_DEFINE_DEBUG_FUNCTIONS;
 
 //######################################################################
 
 class UnknownVisitor final : public VNVisitor {
-private:
     // NODE STATE
     // Cleared on Netlist
     //  AstSel::user()          -> bool.  Set true if already processed

@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2004-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2004-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -14,12 +14,8 @@
 //
 //*************************************************************************
 
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstMT.h"
 
-#include "V3Global.h"
-
-#include "V3Ast.h"
 #include "V3File.h"
 #include "V3HierBlock.h"
 #include "V3LinkCells.h"
@@ -58,7 +54,7 @@ void V3Global::readFiles() {
     if (v3Global.opt.std()) {
         parser.parseFile(new FileLine{V3Options::getStdPackagePath()},
                          V3Options::getStdPackagePath(), false,
-                         "Cannot find verilated_std.sv containing built-in std:: definitions:");
+                         "Cannot find verilated_std.sv containing built-in std:: definitions: ");
     }
 
     // Read top module
@@ -110,16 +106,16 @@ string V3Global::digitsFilename(int number) {
 
 void V3Global::dumpCheckGlobalTree(const string& stagename, int newNumber, bool doDump) {
     const string treeFilename = v3Global.debugFilename(stagename + ".tree", newNumber);
-    v3Global.rootp()->dumpTreeFile(treeFilename, false, doDump);
+    v3Global.rootp()->dumpTreeFile(treeFilename, doDump);
     if (v3Global.opt.dumpTreeDot()) {
-        v3Global.rootp()->dumpTreeDotFile(treeFilename + ".dot", false, doDump);
+        v3Global.rootp()->dumpTreeDotFile(treeFilename + ".dot", doDump);
     }
     if (v3Global.opt.stats()) V3Stats::statsStage(stagename);
 }
 
 const std::string& V3Global::ptrToId(const void* p) {
-    auto it = m_ptrToId.find(p);
-    if (it == m_ptrToId.end()) {
+    const auto pair = m_ptrToId.emplace(p, "");
+    if (pair.second) {
         std::ostringstream os;
         if (p) {
             os << "(";
@@ -129,7 +125,7 @@ const std::string& V3Global::ptrToId(const void* p) {
         } else {
             os << "0";
         }
-        it = m_ptrToId.insert(std::make_pair(p, os.str())).first;
+        pair.first->second = os.str();
     }
-    return it->second;
+    return pair.first->second;
 }

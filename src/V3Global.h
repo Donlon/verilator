@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -41,12 +41,13 @@ class V3HierBlockPlan;
 //======================================================================
 // Restorer
 
-/// Save a given variable's value on the stack, restoring it at
-/// end-of-stope.
+/// Save a given variable's value on the stack, restoring it at end-of-scope.
 // Object must be named, or it will not persist until end-of-scope.
 // Constructor needs () or GCC 4.8 false warning.
 #define VL_RESTORER(var) \
     const VRestorer<typename std::decay<decltype(var)>::type> restorer_##var(var);
+/// Get the copy of the variable previously saved by VL_RESTORER()
+#define VL_RESTORER_PREV(var) restorer_##var.saved()
 
 // Object used by VL_RESTORER.  This object must be an auto variable, not
 // allocated on the heap or otherwise.
@@ -60,6 +61,7 @@ public:
         : m_ref{permr}
         , m_saved{permr} {}
     ~VRestorer() { m_ref = m_saved; }
+    const T& saved() const { return m_saved; }
     VL_UNCOPYABLE(VRestorer);
 };
 
@@ -103,12 +105,14 @@ class V3Global final {
     std::atomic_int m_debugFileNumber{0};  // Number to append to debug files created
     bool m_assertDTypesResolved = false;  // Tree should have dtypep()'s
     bool m_assertScoped = false;  // Tree is scoped
+    bool m_assignsEvents = false;  // Design uses assignments on SystemVerilog Events
     bool m_constRemoveXs = false;  // Const needs to strip any Xs
     // Experimenting with always requiring heavy, see issue #2701
     bool m_needTraceDumper = false;  // Need __Vm_dumperp in symbols
     bool m_dpi = false;  // Need __Dpi include files
     bool m_hasEvents = false;  // Design uses SystemVerilog named events
     bool m_hasClasses = false;  // Design uses SystemVerilog classes
+    bool m_hasVirtIfaces = false;  // Design uses virtual interfaces
     bool m_usesProbDist = false;  // Uses $dist_*
     bool m_usesStdPackage = false;  // Design uses the std package
     bool m_usesTiming = false;  // Design uses timing constructs
@@ -153,10 +157,14 @@ public:
     void needTraceDumper(bool flag) { m_needTraceDumper = flag; }
     bool dpi() const VL_MT_SAFE { return m_dpi; }
     void dpi(bool flag) { m_dpi = flag; }
+    bool assignsEvents() const { return m_assignsEvents; }
+    void setAssignsEvents() { m_assignsEvents = true; }
     bool hasEvents() const { return m_hasEvents; }
     void setHasEvents() { m_hasEvents = true; }
     bool hasClasses() const { return m_hasClasses; }
     void setHasClasses() { m_hasClasses = true; }
+    bool hasVirtIfaces() const { return m_hasVirtIfaces; }
+    void setHasVirtIfaces() { m_hasVirtIfaces = true; }
     bool usesProbDist() const { return m_usesProbDist; }
     void setUsesProbDist() { m_usesProbDist = true; }
     bool usesStdPackage() const { return m_usesStdPackage; }

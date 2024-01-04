@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -14,15 +14,12 @@
 //
 //*************************************************************************
 
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstMT.h"
 
 #include "V3EmitC.h"
 #include "V3EmitCConstInit.h"
 #include "V3File.h"
-#include "V3Global.h"
 #include "V3Stats.h"
-#include "V3String.h"
 
 #include <algorithm>
 #include <cinttypes>

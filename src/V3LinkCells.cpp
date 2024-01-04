@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -23,21 +23,14 @@
 //              Link to module that instantiates it
 //*************************************************************************
 
-#define VL_MT_DISABLED_CODE_UNIT 1
-
-#include "config_build.h"
-#include "verilatedos.h"
+#include "V3PchAstNoMT.h"  // VL_MT_DISABLED_CODE_UNIT
 
 #include "V3LinkCells.h"
 
-#include "V3Ast.h"
-#include "V3Global.h"
 #include "V3Graph.h"
 #include "V3Parse.h"
 #include "V3SymTable.h"
 
-#include <algorithm>
-#include <map>
 #include <unordered_set>
 #include <vector>
 
@@ -99,7 +92,6 @@ void LinkCellsGraph::loopsMessageCb(V3GraphVertex* vertexp) {
 // Link state, as a visitor of each AstNode
 
 class LinkCellsVisitor final : public VNVisitor {
-private:
     // NODE STATE
     //  Entire netlist:
     //   AstNodeModule::user1p()        // V3GraphVertex*    Vertex describing this module
@@ -167,11 +159,10 @@ private:
 
     // VISITs
     void visit(AstNetlist* nodep) override {
-        AstNode::user1ClearTree();
         readModNames();
         iterateChildren(nodep);
         // Find levels in graph
-        m_graph.removeRedundantEdges(&V3GraphEdge::followAlwaysTrue);
+        m_graph.removeRedundantEdgesMax(&V3GraphEdge::followAlwaysTrue);
         if (dumpGraphLevel()) m_graph.dumpDotFilePrefixed("linkcells");
         m_graph.rank();
         for (V3GraphVertex* itp = m_graph.verticesBeginp(); itp; itp = itp->verticesNextp()) {
@@ -247,6 +238,11 @@ private:
             } else {
                 nodep->v3error("Non-interface used as an interface: " << nodep->prettyNameQ());
             }
+        }
+        iterateChildren(nodep);
+        for (AstPin* pinp = nodep->paramsp(); pinp; pinp = VN_AS(pinp->nextp(), Pin)) {
+            pinp->param(true);
+            if (pinp->name() == "") pinp->name("__paramNumber" + cvtToStr(pinp->pinNum()));
         }
         // Note cannot do modport resolution here; modports are allowed underneath generates
     }
