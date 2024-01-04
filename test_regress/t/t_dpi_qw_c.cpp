@@ -17,7 +17,7 @@
 //======================================================================
 
 #ifdef VERILATOR
-#include "Vt_dpi_qw__Dpi.h"
+# include "Vt_dpi_qw__Dpi.h"
 #else
 extern "C" {
 extern void set_value(const svBitVecVal* v);

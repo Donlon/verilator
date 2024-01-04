@@ -11,19 +11,19 @@
 
 #ifdef IS_VPI
 
-#include "vpi_user.h"
+# include "vpi_user.h"
 
-#include <cstdlib>
+# include <cstdlib>
 
 #else
 
-#include "verilated.h"
-#include "verilated_vcd_c.h"
-#include "verilated_vpi.h"
+# include "verilated.h"
+# include "verilated_vcd_c.h"
+# include "verilated_vpi.h"
 
-#include "Vt_vpi_memory.h"
-#include "Vt_vpi_memory__Dpi.h"
-#include "svdpi.h"
+# include "Vt_vpi_memory.h"
+# include "Vt_vpi_memory__Dpi.h"
+# include "svdpi.h"
 
 #endif
 
@@ -40,7 +40,7 @@
 #define FILENM "t_vpi_memory.cpp"
 
 #define DEBUG \
-    if (0) printf
+ if (0) printf
 
 int errors = 0;
 
@@ -265,19 +265,19 @@ int main(int argc, char** argv) {
                                                         // Note null name - we're flattening it out
                                                         ""}};
 
-#ifdef VERILATOR
-#ifdef TEST_VERBOSE
+# ifdef VERILATOR
+#  ifdef TEST_VERBOSE
     contextp->scopesDump();
-#endif
-#endif
+#  endif
+# endif
 
-#if VM_TRACE
+# if VM_TRACE
     contextp->traceEverOn(true);
     VL_PRINTF("Enabling waves...\n");
     VerilatedVcdC* tfp = new VerilatedVcdC;
     topp->trace(tfp, 99);
     tfp->open(VL_STRINGIFY(TEST_OBJ_DIR) "/simx.vcd");
-#endif
+# endif
 
     topp->eval();
     topp->clk = 0;
@@ -289,18 +289,18 @@ int main(int argc, char** argv) {
         VerilatedVpi::callValueCbs();
         topp->clk = !topp->clk;
         // mon_do();
-#if VM_TRACE
+# if VM_TRACE
         if (tfp) tfp->dump(contextp->time());
-#endif
+# endif
     }
     if (!contextp->gotFinish()) {
         vl_fatal(FILENM, __LINE__, "main", "%Error: Timeout; never got a $finish");
     }
     topp->final();
 
-#if VM_TRACE
+# if VM_TRACE
     if (tfp) tfp->close();
-#endif
+# endif
 
     return 0;
 }

@@ -67,7 +67,7 @@ using V3MtDisabledLockGuard = V3LockGuardImp<V3MtDisabledLock>;
 // compiled with VL_MT_DISABLED_CODE_UNIT preprocessor definition, or after obtaining a lock on
 // v3MtDisabledLock().
 #define VL_MT_DISABLED \
-    VL_CLANG_ATTR(annotate("MT_DISABLED")) \
-    VL_REQUIRES(V3MtDisabledLock::instance())
+ VL_CLANG_ATTR(annotate("MT_DISABLED")) \
+ VL_REQUIRES(V3MtDisabledLock::instance())
 
 #endif  // guard

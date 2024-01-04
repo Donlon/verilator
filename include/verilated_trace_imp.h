@@ -734,7 +734,7 @@ void VerilatedTrace<VL_SUB_T, VL_BUF_T>::addCleanupCb(cleanupCb_t cb, void* user
 // and a value to convert. There are a couple of variants for efficiency.
 
 static inline void cvtCDataToStr(char* dstp, CData value) {
-#ifdef VL_HAVE_SSE2
+# ifdef VL_HAVE_SSE2
     // Similar to cvtSDataToStr but only the bottom 8 byte lanes are used
     const __m128i a = _mm_cvtsi32_si128(value);
     const __m128i b = _mm_unpacklo_epi8(a, a);
@@ -743,7 +743,7 @@ static inline void cvtCDataToStr(char* dstp, CData value) {
     const __m128i d = _mm_cmpeq_epi8(_mm_and_si128(c, m), m);
     const __m128i result = _mm_sub_epi8(_mm_set1_epi8('0'), d);
     _mm_storel_epi64(reinterpret_cast<__m128i*>(dstp), result);
-#else
+# else
     dstp[0] = '0' | static_cast<char>((value >> 7) & 1);
     dstp[1] = '0' | static_cast<char>((value >> 6) & 1);
     dstp[2] = '0' | static_cast<char>((value >> 5) & 1);
@@ -752,11 +752,11 @@ static inline void cvtCDataToStr(char* dstp, CData value) {
     dstp[5] = '0' | static_cast<char>((value >> 2) & 1);
     dstp[6] = '0' | static_cast<char>((value >> 1) & 1);
     dstp[7] = '0' | static_cast<char>(value & 1);
-#endif
+# endif
 }
 
 static inline void cvtSDataToStr(char* dstp, SData value) {
-#ifdef VL_HAVE_SSE2
+# ifdef VL_HAVE_SSE2
     // We want each bit in the 16-bit input value to end up in a byte lane
     // within the 128-bit XMM register. Note that x86 is little-endian and we
     // want the MSB of the input at the low address, so we will bit-reverse
@@ -785,14 +785,14 @@ static inline void cvtSDataToStr(char* dstp, SData value) {
     const __m128i result = _mm_sub_epi8(_mm_set1_epi8('0'), e);
     // Store the 16 characters to the un-aligned buffer
     _mm_storeu_si128(reinterpret_cast<__m128i*>(dstp), result);
-#else
+# else
     cvtCDataToStr(dstp, value >> 8);
     cvtCDataToStr(dstp + 8, value);
-#endif
+# endif
 }
 
 static inline void cvtIDataToStr(char* dstp, IData value) {
-#ifdef VL_HAVE_AVX2
+# ifdef VL_HAVE_AVX2
     // Similar to cvtSDataToStr but the bottom 16-bits are processed in the
     // top half of the YMM registers
     const __m256i a = _mm256_insert_epi32(_mm256_undefined_si256(), value, 0);
@@ -804,10 +804,10 @@ static inline void cvtIDataToStr(char* dstp, IData value) {
     const __m256i d = _mm256_cmpeq_epi8(_mm256_and_si256(c, m), m);
     const __m256i result = _mm256_sub_epi8(_mm256_set1_epi8('0'), d);
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(dstp), result);
-#else
+# else
     cvtSDataToStr(dstp, value >> 16);
     cvtSDataToStr(dstp + 16, value);
-#endif
+# endif
 }
 
 static inline void cvtQDataToStr(char* dstp, QData value) {
@@ -815,7 +815,7 @@ static inline void cvtQDataToStr(char* dstp, QData value) {
     cvtIDataToStr(dstp + 32, value);
 }
 
-#define cvtEDataToStr cvtIDataToStr
+# define cvtEDataToStr cvtIDataToStr
 
 //=========================================================================
 // VerilatedTraceBuffer

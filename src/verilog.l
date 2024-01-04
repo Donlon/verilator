@@ -32,7 +32,7 @@
 #define PARSEP V3ParseImp::parsep()
 
 #define YY_INPUT(buf, result, max_size) \
-    do { result = PARSEP->flexPpInputToLex(buf, max_size); } while (false)
+ do { result = PARSEP->flexPpInputToLex(buf, max_size); } while (false)
 
 //======================================================================
 
@@ -43,19 +43,19 @@
 #define CRELINE() (PARSEP->lexFileline()->copyOrSameFileLineApplied())
 
 #define FL \
-    do { \
-        FL_FWD; \
-        yylval.fl = CRELINE(); \
-    } while (false)
+ do { \
+  FL_FWD; \
+  yylval.fl = CRELINE(); \
+ } while (false)
 
 #define ERROR_RSVD_WORD(language) \
-    do { \
-        FL; \
-        yylval.fl->v3warn(E_UNSUPPORTED, "Unsupported: " << language \
-                                                         << " reserved word not implemented: '" \
-                                                         << yytext << "'"); \
-        FL_BRK; \
-    } while (0)
+ do { \
+  FL; \
+  yylval.fl->v3warn(E_UNSUPPORTED, "Unsupported: " << language \
+                                                   << " reserved word not implemented: '" \
+                                                   << yytext << "'"); \
+  FL_BRK; \
+ } while (0)
 
 //======================================================================
 

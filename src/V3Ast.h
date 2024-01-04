@@ -55,15 +55,15 @@ using MTaskIdSet = std::set<int>;  // Set of mtaskIds for Var sorting
 
 // For broken() function, return error string if have a match
 #define BROKEN_RTN(test) \
-    do { \
-        if (VL_UNCOVERABLE(test)) return "'" #test "' @ " __FILE__ ":" VL_STRINGIFY(__LINE__); \
-    } while (false)
+ do { \
+  if (VL_UNCOVERABLE(test)) return "'" #test "' @ " __FILE__ ":" VL_STRINGIFY(__LINE__); \
+ } while (false)
 // For broken() function, return error string if a base of this class has a match
 #define BROKEN_BASE_RTN(test) \
-    do { \
-        const char* const reasonp = (test); \
-        if (VL_UNCOVERABLE(reasonp)) return reasonp; \
-    } while (false)
+ do { \
+  const char* const reasonp = (test); \
+  if (VL_UNCOVERABLE(reasonp)) return reasonp; \
+ } while (false)
 
 // (V)erilator (N)ode is: Returns true if and only if AstNode is of the given AstNode subtype,
 // and not nullptr.
@@ -74,7 +74,7 @@ using MTaskIdSet = std::set<int>;  // Set of mtaskIds for Var sorting
 // return nullptr. Pointer constness is preserved, i.e.: given a 'const AstNode*',
 // a 'const Ast<nodetypename>*' is returned.
 #define VN_CAST(nodep, nodetypename) \
-    (AstNode::privateCast<Ast##nodetypename, decltype(nodep)>(nodep))
+ (AstNode::privateCast<Ast##nodetypename, decltype(nodep)>(nodep))
 
 // (V)erilator (N)ode as: Assert node is of given type then cast to that type. Use this to
 // downcast instead of VN_CAST when you know the true type of the node. If 'nodep' is nullptr,
@@ -87,10 +87,10 @@ using MTaskIdSet = std::set<int>;  // Set of mtaskIds for Var sorting
 // pointers are usually populated by code that already asserts the correct type. Having fewer type
 // assertions yields better performance in release builds.
 #ifdef VL_DEBUG
-#define VN_DBG_AS(nodep, nodetypename) VN_AS(nodep, nodetypename)
+# define VN_DBG_AS(nodep, nodetypename) VN_AS(nodep, nodetypename)
 #else
-#define VN_DBG_AS(nodep, nodetypename) \
-    (AstNode::unsafePrivateAs<Ast##nodetypename, decltype(nodep)>(nodep))
+# define VN_DBG_AS(nodep, nodetypename) \
+  (AstNode::unsafePrivateAs<Ast##nodetypename, decltype(nodep)>(nodep))
 #endif
 
 // (V)erilator (N)ode deleted: Pointer to deleted AstNode (for assertions only)
@@ -1745,15 +1745,15 @@ public:
 
 // Prefetch a node.
 #define ASTNODE_PREFETCH_NON_NULL(nodep) \
-    do { \
-        VL_PREFETCH_RD(&((nodep)->m_nextp)); \
-        VL_PREFETCH_RD(&((nodep)->m_type)); \
-    } while (false)
+ do { \
+  VL_PREFETCH_RD(&((nodep)->m_nextp)); \
+  VL_PREFETCH_RD(&((nodep)->m_type)); \
+ } while (false)
 // The if() makes it faster, even though prefetch won't fault on null pointers
 #define ASTNODE_PREFETCH(nodep) \
-    do { \
-        if (nodep) ASTNODE_PREFETCH_NON_NULL(nodep); \
-    } while (false)
+ do { \
+  if (nodep) ASTNODE_PREFETCH_NON_NULL(nodep); \
+ } while (false)
 
 class AstNode VL_NOT_FINAL {
     // v ASTNODE_PREFETCH depends on below ordering of members

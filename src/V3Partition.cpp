@@ -285,10 +285,10 @@ public:
         logcost = logcost / 20.0;
 
         const uint32_t stepCost = static_cast<uint32_t>(exp(logcost));
-#if VL_DEBUG
+# if VL_DEBUG
         UASSERT_STATIC(stepCost >= cost, "stepped cost error exceeded");
         UASSERT_STATIC(stepCost <= ((cost * 11 / 10)), "stepped cost error exceeded");
-#endif
+# endif
         return stepCost;
 #else
         return cost;

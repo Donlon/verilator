@@ -20,5 +20,5 @@
 //=============================================================================
 
 #ifdef VL_NO_LEGACY
-#error "verilated_vcd_sc.cpp is deprecated; verilated_vcd_sc.h is self-sufficient"
+# error "verilated_vcd_sc.cpp is deprecated; verilated_vcd_sc.h is self-sufficient"
 #endif

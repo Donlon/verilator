@@ -15,10 +15,10 @@
 //*************************************************************************
 
 #ifndef V3OPTION_PARSER_NO_VOPTION_BOOL
-#define VL_MT_DISABLED_CODE_UNIT 1
+# define VL_MT_DISABLED_CODE_UNIT 1
 
-#include "V3Global.h"
-#include "V3Options.h"
+# include "V3Global.h"
+# include "V3Options.h"
 #endif
 #include "V3Error.h"
 #include "V3OptionParser.h"
@@ -74,15 +74,15 @@ struct V3OptionParser::Impl {
 // Action classes in V3OptionParser::Impl
 
 #define V3OPTION_PARSER_DEF_ACT_CLASS(className, type, body, enType) \
-    template <> \
-    class V3OptionParser::Impl::className<type> final : public ActionBase<enType> { \
-        type* const m_valp; /* Pointer to an option variable*/ \
+ template <> \
+ class V3OptionParser::Impl::className<type> final : public ActionBase<enType> { \
+  type* const m_valp; /* Pointer to an option variable*/ \
 \
-    public: \
-        explicit className(type* valp) \
-            : m_valp(valp) {} \
-        void exec(const char* optp, const char* argp) override { body; } \
-    }
+  public: \
+  explicit className(type* valp) \
+      : m_valp(valp) {} \
+  void exec(const char* optp, const char* argp) override { body; } \
+ }
 
 V3OPTION_PARSER_DEF_ACT_CLASS(ActionSet, bool, *m_valp = true, en::NONE);
 #ifndef V3OPTION_PARSER_NO_VOPTION_BOOL
@@ -100,15 +100,15 @@ V3OPTION_PARSER_DEF_ACT_CLASS(ActionOnOff, VOptionBool, m_valp->setTrueOrFalse(!
 #undef V3OPTION_PARSER_DEF_ACT_CLASS
 
 #define V3OPTION_PARSER_DEF_ACT_CB_CLASS(className, funcType, body, ...) \
-    class V3OptionParser::Impl::className final : public ActionBase<__VA_ARGS__> { \
-        std::function<funcType> m_cb; /* Callback function */ \
+ class V3OptionParser::Impl::className final : public ActionBase<__VA_ARGS__> { \
+  std::function<funcType> m_cb; /* Callback function */ \
 \
-    public: \
-        using CbType = std::function<funcType>; \
-        explicit className(CbType cb) \
-            : m_cb(std::move(cb)) {} \
-        void exec(const char* optp, const char* argp) override { body; } \
-    }
+  public: \
+  using CbType = std::function<funcType>; \
+  explicit className(CbType cb) \
+      : m_cb(std::move(cb)) {} \
+  void exec(const char* optp, const char* argp) override { body; } \
+ }
 
 V3OPTION_PARSER_DEF_ACT_CB_CLASS(ActionCbCall, void(void), m_cb(), en::NONE);
 V3OPTION_PARSER_DEF_ACT_CB_CLASS(ActionCbFOnOff, void(bool), m_cb(!hasPrefixFNo(optp)),
@@ -227,10 +227,10 @@ V3OptionParser::~V3OptionParser() = default;
 // Member functions of V3OptionParser::AppendHelper
 
 #define V3OPTION_PARSER_DEF_OP(actKind, argType, actType) \
-    V3OptionParser::ActionIfs& V3OptionParser::AppendHelper::operator()( \
-        const char* optp, actKind, argType arg) const { \
-        return m_parser.add<Impl::actType>(optp, arg); \
-    }
+ V3OptionParser::ActionIfs& V3OptionParser::AppendHelper::operator()(const char* optp, actKind, \
+                                                                     argType arg) const { \
+  return m_parser.add<Impl::actType>(optp, arg); \
+ }
 V3OPTION_PARSER_DEF_OP(Set, bool*, ActionSet<bool>)
 #ifndef V3OPTION_PARSER_NO_VOPTION_BOOL
 V3OPTION_PARSER_DEF_OP(Set, VOptionBool*, ActionSet<VOptionBool>)

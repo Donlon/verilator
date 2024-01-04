@@ -35,7 +35,7 @@
 // only be used by verilated code. Verilator itself should use
 // mutex from V3Mutex.h. Make sure this file isn't included in
 // verilator code.
-#error "verilated.h should only be included in verilated code"
+# error "verilated.h should only be included in verilated code"
 #endif
 
 // clang-format off
@@ -166,7 +166,7 @@ inline constexpr size_t roundUpToMultipleOf(size_t value) {
 extern uint32_t VL_THREAD_ID() VL_MT_SAFE;
 
 #ifndef VL_LOCK_SPINS
-#define VL_LOCK_SPINS 50000  /// Number of times to spin for a mutex before yielding
+# define VL_LOCK_SPINS 50000  /// Number of times to spin for a mutex before yielding
 #endif
 
 /// Mutex, wrapped to allow -fthread_safety checks

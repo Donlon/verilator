@@ -14,16 +14,16 @@
 
 #ifdef IS_VPI
 
-#include "vpi_user.h"
+# include "vpi_user.h"
 
-#include <cstdlib>
+# include <cstdlib>
 
 #else
 
-#include "verilated.h"
-#include "verilated_vpi.h"
+# include "verilated.h"
+# include "verilated_vpi.h"
 
-#include VM_PREFIX_INCLUDE
+# include VM_PREFIX_INCLUDE
 
 #endif
 
@@ -55,23 +55,23 @@ bool verbose = false;
 #endif
 
 #define CHECK_RESULT_NZ(got) \
-    if (!(got)) { \
-        printf("%%Error: %s:%d: GOT = NULL  EXP = !NULL\n", __FILE__, __LINE__); \
-        got_error = true; \
-        return __LINE__; \
-    }
+ if (!(got)) { \
+  printf("%%Error: %s:%d: GOT = NULL  EXP = !NULL\n", __FILE__, __LINE__); \
+  got_error = true; \
+  return __LINE__; \
+ }
 
 // Use cout to avoid issues with %d/%lx etc
 #define CHECK_RESULT(got, exp) \
-    if ((got) != (exp)) { \
-        std::cout << std::dec << "%Error: " << __FILE__ << ":" << __LINE__ << ": GOT = " << (got) \
-                  << "   EXP = " << (exp) << std::endl; \
-        got_error = true; \
-        return __LINE__; \
-    }
+ if ((got) != (exp)) { \
+  std::cout << std::dec << "%Error: " << __FILE__ << ":" << __LINE__ << ": GOT = " << (got) \
+            << "   EXP = " << (exp) << std::endl; \
+  got_error = true; \
+  return __LINE__; \
+ }
 
 #define STRINGIFY_CB_CASE(_cb) \
-    case _cb: return #_cb
+ case _cb: return #_cb
 
 static const char* cb_reason_to_string(int cb_name) {
     switch (cb_name) {

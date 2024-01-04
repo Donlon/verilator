@@ -10,7 +10,7 @@
 
 #include <memory>
 #if VM_TRACE
-#include "verilated_vcd_c.h"
+# include "verilated_vcd_c.h"
 #endif
 
 #include VM_PREFIX_INCLUDE

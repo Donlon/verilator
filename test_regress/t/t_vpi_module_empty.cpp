@@ -11,19 +11,19 @@
 
 #ifdef IS_VPI
 
-#include "vpi_user.h"
+# include "vpi_user.h"
 
-#include <cstdlib>
+# include <cstdlib>
 
 #else
 
-#include "verilated.h"
-#include "verilated_vcd_c.h"
-#include "verilated_vpi.h"
+# include "verilated.h"
+# include "verilated_vcd_c.h"
+# include "verilated_vpi.h"
 
-#include "Vt_vpi_module_empty.h"
-#include "Vt_vpi_module_empty__Dpi.h"
-#include "svdpi.h"
+# include "Vt_vpi_module_empty.h"
+# include "Vt_vpi_module_empty__Dpi.h"
+# include "svdpi.h"
 
 #endif
 
@@ -39,13 +39,13 @@
 #define FILENM "t_vpi_module_empty.cpp"
 
 #define DEBUG \
-    if (0) printf
+ if (0) printf
 
 #define CHECK_RESULT_NZ(got) \
-    if (!(got)) { \
-        printf("%%Error: %s:%d: GOT = NULL  EXP = !NULL\n", FILENM, __LINE__); \
-        return __LINE__; \
-    }
+ if (!(got)) { \
+  printf("%%Error: %s:%d: GOT = NULL  EXP = !NULL\n", FILENM, __LINE__); \
+  return __LINE__; \
+ }
 
 extern "C" {
 int mon_check() {
@@ -103,11 +103,11 @@ int main(int argc, char** argv) {
                                                         // Note null name - we're flattening it out
                                                         ""}};
 
-#ifdef VERILATOR
-#ifdef TEST_VERBOSE
+# ifdef VERILATOR
+#  ifdef TEST_VERBOSE
     contextp->scopesDump();
-#endif
-#endif
+#  endif
+# endif
 
     topp->eval();
     VerilatedVpi::callValueCbs();

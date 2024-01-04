@@ -31,9 +31,9 @@
 #define VERILATOR_V3DFGVERTICES_H_
 
 #ifndef VERILATOR_V3DFG_H_
-#error "Use V3Dfg.h as the include"
-#include "V3Dfg.h"  // This helps code analysis tools pick up symbols in V3Dfg.h
-#define VL_NOT_FINAL  // This #define fixes broken code folding in the CLion IDE
+# error "Use V3Dfg.h as the include"
+# include "V3Dfg.h"  // This helps code analysis tools pick up symbols in V3Dfg.h
+# define VL_NOT_FINAL  // This #define fixes broken code folding in the CLion IDE
 #endif
 
 // === Abstract base node types (DfgVertex*) ===================================

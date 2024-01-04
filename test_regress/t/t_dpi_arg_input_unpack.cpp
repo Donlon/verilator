@@ -70,10 +70,10 @@ namespace {  // unnamed namespace
 const bool VERBOSE_MESSAGE = false;
 
 #define stop() \
-    do { \
-        printf(__FILE__ ":%d Bad value\n", __LINE__); \
-        abort(); \
-    } while (0)
+ do { \
+  printf(__FILE__ ":%d Bad value\n", __LINE__); \
+  abort(); \
+ } while (0)
 
 template <typename T>
 bool compare(const T& act, const T& exp) {

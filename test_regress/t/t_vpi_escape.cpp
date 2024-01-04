@@ -11,17 +11,17 @@
 
 #ifdef IS_VPI
 
-#include "sv_vpi_user.h"
+# include "sv_vpi_user.h"
 
 #else
 
-#include "verilated.h"
-#include "verilated_vcd_c.h"
-#include "verilated_vpi.h"
+# include "verilated.h"
+# include "verilated_vcd_c.h"
+# include "verilated_vpi.h"
 
-#include "Vt_vpi_escape.h"
-#include "Vt_vpi_escape__Dpi.h"
-#include "svdpi.h"
+# include "Vt_vpi_escape.h"
+# include "Vt_vpi_escape__Dpi.h"
+# include "svdpi.h"
 
 #endif
 
@@ -359,19 +359,19 @@ int main(int argc, char** argv) {
                                                         // Note null name - we're flattening it out
                                                         ""}};
 
-#ifdef VERILATOR
-#ifdef TEST_VERBOSE
+# ifdef VERILATOR
+#  ifdef TEST_VERBOSE
     contextp->scopesDump();
-#endif
-#endif
+#  endif
+# endif
 
-#if VM_TRACE
+# if VM_TRACE
     contextp->traceEverOn(true);
     VL_PRINTF("Enabling waves...\n");
     VerilatedVcdC* tfp = new VerilatedVcdC;
     topp->trace(tfp, 99);
     tfp->open(STRINGIFY(TEST_OBJ_DIR) "/simx.vcd");
-#endif
+# endif
 
     topp->eval();
     topp->clk = 0;
@@ -383,18 +383,18 @@ int main(int argc, char** argv) {
         VerilatedVpi::callValueCbs();
         topp->clk = !topp->clk;
         // mon_do();
-#if VM_TRACE
+# if VM_TRACE
         if (tfp) tfp->dump(main_time);
-#endif
+# endif
     }
     if (!contextp->gotFinish()) {
         vl_fatal(__FILE__, __LINE__, "main", "%Error: Timeout; never got a $finish");
     }
     topp->final();
 
-#if VM_TRACE
+# if VM_TRACE
     if (tfp) tfp->close();
-#endif
+# endif
 
     return 0;
 }

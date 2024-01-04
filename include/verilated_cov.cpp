@@ -230,9 +230,9 @@ private:
     static void selftest() VL_MT_SAFE {
         // Little selftest
 #define SELF_CHECK(got, exp) \
-    do { \
-        if ((got) != (exp)) VL_FATAL_MT(__FILE__, __LINE__, "", "%Error: selftest"); \
-    } while (0)
+ do { \
+  if ((got) != (exp)) VL_FATAL_MT(__FILE__, __LINE__, "", "%Error: selftest"); \
+ } while (0)
         SELF_CHECK(combineHier("a.b.c", "a.b.c"), "a.b.c");
         SELF_CHECK(combineHier("a.b.c", "a.b"), "a.b*");
         SELF_CHECK(combineHier("a.x.c", "a.y.c"), "a.*.c");
@@ -446,10 +446,10 @@ void VerilatedCovContext::_insertf(const char* filename, int lineno) VL_MT_SAFE 
 }
 
 #ifndef DOXYGEN
-#define K(n) const char* key##n
-#define A(n) const char *key##n, const char *valp##n  // Argument list
-#define C(n) key##n, valp##n  // Calling argument list
-#define N(n) "", ""  // Null argument list
+# define K(n) const char* key##n
+# define A(n) const char *key##n, const char *valp##n  // Argument list
+# define C(n) key##n, valp##n  // Calling argument list
+# define N(n) "", ""  // Null argument list
 void VerilatedCovContext::_insertp(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7), A(8), A(9),
                                    A(10), A(11), A(12), A(13), A(14), A(15), A(16), A(17), A(18),
                                    A(19), A(20), A(21), A(22), A(23), A(24), A(25), A(26), A(27),
@@ -490,10 +490,10 @@ void VerilatedCovContext::_insertp(A(0), A(1), K(2), int val2, K(3), int val3, K
              C(6), C(7), N(8), N(9), N(10), N(11), N(12), N(13), N(14), N(15), N(16), N(17), N(18),
              N(19), N(20), N(21), N(22), N(23), N(24), N(25), N(26), N(27), N(28), N(29));
 }
-#undef A
-#undef C
-#undef N
-#undef K
+# undef A
+# undef C
+# undef N
+# undef K
 
 #endif  // DOXYGEN
 

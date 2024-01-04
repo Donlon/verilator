@@ -159,16 +159,15 @@ public:
 };
 
 #define V3OPTION_PARSER_DECL_TAGS \
-    const auto Set VL_ATTR_UNUSED = V3OptionParser::AppendHelper::Set{}; \
-    const auto FOnOff VL_ATTR_UNUSED = V3OptionParser::AppendHelper::FOnOff{}; \
-    const auto OnOff VL_ATTR_UNUSED = V3OptionParser::AppendHelper::OnOff{}; \
-    const auto CbCall VL_ATTR_UNUSED = V3OptionParser::AppendHelper::CbCall{}; \
-    const auto CbFOnOff VL_ATTR_UNUSED = V3OptionParser::AppendHelper::CbFOnOff{}; \
-    const auto CbOnOff VL_ATTR_UNUSED = V3OptionParser::AppendHelper::CbOnOff{}; \
-    const auto CbPartialMatch VL_ATTR_UNUSED = V3OptionParser::AppendHelper::CbPartialMatch{}; \
-    const auto CbPartialMatchVal VL_ATTR_UNUSED \
-        = V3OptionParser::AppendHelper::CbPartialMatchVal{}; \
-    const auto CbVal VL_ATTR_UNUSED = V3OptionParser::AppendHelper::CbVal{};
+ const auto Set VL_ATTR_UNUSED = V3OptionParser::AppendHelper::Set{}; \
+ const auto FOnOff VL_ATTR_UNUSED = V3OptionParser::AppendHelper::FOnOff{}; \
+ const auto OnOff VL_ATTR_UNUSED = V3OptionParser::AppendHelper::OnOff{}; \
+ const auto CbCall VL_ATTR_UNUSED = V3OptionParser::AppendHelper::CbCall{}; \
+ const auto CbFOnOff VL_ATTR_UNUSED = V3OptionParser::AppendHelper::CbFOnOff{}; \
+ const auto CbOnOff VL_ATTR_UNUSED = V3OptionParser::AppendHelper::CbOnOff{}; \
+ const auto CbPartialMatch VL_ATTR_UNUSED = V3OptionParser::AppendHelper::CbPartialMatch{}; \
+ const auto CbPartialMatchVal VL_ATTR_UNUSED = V3OptionParser::AppendHelper::CbPartialMatchVal{}; \
+ const auto CbVal VL_ATTR_UNUSED = V3OptionParser::AppendHelper::CbVal{};
 
 //######################################################################
 

@@ -19,7 +19,7 @@
 
 // Check we properly define the version integer
 #if VERILATOR_VERSION_INTEGER < 4219000  // Added in 4.219
-#error "VERILATOR_VERSION_INTEGER not set"
+# error "VERILATOR_VERSION_INTEGER not set"
 #endif
 
 double sc_time_stamp() { return 0; }
@@ -33,7 +33,7 @@ VerilatedMutex outputMutex;
 VerilatedMutex sequentialMutex;
 #elif defined(T_WRAPPER_CONTEXT_FST)
 #else
-#error "Unexpected test name"
+# error "Unexpected test name"
 #endif
 
 void sim(VM_PREFIX* topp) {

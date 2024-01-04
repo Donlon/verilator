@@ -17,7 +17,7 @@
 #define VERILATOR_V3PCHASTMT_H_
 
 #ifdef VL_PCH_INCLUDED
-#error "Including multiple V3Pch*.h flavors"
+# error "Including multiple V3Pch*.h flavors"
 #endif
 #define VL_PCH_INCLUDED
 

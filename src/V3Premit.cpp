@@ -172,12 +172,12 @@ class PremitVisitor final : public VNVisitor {
 
     // VISITORS - Statements
 #define START_STATEMENT_OR_RETURN(stmtp) \
-    if (!m_cfuncp) return; \
-    if (stmtp->user1SetOnce()) return; \
-    VL_RESTORER(m_assignLhs); \
-    VL_RESTORER(m_stmtp); \
-    m_assignLhs = false; \
-    m_stmtp = stmtp
+ if (!m_cfuncp) return; \
+ if (stmtp->user1SetOnce()) return; \
+ VL_RESTORER(m_assignLhs); \
+ VL_RESTORER(m_stmtp); \
+ m_assignLhs = false; \
+ m_stmtp = stmtp
 
     void visit(AstWhile* nodep) override {
         UINFO(4, "  WHILE  " << nodep << endl);

@@ -40,15 +40,15 @@ void compareWls(int obits, WDataInP const lwp, WDataInP const rwp) {
 
 // old macro which is correct but has MT issue with range
 #define VL_ASSIGN_SBW_MT_ISSUE(obits, svar, rwp) \
-    { \
-        sc_biguint<(obits)> _butemp; \
-        for (int i = 0; i < VL_WORDS_I(obits); ++i) { \
-            int msb = ((i + 1) * VL_IDATASIZE) - 1; \
-            msb = (msb >= (obits)) ? ((obits)-1) : msb; \
-            _butemp.range(msb, i* VL_IDATASIZE) = (rwp)[i]; \
-        } \
-        (svar).write(_butemp); \
-    }
+ { \
+  sc_biguint<(obits)> _butemp; \
+  for (int i = 0; i < VL_WORDS_I(obits); ++i) { \
+   int msb = ((i + 1) * VL_IDATASIZE) - 1; \
+   msb = (msb >= (obits)) ? ((obits)-1) : msb; \
+   _butemp.range(msb, i* VL_IDATASIZE) = (rwp)[i]; \
+  } \
+  (svar).write(_butemp); \
+ }
 
 #ifdef SYSTEMC_VERSION
 int sc_main(int, char**)

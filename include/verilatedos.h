@@ -602,7 +602,7 @@ static inline double VL_ROUND(double n) {
 
 // Address zero can cause compiler problems
 #define VL_OFFSETOF(type, field) \
-    (reinterpret_cast<size_t>(&(reinterpret_cast<type*>(0x10000000)->field)) - 0x10000000)
+ (reinterpret_cast<size_t>(&(reinterpret_cast<type*>(0x10000000)->field)) - 0x10000000)
 
 //=========================================================================
 // Conversions

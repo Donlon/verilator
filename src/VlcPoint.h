@@ -26,7 +26,7 @@
 #include <vector>
 
 #ifndef V3ERROR_NO_GLOBAL_
-#define V3ERROR_NO_GLOBAL_
+# define V3ERROR_NO_GLOBAL_
 #endif
 #include "verilated_cov_key.h"
 

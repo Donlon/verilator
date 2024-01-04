@@ -25,7 +25,7 @@
 // Limited V3 headers here - this is a base class for Vlc etc
 #include "V3String.h"
 #ifndef VL_MT_DISABLED_CODE_UNIT
-#include "V3ThreadPool.h"
+# include "V3ThreadPool.h"
 #endif
 
 #include <array>
@@ -539,9 +539,9 @@ void v3errorEndFatal(std::ostringstream& sstr)
     VL_RELEASE(V3Error::s().m_mutex) VL_MT_SAFE VL_ATTR_NORETURN;
 
 #ifdef VL_MT_DISABLED_CODE_UNIT
-#define VL_MT_DISABLED_CODE_UNIT_DEFINED 1
+# define VL_MT_DISABLED_CODE_UNIT_DEFINED 1
 #else
-#define VL_MT_DISABLED_CODE_UNIT_DEFINED 0
+# define VL_MT_DISABLED_CODE_UNIT_DEFINED 0
 #endif
 
 // Theses allow errors using << operators: v3error("foo"<<"bar");
@@ -551,13 +551,12 @@ void v3errorEndFatal(std::ostringstream& sstr)
 // V3Error::v3errorPrep that acquires the lock after functions in the msg may require it. So we use
 // the comma operator (,) to guarantee the execution order here.
 #define v3errorBuildMessage(prep, msg) \
-    (prep, static_cast<std::ostringstream&>(V3Error::v3errorStr() << msg))
+ (prep, static_cast<std::ostringstream&>(V3Error::v3errorStr() << msg))
 #define v3warnCode(code, msg) \
-    v3errorEnd( \
-        v3errorBuildMessage(V3Error::v3errorPrep(code, VL_MT_DISABLED_CODE_UNIT_DEFINED), msg))
+ v3errorEnd(v3errorBuildMessage(V3Error::v3errorPrep(code, VL_MT_DISABLED_CODE_UNIT_DEFINED), msg))
 #define v3warnCodeFatal(code, msg) \
-    v3errorEndFatal( \
-        v3errorBuildMessage(V3Error::v3errorPrep(code, VL_MT_DISABLED_CODE_UNIT_DEFINED), msg))
+ v3errorEndFatal( \
+     v3errorBuildMessage(V3Error::v3errorPrep(code, VL_MT_DISABLED_CODE_UNIT_DEFINED), msg))
 #define v3warn(code, msg) v3warnCode(V3ErrorCode::code, msg)
 #define v3info(msg) v3warnCode(V3ErrorCode::EC_INFO, msg)
 #define v3error(msg) v3warnCode(V3ErrorCode::EC_ERROR, msg)
@@ -566,120 +565,120 @@ void v3errorEndFatal(std::ostringstream& sstr)
 #define v3fatalExit(msg) v3warnCodeFatal(V3ErrorCode::EC_FATALEXIT, msg)
 // Use this instead of fatal() to mention the source code line.
 #define v3fatalSrc(msg) \
-    v3errorEndFatal(v3errorBuildMessage( \
-        V3Error::v3errorPrepFileLine(V3ErrorCode::EC_FATALSRC, __FILE__, __LINE__, \
-                                     VL_MT_DISABLED_CODE_UNIT_DEFINED), \
-        msg))
+ v3errorEndFatal(v3errorBuildMessage( \
+     V3Error::v3errorPrepFileLine(V3ErrorCode::EC_FATALSRC, __FILE__, __LINE__, \
+                                  VL_MT_DISABLED_CODE_UNIT_DEFINED), \
+     msg))
 // Use this when normal v3fatal is called in static method that overrides fileline.
 #define v3fatalStatic(msg) \
-    ::v3errorEndFatal(v3errorBuildMessage( \
-        V3Error::v3errorPrep(V3ErrorCode::EC_FATAL, VL_MT_DISABLED_CODE_UNIT_DEFINED), msg))
+ ::v3errorEndFatal(v3errorBuildMessage( \
+     V3Error::v3errorPrep(V3ErrorCode::EC_FATAL, VL_MT_DISABLED_CODE_UNIT_DEFINED), msg))
 
 #define UINFO(level, stmsg) \
-    do { \
-        if (VL_UNCOVERABLE(debug() >= (level))) { \
-            std::cout << "- " << V3Error::lineStr(__FILE__, __LINE__) << stmsg; \
-        } \
-    } while (false)
+ do { \
+  if (VL_UNCOVERABLE(debug() >= (level))) { \
+   std::cout << "- " << V3Error::lineStr(__FILE__, __LINE__) << stmsg; \
+  } \
+ } while (false)
 #define UINFONL(level, stmsg) \
-    do { \
-        if (VL_UNCOVERABLE(debug() >= (level))) { std::cout << stmsg; } \
-    } while (false)
+ do { \
+  if (VL_UNCOVERABLE(debug() >= (level))) { std::cout << stmsg; } \
+ } while (false)
 
 #ifdef VL_DEBUG
-#define UDEBUGONLY(stmts) \
-    do { stmts } while (false)
+# define UDEBUGONLY(stmts) \
+  do { stmts } while (false)
 #else
-#define UDEBUGONLY(stmts) \
-    do { \
-        if (false) { stmts } \
-    } while (false)
+# define UDEBUGONLY(stmts) \
+  do { \
+   if (false) { stmts } \
+  } while (false)
 #endif
 
 // Assertion without object, generally UOBJASSERT preferred
 #define UASSERT(condition, stmsg) \
-    do { \
-        if (VL_UNCOVERABLE(!(condition))) v3fatalSrc(stmsg); \
-    } while (false)
+ do { \
+  if (VL_UNCOVERABLE(!(condition))) v3fatalSrc(stmsg); \
+ } while (false)
 // Assertion with object
 #define UASSERT_OBJ(condition, obj, stmsg) \
-    do { \
-        if (VL_UNCOVERABLE(!(condition))) (obj)->v3fatalSrc(stmsg); \
-    } while (false)
+ do { \
+  if (VL_UNCOVERABLE(!(condition))) (obj)->v3fatalSrc(stmsg); \
+ } while (false)
 // For use in V3Ast static functions only
 #define UASSERT_STATIC(condition, stmsg) \
-    do { \
-        if (VL_UNCOVERABLE(!(condition))) { \
-            std::cerr << "Internal Error: " << __FILE__ << ":" << std::dec << __LINE__ << ":" \
-                      << (stmsg) << std::endl; \
-            V3Error::vlAbort(); \
-        } \
-    } while (false)
+ do { \
+  if (VL_UNCOVERABLE(!(condition))) { \
+   std::cerr << "Internal Error: " << __FILE__ << ":" << std::dec << __LINE__ << ":" << (stmsg) \
+             << std::endl; \
+   V3Error::vlAbort(); \
+  } \
+ } while (false)
 // Check self test values for expected value.  Safe from side-effects.
 // Type argument can be removed when go to C++11 (use auto).
 #define UASSERT_SELFTEST(Type, got, exp) \
-    do { \
-        Type g = (got); \
-        Type e = (exp); \
-        UASSERT(g == e, "Self-test failed '" #got "==" #exp "'" \
-                        " got=" \
-                            << g << " expected=" << e); \
-    } while (false)
+ do { \
+  Type g = (got); \
+  Type e = (exp); \
+  UASSERT(g == e, "Self-test failed '" #got "==" #exp "'" \
+                  " got=" \
+                      << g << " expected=" << e); \
+ } while (false)
 
 #define V3ERROR_NA \
-    do { \
-        v3error("Internal: Unexpected Call"); \
-        v3fatalSrc("Unexpected Call"); \
-    } while (false)
+ do { \
+  v3error("Internal: Unexpected Call"); \
+  v3fatalSrc("Unexpected Call"); \
+ } while (false)
 
 /// Throw fatal and return a value. The return value will never really be
 /// needed, but required to avoid compiler error.
 #define V3ERROR_NA_RETURN(value) \
-    V3ERROR_NA; \
-    return value
+ V3ERROR_NA; \
+ return value
 
 // Helper macros for VL_DEFINE_DEBUG_FUNCTIONS
 // Takes an optional "name" (as __VA_ARGS__)
 #define VL_DEFINE_DEBUG(...) \
-    VL_ATTR_UNUSED static int debug##__VA_ARGS__() VL_MT_SAFE { \
-        static int level = -1; \
-        if (VL_UNLIKELY(level < 0)) { \
-            std::string tag{VL_STRINGIFY(__VA_ARGS__)}; \
-            tag[0] = std::tolower(tag[0]); \
-            const unsigned debugTag = v3Global.opt.debugLevel(tag); \
-            const unsigned debugSrc = v3Global.opt.debugSrcLevel(__FILE__); \
-            const unsigned debugLevel = debugTag >= debugSrc ? debugTag : debugSrc; \
-            if (!v3Global.opt.available()) return static_cast<int>(debugLevel); \
-            level = static_cast<int>(debugLevel); \
-        } \
-        return level; \
-    } \
-    static_assert(true, "")
+ VL_ATTR_UNUSED static int debug##__VA_ARGS__() VL_MT_SAFE { \
+  static int level = -1; \
+  if (VL_UNLIKELY(level < 0)) { \
+   std::string tag{VL_STRINGIFY(__VA_ARGS__)}; \
+   tag[0] = std::tolower(tag[0]); \
+   const unsigned debugTag = v3Global.opt.debugLevel(tag); \
+   const unsigned debugSrc = v3Global.opt.debugSrcLevel(__FILE__); \
+   const unsigned debugLevel = debugTag >= debugSrc ? debugTag : debugSrc; \
+   if (!v3Global.opt.available()) return static_cast<int>(debugLevel); \
+   level = static_cast<int>(debugLevel); \
+  } \
+  return level; \
+ } \
+ static_assert(true, "")
 
 // Takes an optional "name" (as __VA_ARGS__)
 #define VL_DEFINE_DUMP(func, tag) \
-    VL_ATTR_UNUSED static int dump##func() { \
-        static int level = -1; \
-        if (VL_UNLIKELY(level < 0)) { \
-            const unsigned dumpTag = v3Global.opt.dumpLevel(tag); \
-            const unsigned dumpSrc = v3Global.opt.dumpSrcLevel(__FILE__); \
-            const unsigned dumpLevel = dumpTag >= dumpSrc ? dumpTag : dumpSrc; \
-            if (!v3Global.opt.available()) return static_cast<int>(dumpLevel); \
-            level = static_cast<int>(dumpLevel); \
-        } \
-        return level; \
-    } \
-    static_assert(true, "")
+ VL_ATTR_UNUSED static int dump##func() { \
+  static int level = -1; \
+  if (VL_UNLIKELY(level < 0)) { \
+   const unsigned dumpTag = v3Global.opt.dumpLevel(tag); \
+   const unsigned dumpSrc = v3Global.opt.dumpSrcLevel(__FILE__); \
+   const unsigned dumpLevel = dumpTag >= dumpSrc ? dumpTag : dumpSrc; \
+   if (!v3Global.opt.available()) return static_cast<int>(dumpLevel); \
+   level = static_cast<int>(dumpLevel); \
+  } \
+  return level; \
+ } \
+ static_assert(true, "")
 
 // Define debug*() and dump*() routines. This needs to be added to every compilation unit so that
 // --debugi-<tag/srcfile> and --dumpi-<tag/srcfile> can be used to control debug prints and dumping
 #define VL_DEFINE_DEBUG_FUNCTIONS \
-    VL_DEFINE_DEBUG(); /* Define 'int debug()' for --debugi */ \
-    VL_DEFINE_DUMP(Level, ""); /* Define 'int dumpLevel()' for --dumpi */ \
-    VL_DEFINE_DUMP(DfgLevel, "dfg"); /* Define 'int dumpDfgLevel()' for --dumpi-level */ \
-    VL_DEFINE_DUMP(GraphLevel, "graph"); /* Define 'int dumpGraphLevel()' for dumpi-graph */ \
-    VL_DEFINE_DUMP(TreeLevel, "tree"); /* Define 'int dumpTreeLevel()' for dumpi-tree */ \
-    static_assert(true, "")
+ VL_DEFINE_DEBUG(); /* Define 'int debug()' for --debugi */ \
+ VL_DEFINE_DUMP(Level, ""); /* Define 'int dumpLevel()' for --dumpi */ \
+ VL_DEFINE_DUMP(DfgLevel, "dfg"); /* Define 'int dumpDfgLevel()' for --dumpi-level */ \
+ VL_DEFINE_DUMP(GraphLevel, "graph"); /* Define 'int dumpGraphLevel()' for dumpi-graph */ \
+ VL_DEFINE_DUMP(TreeLevel, "tree"); /* Define 'int dumpTreeLevel()' for dumpi-tree */ \
+ static_assert(true, "")
 
 //----------------------------------------------------------------------
 

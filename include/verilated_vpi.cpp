@@ -57,7 +57,7 @@ constexpr unsigned VL_VPI_LINE_SIZE_ = 8192;
 
 // Not supported yet
 #define VL_VPI_UNIMP_() \
-    (VL_VPI_ERROR_(__FILE__, __LINE__, Verilated::catName("Unsupported VPI function: ", __func__)))
+ (VL_VPI_ERROR_(__FILE__, __LINE__, Verilated::catName("Unsupported VPI function: ", __func__)))
 
 //======================================================================
 // Implementation
@@ -1374,17 +1374,17 @@ const char* VerilatedVpiError::strFromVpiProp(PLI_INT32 vpiVal) VL_PURE {
 }
 
 #define SELF_CHECK_RESULT_CSTR(got, exp) \
-    if (0 != std::strcmp((got), (exp))) { \
-        const std::string msg \
-            = std::string{"%Error: "} + "GOT = '" + (got) + "'" + "  EXP = '" + (exp) + "'"; \
-        VL_FATAL_MT(__FILE__, __LINE__, "", msg.c_str()); \
-    }
+ if (0 != std::strcmp((got), (exp))) { \
+  const std::string msg \
+      = std::string{"%Error: "} + "GOT = '" + (got) + "'" + "  EXP = '" + (exp) + "'"; \
+  VL_FATAL_MT(__FILE__, __LINE__, "", msg.c_str()); \
+ }
 
 #define SELF_CHECK_ENUM_STR(fn, enumn) \
-    do { \
-        const char* const strVal = VerilatedVpiError::fn(enumn); \
-        SELF_CHECK_RESULT_CSTR(strVal, #enumn); \
-    } while (0)
+ do { \
+  const char* const strVal = VerilatedVpiError::fn(enumn); \
+  SELF_CHECK_RESULT_CSTR(strVal, #enumn); \
+ } while (0)
 
 void VerilatedVpi::selfTest() VL_MT_UNSAFE_ONE { VerilatedVpiError::selfTest(); }
 void VerilatedVpiError::selfTest() VL_MT_UNSAFE_ONE {

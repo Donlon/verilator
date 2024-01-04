@@ -11,19 +11,19 @@
 
 #ifdef IS_VPI
 
-#include "vpi_user.h"
+# include "vpi_user.h"
 
 #else
 
-#include "verilated.h"
-#include "verilated_vcd_c.h"
-#include "verilated_vpi.h"
+# include "verilated.h"
+# include "verilated_vcd_c.h"
+# include "verilated_vpi.h"
 
-#include "Vt_vpi_zero_time_cb.h"
-#include "Vt_vpi_zero_time_cb__Dpi.h"
-#include "svdpi.h"
+# include "Vt_vpi_zero_time_cb.h"
+# include "Vt_vpi_zero_time_cb__Dpi.h"
+# include "svdpi.h"
 
-#include <dlfcn.h>
+# include <dlfcn.h>
 
 #endif
 
@@ -51,9 +51,9 @@ static int _zero_time_cb(p_cb_data cb_data) {
 }
 
 static int _start_of_sim_cb(p_cb_data cb_data) {
-#ifdef TEST_VERBOSE
+# ifdef TEST_VERBOSE
     printf("-_start_of_sim_cb\n");
-#endif
+# endif
 
     t_cb_data cb_data_n;
     bzero(&cb_data_n, sizeof(cb_data_n));
@@ -78,9 +78,9 @@ static int _end_of_sim_cb(p_cb_data cb_data) {
 }
 
 // cver entry
-#ifdef __cplusplus
+# ifdef __cplusplus
 extern "C"
-#endif
+# endif
 
     // clang-format off
 void vpi_compat_bootstrap(void) {
@@ -124,13 +124,13 @@ int main(int argc, char** argv) {
 #endif
     // clang-format on
 
-#if VM_TRACE
+# if VM_TRACE
     contextp->traceEverOn(true);
     VL_PRINTF("Enabling waves...\n");
     VerilatedVcdC* tfp = new VerilatedVcdC;
     topp->trace(tfp, 99);
     tfp->open(VL_STRINGIFY(TEST_OBJ_DIR) "/simx.vcd");
-#endif
+# endif
 
     // Load and initialize the PLI application
     {
@@ -157,9 +157,9 @@ int main(int argc, char** argv) {
         VerilatedVpi::callTimedCbs();
         topp->clk = !topp->clk;
         // mon_do();
-#if VM_TRACE
+# if VM_TRACE
         if (tfp) tfp->dump(contextp->time());
-#endif
+# endif
     }
 
     VerilatedVpi::callCbs(cbEndOfSimulation);
@@ -169,9 +169,9 @@ int main(int argc, char** argv) {
     }
     topp->final();
 
-#if VM_TRACE
+# if VM_TRACE
     if (tfp) tfp->close();
-#endif
+# endif
 
     return 0;
 }

@@ -25,7 +25,7 @@
 #define VERILATOR_VERILATED_FUNCS_H_
 
 #ifndef VERILATOR_VERILATED_H_INTERNAL_
-#error "verilated_funcs.h should only be included by verilated.h"
+# error "verilated_funcs.h should only be included by verilated.h"
 #endif
 
 #include <string>
@@ -162,18 +162,18 @@ extern const char* vl_mc_scan_plusargs(const char* prefixp) VL_MT_SAFE;  // PLIi
 // Create two 32-bit words from quadword
 // WData is always at least 2 words; does not clean upper bits
 #define VL_SET_WQ(owp, data) \
-    do { \
-        (owp)[0] = static_cast<IData>(data); \
-        (owp)[1] = static_cast<IData>((data) >> VL_EDATASIZE); \
-    } while (false)
+ do { \
+  (owp)[0] = static_cast<IData>(data); \
+  (owp)[1] = static_cast<IData>((data) >> VL_EDATASIZE); \
+ } while (false)
 #define VL_SET_WI(owp, data) \
-    do { \
-        (owp)[0] = static_cast<IData>(data); \
-        (owp)[1] = 0; \
-    } while (false)
+ do { \
+  (owp)[0] = static_cast<IData>(data); \
+  (owp)[1] = 0; \
+ } while (false)
 #define VL_SET_QW(lwp) \
-    ((static_cast<QData>((lwp)[0])) \
-     | (static_cast<QData>((lwp)[1]) << (static_cast<QData>(VL_EDATASIZE))))
+ ((static_cast<QData>((lwp)[0])) \
+  | (static_cast<QData>((lwp)[1]) << (static_cast<QData>(VL_EDATASIZE))))
 #define VL_SET_QII(ld, rd) ((static_cast<QData>(ld) << 32ULL) | static_cast<QData>(rd))
 
 // Return FILE* from IData
@@ -239,7 +239,7 @@ static inline IData VL_RTOI_I_D(double lhs) VL_PURE { return static_cast<int32_t
 #define VL_SIGN_Q(nbits, lhs) ((lhs) >> VL_BITBIT_Q((nbits)-1ULL))
 #define VL_SIGN_E(nbits, lhs) ((lhs) >> VL_BITBIT_E((nbits)-VL_EUL(1)))
 #define VL_SIGN_W(nbits, rwp) \
-    ((rwp)[VL_BITWORD_E((nbits)-VL_EUL(1))] >> VL_BITBIT_E((nbits)-VL_EUL(1)))
+ ((rwp)[VL_BITWORD_E((nbits)-VL_EUL(1))] >> VL_BITBIT_E((nbits)-VL_EUL(1)))
 #define VL_SIGNONES_E(nbits, lhs) (-(VL_SIGN_E(nbits, lhs)))
 
 // Sign bit extended up to MSB, doesn't include unsigned portion
@@ -416,104 +416,104 @@ static inline void VL_ASSIGNBIT_WO(int bit, WDataOutP owp) VL_MT_SAFE {
 // Get a SystemC variable
 
 #define VL_ASSIGN_ISI(obits, vvar, svar) \
-    { (vvar) = VL_CLEAN_II((obits), (obits), (svar).read()); }
+ { (vvar) = VL_CLEAN_II((obits), (obits), (svar).read()); }
 #define VL_ASSIGN_QSQ(obits, vvar, svar) \
-    { (vvar) = VL_CLEAN_QQ((obits), (obits), (svar).read()); }
+ { (vvar) = VL_CLEAN_QQ((obits), (obits), (svar).read()); }
 
 #define VL_ASSIGN_ISW(obits, od, svar) \
-    { (od) = ((svar).read().get_word(0)) & VL_MASK_I(obits); }
+ { (od) = ((svar).read().get_word(0)) & VL_MASK_I(obits); }
 #define VL_ASSIGN_QSW(obits, od, svar) \
-    { \
-        (od) = ((static_cast<QData>((svar).read().get_word(1))) << VL_IDATASIZE \
-                | (svar).read().get_word(0)) \
-               & VL_MASK_Q(obits); \
-    }
+ { \
+  (od) = ((static_cast<QData>((svar).read().get_word(1))) << VL_IDATASIZE \
+          | (svar).read().get_word(0)) \
+         & VL_MASK_Q(obits); \
+ }
 #define VL_ASSIGN_WSW(obits, owp, svar) \
-    { \
-        const int words = VL_WORDS_I(obits); \
-        for (int i = 0; i < words; ++i) (owp)[i] = (svar).read().get_word(i); \
-        (owp)[words - 1] &= VL_MASK_E(obits); \
-    }
+ { \
+  const int words = VL_WORDS_I(obits); \
+  for (int i = 0; i < words; ++i) (owp)[i] = (svar).read().get_word(i); \
+  (owp)[words - 1] &= VL_MASK_E(obits); \
+ }
 
 #define VL_ASSIGN_ISU(obits, vvar, svar) \
-    { (vvar) = VL_CLEAN_II((obits), (obits), (svar).read().to_uint()); }
+ { (vvar) = VL_CLEAN_II((obits), (obits), (svar).read().to_uint()); }
 #define VL_ASSIGN_QSU(obits, vvar, svar) \
-    { (vvar) = VL_CLEAN_QQ((obits), (obits), (svar).read().to_uint64()); }
+ { (vvar) = VL_CLEAN_QQ((obits), (obits), (svar).read().to_uint64()); }
 #define VL_ASSIGN_WSB(obits, owp, svar) \
-    { \
-        const int words = VL_WORDS_I(obits); \
-        sc_dt::sc_biguint<(obits)> _butemp = (svar).read(); \
-        uint32_t* chunkp = _butemp.get_raw(); \
-        int32_t lsb = 0; \
-        while (lsb < obits - BITS_PER_DIGIT) { \
-            const uint32_t data = *chunkp; \
-            ++chunkp; \
-            _vl_insert_WI(owp.data(), data, lsb + BITS_PER_DIGIT - 1, lsb); \
-            lsb += BITS_PER_DIGIT; \
-        } \
-        if (lsb < obits) { \
-            const uint32_t msb_data = *chunkp; \
-            _vl_insert_WI(owp.data(), msb_data, obits - 1, lsb); \
-        } \
-        (owp)[words - 1] &= VL_MASK_E(obits); \
-    }
+ { \
+  const int words = VL_WORDS_I(obits); \
+  sc_dt::sc_biguint<(obits)> _butemp = (svar).read(); \
+  uint32_t* chunkp = _butemp.get_raw(); \
+  int32_t lsb = 0; \
+  while (lsb < obits - BITS_PER_DIGIT) { \
+   const uint32_t data = *chunkp; \
+   ++chunkp; \
+   _vl_insert_WI(owp.data(), data, lsb + BITS_PER_DIGIT - 1, lsb); \
+   lsb += BITS_PER_DIGIT; \
+  } \
+  if (lsb < obits) { \
+   const uint32_t msb_data = *chunkp; \
+   _vl_insert_WI(owp.data(), msb_data, obits - 1, lsb); \
+  } \
+  (owp)[words - 1] &= VL_MASK_E(obits); \
+ }
 
 // Copying verilog format from systemc integers and bit vectors.
 // Set a SystemC variable
 
 #define VL_ASSIGN_SII(obits, svar, vvar) \
-    { (svar).write(vvar); }
+ { (svar).write(vvar); }
 #define VL_ASSIGN_SQQ(obits, svar, vvar) \
-    { (svar).write(vvar); }
+ { (svar).write(vvar); }
 
 #define VL_ASSIGN_SWI(obits, svar, rd) \
-    { \
-        sc_dt::sc_bv<(obits)> _bvtemp; \
-        _bvtemp.set_word(0, (rd)); \
-        (svar).write(_bvtemp); \
-    }
+ { \
+  sc_dt::sc_bv<(obits)> _bvtemp; \
+  _bvtemp.set_word(0, (rd)); \
+  (svar).write(_bvtemp); \
+ }
 #define VL_ASSIGN_SWQ(obits, svar, rd) \
-    { \
-        sc_dt::sc_bv<(obits)> _bvtemp; \
-        _bvtemp.set_word(0, static_cast<IData>(rd)); \
-        _bvtemp.set_word(1, static_cast<IData>((rd) >> VL_IDATASIZE)); \
-        (svar).write(_bvtemp); \
-    }
+ { \
+  sc_dt::sc_bv<(obits)> _bvtemp; \
+  _bvtemp.set_word(0, static_cast<IData>(rd)); \
+  _bvtemp.set_word(1, static_cast<IData>((rd) >> VL_IDATASIZE)); \
+  (svar).write(_bvtemp); \
+ }
 #define VL_ASSIGN_SWW(obits, svar, rwp) \
-    { \
-        sc_dt::sc_bv<(obits)> _bvtemp; \
-        for (int i = 0; i < VL_WORDS_I(obits); ++i) _bvtemp.set_word(i, (rwp)[i]); \
-        (svar).write(_bvtemp); \
-    }
+ { \
+  sc_dt::sc_bv<(obits)> _bvtemp; \
+  for (int i = 0; i < VL_WORDS_I(obits); ++i) _bvtemp.set_word(i, (rwp)[i]); \
+  (svar).write(_bvtemp); \
+ }
 
 #define VL_ASSIGN_SUI(obits, svar, rd) \
-    { (svar).write(rd); }
+ { (svar).write(rd); }
 #define VL_ASSIGN_SUQ(obits, svar, rd) \
-    { (svar).write(rd); }
+ { (svar).write(rd); }
 #define VL_ASSIGN_SBI(obits, svar, rd) \
-    { (svar).write(rd); }
+ { (svar).write(rd); }
 #define VL_ASSIGN_SBQ(obits, svar, rd) \
-    { (svar).write(rd); }
+ { (svar).write(rd); }
 #define VL_SC_BITS_PER_DIGIT 30  // This comes from sc_nbdefs.h BITS_PER_DIGIT
 #define VL_ASSIGN_SBW(obits, svar, rwp) \
-    { \
-        sc_dt::sc_biguint<(obits)> _butemp; \
-        int32_t lsb = 0; \
-        uint32_t* chunkp = _butemp.get_raw(); \
-        while (lsb + VL_SC_BITS_PER_DIGIT < (obits)) { \
-            static_assert(std::is_same<IData, EData>::value, "IData and EData mismatch"); \
-            const uint32_t data = VL_SEL_IWII(lsb + VL_SC_BITS_PER_DIGIT + 1, (rwp).data(), lsb, \
-                                              VL_SC_BITS_PER_DIGIT); \
-            *chunkp = data & VL_MASK_E(VL_SC_BITS_PER_DIGIT); \
-            ++chunkp; \
-            lsb += VL_SC_BITS_PER_DIGIT; \
-        } \
-        if (lsb < (obits)) { \
-            const uint32_t msb_data = VL_SEL_IWII((obits) + 1, (rwp).data(), lsb, (obits)-lsb); \
-            *chunkp = msb_data & VL_MASK_E((obits)-lsb); \
-        } \
-        (svar).write(_butemp); \
-    }
+ { \
+  sc_dt::sc_biguint<(obits)> _butemp; \
+  int32_t lsb = 0; \
+  uint32_t* chunkp = _butemp.get_raw(); \
+  while (lsb + VL_SC_BITS_PER_DIGIT < (obits)) { \
+   static_assert(std::is_same<IData, EData>::value, "IData and EData mismatch"); \
+   const uint32_t data \
+       = VL_SEL_IWII(lsb + VL_SC_BITS_PER_DIGIT + 1, (rwp).data(), lsb, VL_SC_BITS_PER_DIGIT); \
+   *chunkp = data & VL_MASK_E(VL_SC_BITS_PER_DIGIT); \
+   ++chunkp; \
+   lsb += VL_SC_BITS_PER_DIGIT; \
+  } \
+  if (lsb < (obits)) { \
+   const uint32_t msb_data = VL_SEL_IWII((obits) + 1, (rwp).data(), lsb, (obits)-lsb); \
+   *chunkp = msb_data & VL_MASK_E((obits)-lsb); \
+  } \
+  (svar).write(_butemp); \
+ }
 
 //===================================================================
 // Extending sizes
@@ -1153,7 +1153,7 @@ static inline WDataOutP VL_MODDIVS_WWW(int lbits, WDataOutP owp, WDataInP const 
 #define VL_POW_IIW(obits, lbits, rbits, lhs, rwp) VL_POW_QQW(obits, lbits, rbits, lhs, rwp)
 #define VL_POW_QQI(obits, lbits, rbits, lhs, rhs) VL_POW_QQQ(obits, lbits, rbits, lhs, rhs)
 #define VL_POW_WWI(obits, lbits, rbits, owp, lwp, rhs) \
-    VL_POW_WWQ(obits, lbits, rbits, owp, lwp, rhs)
+ VL_POW_WWQ(obits, lbits, rbits, owp, lwp, rhs)
 
 static inline IData VL_POW_III(int, int, int rbits, IData lhs, IData rhs) VL_PURE {
     if (VL_UNLIKELY(rhs == 0)) return 1;
@@ -1184,15 +1184,15 @@ WDataOutP VL_POW_WWQ(int obits, int, int rbits, WDataOutP owp, WDataInP const lw
 QData VL_POW_QQW(int obits, int, int rbits, QData lhs, WDataInP const rwp) VL_MT_SAFE;
 
 #define VL_POWSS_IIQ(obits, lbits, rbits, lhs, rhs, lsign, rsign) \
-    VL_POWSS_QQQ(obits, lbits, rbits, lhs, rhs, lsign, rsign)
+ VL_POWSS_QQQ(obits, lbits, rbits, lhs, rhs, lsign, rsign)
 #define VL_POWSS_IIQ(obits, lbits, rbits, lhs, rhs, lsign, rsign) \
-    VL_POWSS_QQQ(obits, lbits, rbits, lhs, rhs, lsign, rsign)
+ VL_POWSS_QQQ(obits, lbits, rbits, lhs, rhs, lsign, rsign)
 #define VL_POWSS_IIW(obits, lbits, rbits, lhs, rwp, lsign, rsign) \
-    VL_POWSS_QQW(obits, lbits, rbits, lhs, rwp, lsign, rsign)
+ VL_POWSS_QQW(obits, lbits, rbits, lhs, rwp, lsign, rsign)
 #define VL_POWSS_QQI(obits, lbits, rbits, lhs, rhs, lsign, rsign) \
-    VL_POWSS_QQQ(obits, lbits, rbits, lhs, rhs, lsign, rsign)
+ VL_POWSS_QQQ(obits, lbits, rbits, lhs, rhs, lsign, rsign)
 #define VL_POWSS_WWI(obits, lbits, rbits, owp, lwp, rhs, lsign, rsign) \
-    VL_POWSS_WWQ(obits, lbits, rbits, owp, lwp, rhs, lsign, rsign)
+ VL_POWSS_WWQ(obits, lbits, rbits, owp, lwp, rhs, lsign, rsign)
 
 static inline IData VL_POWSS_III(int obits, int, int rbits, IData lhs, IData rhs, bool lsign,
                                  bool rsign) VL_MT_SAFE {
@@ -1561,15 +1561,15 @@ static inline QData VL_DYN_TO_Q(const VlQueue<T>& q, int elem_size) {
 // Note the bit shifts are always constants, so the adds in these constify out.
 // Casts required, as args may be 8 bit entities, and need to shift to appropriate output size
 #define VL_CONCAT_III(obits, lbits, rbits, ld, rd) \
-    (static_cast<IData>(ld) << (rbits) | static_cast<IData>(rd))
+ (static_cast<IData>(ld) << (rbits) | static_cast<IData>(rd))
 #define VL_CONCAT_QII(obits, lbits, rbits, ld, rd) \
-    (static_cast<QData>(ld) << (rbits) | static_cast<QData>(rd))
+ (static_cast<QData>(ld) << (rbits) | static_cast<QData>(rd))
 #define VL_CONCAT_QIQ(obits, lbits, rbits, ld, rd) \
-    (static_cast<QData>(ld) << (rbits) | static_cast<QData>(rd))
+ (static_cast<QData>(ld) << (rbits) | static_cast<QData>(rd))
 #define VL_CONCAT_QQI(obits, lbits, rbits, ld, rd) \
-    (static_cast<QData>(ld) << (rbits) | static_cast<QData>(rd))
+ (static_cast<QData>(ld) << (rbits) | static_cast<QData>(rd))
 #define VL_CONCAT_QQQ(obits, lbits, rbits, ld, rd) \
-    (static_cast<QData>(ld) << (rbits) | static_cast<QData>(rd))
+ (static_cast<QData>(ld) << (rbits) | static_cast<QData>(rd))
 
 static inline WDataOutP VL_CONCAT_WII(int obits, int lbits, int rbits, WDataOutP owp, IData ld,
                                       IData rd) VL_MT_SAFE {
@@ -2087,8 +2087,8 @@ static inline WDataOutP VL_COND_WIWW(int obits, WDataOutP owp, int cond, WDataIn
 // If changing the number of functions here, also change EMITCINLINES_NUM_CONSTW
 
 #define VL_C_END_(obits, wordsSet) \
-    VL_MEMSET_ZERO_W(o + (wordsSet), VL_WORDS_I(obits) - (wordsSet)); \
-    return o
+ VL_MEMSET_ZERO_W(o + (wordsSet), VL_WORDS_I(obits) - (wordsSet)); \
+ return o
 
 // clang-format off
 static inline WDataOutP VL_CONST_W_1X(int obits, WDataOutP o, EData d0) VL_MT_SAFE {

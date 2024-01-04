@@ -85,7 +85,7 @@ int main() {
     VerilatedCov::clear();
     VerilatedCov::write(VL_STRINGIFY(TEST_OBJ_DIR) "/coverage4.dat");
 #else
-#error
+# error
 #endif
 
     printf("*-* All Finished *-*\n");

@@ -39,7 +39,7 @@ V3PreLex* V3PreLex::s_currentLexp = nullptr;  // Current lexing point
 #define LEXP V3PreLex::s_currentLexp
 
 #define YY_INPUT(buf, result, max_size) \
-    do { result = LEXP->inputToLex(buf, max_size); } while (false)
+ do { result = LEXP->inputToLex(buf, max_size); } while (false)
 
 // Accessors, because flex keeps changing the type of yyleng
 char* yyourtext() { return yytext; }

@@ -8,11 +8,11 @@
 
 #include <verilated.h>
 #if VM_TRACE_FST
-#include <verilated_fst_c.h>
-#define TRACE_FILE_NAME "simx.fst"
+# include <verilated_fst_c.h>
+# define TRACE_FILE_NAME "simx.fst"
 #elif VM_TRACE_VCD
-#include <verilated_vcd_c.h>
-#define TRACE_FILE_NAME "simx.vcd"
+# include <verilated_vcd_c.h>
+# define TRACE_FILE_NAME "simx.vcd"
 #endif
 
 #include <memory>
@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
 #elif defined(T_TRACE_DUMPVARS_DYN_FST_0) || defined(T_TRACE_DUMPVARS_DYN_FST_1)
     std::unique_ptr<VerilatedFstC> tfp{new VerilatedFstC};
 #else
-#error "Bad test"
+# error "Bad test"
 #endif
 
 #if defined(T_TRACE_DUMPVARS_DYN_VCD_0) || defined(T_TRACE_DUMPVARS_DYN_FST_0)
@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
     tfp->dumpvars(1, "top.t.sub1a");  // Scope
     tfp->dumpvars(2, "top.t.sub1b");  // Scope
 #else
-#error "Bad test"
+# error "Bad test"
 #endif
 
     top->trace(tfp.get(), 99);

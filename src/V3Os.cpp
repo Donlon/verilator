@@ -33,7 +33,7 @@
 #include "V3String.h"
 
 #ifndef V3ERROR_NO_GLOBAL_
-#include "V3Global.h"
+# include "V3Global.h"
 VL_DEFINE_DEBUG_FUNCTIONS;
 #endif
 
@@ -41,11 +41,11 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 #include <climits>  // PATH_MAX (especially on FreeBSD)
 #include <cstdarg>
 #ifdef _MSC_VER
-#include <filesystem>  // C++17
-#define PATH_MAX MAX_PATH
+# include <filesystem>  // C++17
+# define PATH_MAX MAX_PATH
 #else
-#include <dirent.h>
-#include <utime.h>
+# include <dirent.h>
+# include <utime.h>
 #endif
 #include <fcntl.h>
 #include <fstream>
@@ -342,11 +342,11 @@ void V3Os::unlinkRegexp(const string& dir, const string& regexp) {
         while (struct dirent* const direntp = readdir(dirp)) {
             if (VString::wildmatch(direntp->d_name, regexp.c_str())) {
                 const string fullname = dir + "/" + std::string{direntp->d_name};
-#if defined(_WIN32) || defined(__MINGW32__)
+# if defined(_WIN32) || defined(__MINGW32__)
                 _unlink(fullname.c_str());
-#else
+# else
                 unlink(fullname.c_str());
-#endif
+# endif
             }
         }
         closedir(dirp);

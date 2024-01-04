@@ -51,7 +51,7 @@
 #include <vector>
 
 #ifndef VL_NOT_FINAL
-#define VL_NOT_FINAL  // This #define fixes broken code folding in the CLion IDE
+# define VL_NOT_FINAL  // This #define fixes broken code folding in the CLion IDE
 #endif
 
 class DfgEdge;

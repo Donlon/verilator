@@ -66,10 +66,10 @@ namespace {  // unnamed namespace
 const bool VERBOSE_MESSAGE = false;
 
 #define stop() \
-    do { \
-        printf(__FILE__ ":%d Bad value\n", __LINE__); \
-        abort(); \
-    } while (0)
+ do { \
+  printf(__FILE__ ":%d Bad value\n", __LINE__); \
+  abort(); \
+ } while (0)
 
 void set_uint(svLogicVecVal* v0, sv_longint_unsigned_t val, int bitwidth) {
     for (int i = 0; i < bitwidth; ++i) {

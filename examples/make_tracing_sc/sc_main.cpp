@@ -15,7 +15,7 @@
 // Include common routines
 #include <verilated.h>
 #if VM_TRACE
-#include <verilated_vcd_sc.h>
+# include <verilated_vcd_sc.h>
 #endif
 
 #include <sys/stat.h>  // mkdir

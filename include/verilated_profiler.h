@@ -40,8 +40,8 @@ class VlThreadPool;
 // Macros to simplify generated code
 
 #define VL_EXEC_TRACE_ADD_RECORD(vlSymsp) \
-    if (VL_UNLIKELY((vlSymsp)->__Vm_executionProfilerp->enabled())) \
-    (vlSymsp)->__Vm_executionProfilerp->addRecord()
+ if (VL_UNLIKELY((vlSymsp)->__Vm_executionProfilerp->enabled())) \
+ (vlSymsp)->__Vm_executionProfilerp->addRecord()
 
 //=============================================================================
 // Return high-precision counter for profiling, or 0x0 if not available

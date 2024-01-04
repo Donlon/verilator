@@ -11,19 +11,19 @@
 
 #ifdef IS_VPI
 
-#include "vpi_user.h"
+# include "vpi_user.h"
 
-#include <cstdlib>
+# include <cstdlib>
 
 #else
 
-#include "verilated.h"
-#include "verilated_vcd_c.h"
-#include "verilated_vpi.h"
+# include "verilated.h"
+# include "verilated_vcd_c.h"
+# include "verilated_vpi.h"
 
-#include "Vt_vpi_get.h"
-#include "Vt_vpi_get__Dpi.h"
-#include "svdpi.h"
+# include "Vt_vpi_get.h"
+# include "Vt_vpi_get__Dpi.h"
+# include "svdpi.h"
 
 #endif
 
@@ -39,43 +39,43 @@
 #define FILENM "t_vpi_get.cpp"
 
 #define TEST_MSG \
-    if (0) printf
+ if (0) printf
 
 //======================================================================
 
 #define CHECK_RESULT_VH(got, exp) \
-    if ((got) != (exp)) { \
-        printf("%%Error: %s:%d: GOT = %p   EXP = %p\n", FILENM, __LINE__, (got), (exp)); \
-        return __LINE__; \
-    }
+ if ((got) != (exp)) { \
+  printf("%%Error: %s:%d: GOT = %p   EXP = %p\n", FILENM, __LINE__, (got), (exp)); \
+  return __LINE__; \
+ }
 
 #define CHECK_RESULT_NZ(got) \
-    if (!(got)) { \
-        printf("%%Error: %s:%d: GOT = NULL  EXP = !NULL\n", FILENM, __LINE__); \
-        return __LINE__; \
-    }
+ if (!(got)) { \
+  printf("%%Error: %s:%d: GOT = NULL  EXP = !NULL\n", FILENM, __LINE__); \
+  return __LINE__; \
+ }
 
 // Use cout to avoid issues with %d/%lx etc
 #define CHECK_RESULT(got, exp) \
-    if ((got) != (exp)) { \
-        std::cout << std::dec << "%Error: " << FILENM << ":" << __LINE__ << ": GOT = " << (got) \
-                  << "   EXP = " << (exp) << std::endl; \
-        return __LINE__; \
-    }
+ if ((got) != (exp)) { \
+  std::cout << std::dec << "%Error: " << FILENM << ":" << __LINE__ << ": GOT = " << (got) \
+            << "   EXP = " << (exp) << std::endl; \
+  return __LINE__; \
+ }
 
 #define CHECK_RESULT_HEX(got, exp) \
-    if ((got) != (exp)) { \
-        std::cout << std::dec << "%Error: " << FILENM << ":" << __LINE__ << std::hex \
-                  << ": GOT = " << (got) << "   EXP = " << (exp) << std::endl; \
-        return __LINE__; \
-    }
+ if ((got) != (exp)) { \
+  std::cout << std::dec << "%Error: " << FILENM << ":" << __LINE__ << std::hex \
+            << ": GOT = " << (got) << "   EXP = " << (exp) << std::endl; \
+  return __LINE__; \
+ }
 
 #define CHECK_RESULT_CSTR(got, exp) \
-    if (std::strcmp((got), (exp))) { \
-        printf("%%Error: %s:%d: GOT = '%s'   EXP = '%s'\n", FILENM, __LINE__, \
-               (got) ? (got) : "<null>", (exp) ? (exp) : "<null>"); \
-        return __LINE__; \
-    }
+ if (std::strcmp((got), (exp))) { \
+  printf("%%Error: %s:%d: GOT = '%s'   EXP = '%s'\n", FILENM, __LINE__, (got) ? (got) : "<null>", \
+         (exp) ? (exp) : "<null>"); \
+  return __LINE__; \
+ }
 
 #define CHECK_RESULT_CSTR_STRIP(got, exp) CHECK_RESULT_CSTR(got + strspn(got, " "), exp)
 
@@ -250,19 +250,19 @@ int main(int argc, char** argv) {
                                                         // Note null name - we're flattening it out
                                                         ""}};
 
-#ifdef VERILATOR
-#ifdef TEST_VERBOSE
+# ifdef VERILATOR
+#  ifdef TEST_VERBOSE
     contextp->scopesDump();
-#endif
-#endif
+#  endif
+# endif
 
-#if VM_TRACE
+# if VM_TRACE
     contextp->traceEverOn(true);
     VL_PRINTF("Enabling waves...\n");
     VerilatedVcdC* tfp = new VerilatedVcdC;
     topp->trace(tfp, 99);
     tfp->open(VL_STRINGIFY(TEST_OBJ_DIR) "/simx.vcd");
-#endif
+# endif
 
     topp->eval();
     topp->clk = 0;
@@ -274,18 +274,18 @@ int main(int argc, char** argv) {
         VerilatedVpi::callValueCbs();
         topp->clk = !topp->clk;
         // mon_do();
-#if VM_TRACE
+# if VM_TRACE
         if (tfp) tfp->dump(contextp->time());
-#endif
+# endif
     }
     if (!contextp->gotFinish()) {
         vl_fatal(FILENM, __LINE__, "main", "%Error: Timeout; never got a $finish");
     }
     topp->final();
 
-#if VM_TRACE
+# if VM_TRACE
     if (tfp) tfp->close();
-#endif
+# endif
 
     return 0;
 }

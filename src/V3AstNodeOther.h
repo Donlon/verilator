@@ -23,9 +23,9 @@
 #define VERILATOR_V3ASTNODES_H_
 
 #ifndef VERILATOR_V3AST_H_
-#error "Use V3Ast.h as the include"
-#include "V3Ast.h"  // This helps code analysis tools pick up symbols in V3Ast.h
-#define VL_NOT_FINAL  // This #define fixes broken code folding in the CLion IDE
+# error "Use V3Ast.h as the include"
+# include "V3Ast.h"  // This helps code analysis tools pick up symbols in V3Ast.h
+# define VL_NOT_FINAL  // This #define fixes broken code folding in the CLion IDE
 #endif
 
 // === Abstract base node types (AstNode*) =====================================

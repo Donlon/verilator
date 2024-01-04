@@ -25,7 +25,7 @@
 #define VERILATOR_VERILATED_TYPES_H_
 
 #ifndef VERILATOR_VERILATED_H_INTERNAL_
-#error "verilated_types.h should only be included by verilated.h"
+# error "verilated_types.h should only be included by verilated.h"
 #endif
 
 #include <algorithm>
@@ -44,21 +44,21 @@
 
 #ifdef VL_DEBUG
 /// Evaluate statement if VL_DEBUG defined
-#define VL_DEBUG_IFDEF(stmt) \
-    do { stmt } while (false)
+# define VL_DEBUG_IFDEF(stmt) \
+  do { stmt } while (false)
 /// Evaluate statement if VL_DEBUG defined and Verilated::debug() enabled
-#define VL_DEBUG_IF(stmt) \
-    do { \
-        if (VL_UNLIKELY(Verilated::debug())) { stmt } \
-    } while (false)
+# define VL_DEBUG_IF(stmt) \
+  do { \
+   if (VL_UNLIKELY(Verilated::debug())) { stmt } \
+  } while (false)
 #else
 // We intentionally do not compile the stmt to improve compile speed
-#define VL_DEBUG_IFDEF(stmt) \
-    do { \
-    } while (false)
-#define VL_DEBUG_IF(stmt) \
-    do { \
-    } while (false)
+# define VL_DEBUG_IFDEF(stmt) \
+  do { \
+  } while (false)
+# define VL_DEBUG_IF(stmt) \
+  do { \
+  } while (false)
 #endif
 
 //===================================================================
@@ -1782,10 +1782,10 @@ public:
 //======================================================================
 
 #define VL_NEW(Class, ...) \
-    VlClassRef<Class> { vlSymsp->__Vm_deleter, __VA_ARGS__ }
+ VlClassRef<Class> { vlSymsp->__Vm_deleter, __VA_ARGS__ }
 
 #define VL_KEEP_THIS \
-    VlClassRef<std::remove_pointer<decltype(this)>::type> __Vthisref { this }
+ VlClassRef<std::remove_pointer<decltype(this)>::type> __Vthisref { this }
 
 template <class T>  // T typically of type VlClassRef<x>
 inline T VL_NULL_CHECK(T t, const char* filename, int linenum) {

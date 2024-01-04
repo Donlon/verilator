@@ -366,7 +366,7 @@ class ConstBitOpTreeVisitor final : public VNVisitorConst {
     bool isXorTree() const { return VN_IS(m_rootp, Xor) || VN_IS(m_rootp, RedXor); }
 
 #define CONST_BITOP_RETURN_IF(cond, nodep) \
-    if (setFailed(cond, #cond, nodep, __LINE__)) return
+ if (setFailed(cond, #cond, nodep, __LINE__)) return
 
 #define CONST_BITOP_SET_FAILED(reason, nodep) setFailed(true, reason, nodep, __LINE__)
 

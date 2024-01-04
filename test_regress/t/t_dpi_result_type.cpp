@@ -276,10 +276,10 @@ svBitVecVal i_union_2_state_32() {
 //======================================================================
 
 #define stop() \
-    do { \
-        printf(__FILE__ ":%d Bad value\n", __LINE__); \
-        abort(); \
-    } while (0)
+ do { \
+  printf(__FILE__ ":%d Bad value\n", __LINE__); \
+  abort(); \
+ } while (0)
 
 void check_exports() {
     static int n = 0;

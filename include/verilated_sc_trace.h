@@ -25,7 +25,7 @@
 #include "verilated_sc.h"
 
 #if SYSTEMC_VERSION < 20140417  // SystemC's simulation phase callback introduced in 2.3.1
-#define _VERILATOR_SYSTEMC_NO_PHASE_CALLBACK
+# define _VERILATOR_SYSTEMC_NO_PHASE_CALLBACK
 #endif
 
 //=============================================================================
@@ -158,9 +158,9 @@ private:
     void trace(const unsigned int&, const std::string&, const char**) override {}
 
 #define DECL_TRACE_METHOD_A(tp) \
-    void trace(const tp& object, const std::string& name) override {}
+ void trace(const tp& object, const std::string& name) override {}
 #define DECL_TRACE_METHOD_B(tp) \
-    void trace(const tp& object, const std::string& name, int width) override {}
+ void trace(const tp& object, const std::string& name, int width) override {}
 
     // clang-format off
     // Formatting matches that of sc_trace.h
@@ -206,7 +206,7 @@ private:
 };
 
 #ifdef _VERILATOR_SYSTEMC_NO_PHASE_CALLBACK
-#undef _VERILATOR_SYSTEMC_NO_PHASE_CALLBACK
+# undef _VERILATOR_SYSTEMC_NO_PHASE_CALLBACK
 #endif
 
 #endif  // Guard

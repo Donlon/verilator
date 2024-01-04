@@ -67,11 +67,11 @@ class VerilatedCovImp;
 ///     }
 
 #define VL_COVER_INSERT(covcontextp, countp, ...) \
-    do { \
-        covcontextp->_inserti(countp); \
-        covcontextp->_insertf(__FILE__, __LINE__); \
-        covcontextp->_insertp("hier", name(), __VA_ARGS__); \
-    } while (false)
+ do { \
+  covcontextp->_inserti(countp); \
+  covcontextp->_insertf(__FILE__, __LINE__); \
+  covcontextp->_insertp("hier", name(), __VA_ARGS__); \
+ } while (false)
 
 //=============================================================================
 // Convert VL_COVER_INSERT value arguments to strings, is \internal
@@ -125,9 +125,9 @@ public:
     // much slower (nearly 2x) than having smaller versions also.  However
     // there's not much more gain in having a version for each number of args.
 #ifndef DOXYGEN
-#define K(n) const char* key##n
-#define A(n) const char *key##n, const char *valp##n  // Argument list
-#define D(n) const char *key##n = nullptr, const char *valp##n = nullptr  // Argument list
+# define K(n) const char* key##n
+# define A(n) const char *key##n, const char *valp##n  // Argument list
+# define D(n) const char *key##n = nullptr, const char *valp##n = nullptr  // Argument list
     void _insertp(D(0), D(1), D(2), D(3), D(4), D(5), D(6), D(7), D(8), D(9)) VL_MT_SAFE;
     void _insertp(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7), A(8), A(9), A(10), D(11), D(12),
                   D(13), D(14), D(15), D(16), D(17), D(18), D(19)) VL_MT_SAFE;
@@ -138,9 +138,9 @@ public:
     void _insertp(A(0), A(1), K(2), int val2, K(3), int val3, K(4), const std::string& val4, A(5),
                   A(6), A(7)) VL_MT_SAFE;
 
-#undef K
-#undef A
-#undef D
+# undef K
+# undef A
+# undef D
 #endif  // DOXYGEN
 
 protected:

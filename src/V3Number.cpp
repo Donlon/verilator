@@ -30,44 +30,42 @@ constexpr int MAX_SPRINTF_DOUBLE_SIZE
 
 // Number operations build output in-place so can't call e.g. foo.opX(foo)
 #define NUM_ASSERT_OP_ARGS1(arg1) \
-    UASSERT((this != &(arg1)), "Number operation called with same source and dest")
+ UASSERT((this != &(arg1)), "Number operation called with same source and dest")
 #define NUM_ASSERT_OP_ARGS2(arg1, arg2) \
-    UASSERT((this != &(arg1) && this != &(arg2)), \
-            "Number operation called with same source and dest")
+ UASSERT((this != &(arg1) && this != &(arg2)), "Number operation called with same source and " \
+                                               "dest")
 #define NUM_ASSERT_OP_ARGS3(arg1, arg2, arg3) \
-    UASSERT((this != &(arg1) && this != &(arg2) && this != &(arg3)), \
-            "Number operation called with same source and dest")
+ UASSERT((this != &(arg1) && this != &(arg2) && this != &(arg3)), \
+         "Number operation called with same source and dest")
 #define NUM_ASSERT_OP_ARGS4(arg1, arg2, arg3, arg4) \
-    UASSERT((this != &(arg1) && this != &(arg2) && this != &(arg3) && this != &(arg4)), \
-            "Number operation called with same source and dest")
+ UASSERT((this != &(arg1) && this != &(arg2) && this != &(arg3) && this != &(arg4)), \
+         "Number operation called with same source and dest")
 
 #define NUM_ASSERT_LOGIC_ARGS1(arg1) \
-    UASSERT(((arg1).dataType() == V3NumberData::V3NumberDataType::LOGIC), \
-            "Number operation called with non-logic (double or string) argument: '" << (arg1) \
-                                                                                    << '"')
+ UASSERT(((arg1).dataType() == V3NumberData::V3NumberDataType::LOGIC), \
+         "Number operation called with non-logic (double or string) argument: '" << (arg1) \
+                                                                                 << '"')
 #define NUM_ASSERT_LOGIC_ARGS2(arg1, arg2) \
-    NUM_ASSERT_LOGIC_ARGS1(arg1); \
-    NUM_ASSERT_LOGIC_ARGS1(arg2)
+ NUM_ASSERT_LOGIC_ARGS1(arg1); \
+ NUM_ASSERT_LOGIC_ARGS1(arg2)
 
 #define NUM_ASSERT_LOGIC_ARGS4(arg1, arg2, arg3, arg4) \
-    NUM_ASSERT_LOGIC_ARGS1(arg1); \
-    NUM_ASSERT_LOGIC_ARGS1(arg2); \
-    NUM_ASSERT_LOGIC_ARGS1(arg3); \
-    NUM_ASSERT_LOGIC_ARGS1(arg4)
+ NUM_ASSERT_LOGIC_ARGS1(arg1); \
+ NUM_ASSERT_LOGIC_ARGS1(arg2); \
+ NUM_ASSERT_LOGIC_ARGS1(arg3); \
+ NUM_ASSERT_LOGIC_ARGS1(arg4)
 
 #define NUM_ASSERT_STRING_ARGS1(arg1) \
-    UASSERT((arg1).isString(), \
-            "Number operation called with non-string argument: '" << (arg1) << '"')
+ UASSERT((arg1).isString(), "Number operation called with non-string argument: '" << (arg1) << '"')
 #define NUM_ASSERT_STRING_ARGS2(arg1, arg2) \
-    NUM_ASSERT_STRING_ARGS1(arg1); \
-    NUM_ASSERT_STRING_ARGS1(arg2)
+ NUM_ASSERT_STRING_ARGS1(arg1); \
+ NUM_ASSERT_STRING_ARGS1(arg2)
 
 #define NUM_ASSERT_DOUBLE_ARGS1(arg1) \
-    UASSERT((arg1).isDouble(), \
-            "Number operation called with non-double argument: '" << (arg1) << '"')
+ UASSERT((arg1).isDouble(), "Number operation called with non-double argument: '" << (arg1) << '"')
 #define NUM_ASSERT_DOUBLE_ARGS2(arg1, arg2) \
-    NUM_ASSERT_DOUBLE_ARGS1(arg1); \
-    NUM_ASSERT_DOUBLE_ARGS1(arg2)
+ NUM_ASSERT_DOUBLE_ARGS1(arg1); \
+ NUM_ASSERT_DOUBLE_ARGS1(arg2)
 
 //======================================================================
 // Errors

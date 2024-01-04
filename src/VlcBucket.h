@@ -21,7 +21,7 @@
 #include "verilatedos.h"
 
 #ifndef V3ERROR_NO_GLOBAL_
-#define V3ERROR_NO_GLOBAL_
+# define V3ERROR_NO_GLOBAL_
 #endif
 #include "V3Error.h"
 

@@ -54,10 +54,10 @@ typedef uint64_t sv_longint_unsigned_t;
 //======================================================================
 
 #define stop() \
-    do { \
-        printf(__FILE__ ":%d Bad value\n", __LINE__); \
-        abort(); \
-    } while (0)
+ do { \
+  printf(__FILE__ ":%d Bad value\n", __LINE__); \
+  abort(); \
+ } while (0)
 
 void check_bvals(const svLogicVecVal* v, unsigned n);
 void check_bvals(const svLogicVecVal* v, unsigned n) {

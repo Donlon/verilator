@@ -23,7 +23,7 @@
 #include "V3FileLine.h"
 
 #ifndef V3ERROR_NO_GLOBAL_
-#include "V3Global.h"
+# include "V3Global.h"
 VL_DEFINE_DEBUG_FUNCTIONS;
 #endif
 

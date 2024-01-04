@@ -39,34 +39,34 @@
 #define yylex PARSEP->tokenToBison
 #define BBUNSUP(fl, msg) (fl)->v3warn(E_UNSUPPORTED, msg)
 #define GATEUNSUP(fl, tok) \
-    { BBUNSUP((fl), "Unsupported: Verilog 1995 gate primitive: " << (tok)); }
+ { BBUNSUP((fl), "Unsupported: Verilog 1995 gate primitive: " << (tok)); }
 #define RISEFALLDLYUNSUP(nodep) \
-    if (nodep->fileline()->timingOn() && v3Global.opt.timing().isSetTrue()) { \
-        nodep->v3warn(RISEFALLDLY, \
-                      "Unsupported: rising/falling/turn-off delays. Using the first delay"); \
-    }
+ if (nodep->fileline()->timingOn() && v3Global.opt.timing().isSetTrue()) { \
+  nodep->v3warn(RISEFALLDLY, \
+                "Unsupported: rising/falling/turn-off delays. Using the first delay"); \
+ }
 #define MINTYPMAXDLYUNSUP(nodep) \
-    if (nodep->fileline()->timingOn() && v3Global.opt.timing().isSetTrue()) { \
-        nodep->v3warn( \
-            MINTYPMAXDLY, \
-            "Unsupported: minimum/typical/maximum delay expressions. Using the typical delay"); \
-    }
+ if (nodep->fileline()->timingOn() && v3Global.opt.timing().isSetTrue()) { \
+  nodep->v3warn( \
+      MINTYPMAXDLY, \
+      "Unsupported: minimum/typical/maximum delay expressions. Using the typical delay"); \
+ }
 // Given a list of assignments, if there is a delay add it to each assignment
 #define DELAY_LIST(delayp, assignsp) \
-    if (delayp) { \
-        for (auto* nodep = assignsp; nodep; nodep = nodep->nextp()) { \
-            if (VN_IS(nodep, Implicit)) continue; \
-            auto* const assignp = VN_AS(nodep, NodeAssign); \
-            assignp->timingControlp(nodep == assignsp ? delayp : delayp->cloneTree(false)); \
-        } \
-    }
+ if (delayp) { \
+  for (auto* nodep = assignsp; nodep; nodep = nodep->nextp()) { \
+   if (VN_IS(nodep, Implicit)) continue; \
+   auto* const assignp = VN_AS(nodep, NodeAssign); \
+   assignp->timingControlp(nodep == assignsp ? delayp : delayp->cloneTree(false)); \
+  } \
+ }
 #define STRENGTHUNSUP(nodep) \
-    { \
-        if (nodep) { \
-            BBUNSUP((nodep->fileline()), "Unsupported: Strength specifier on this gate type"); \
-            nodep->deleteTree(); \
-        } \
-    }
+ { \
+  if (nodep) { \
+   BBUNSUP((nodep->fileline()), "Unsupported: Strength specifier on this gate type"); \
+   nodep->deleteTree(); \
+  } \
+ }
 
 //======================================================================
 // Statics (for here only)
@@ -315,71 +315,71 @@ int V3ParseGrammar::s_modTypeImpNum = 0;
 #define FILELINE_OR_CRE(nodep) ((nodep) ? (nodep)->fileline() : CRELINE())
 
 #define VARRESET_LIST(decl) \
-    { \
-        GRAMMARP->m_pinNum = 1; \
-        VARRESET(); \
-        VARDECL(decl); \
-    }  // Start of pinlist
+ { \
+  GRAMMARP->m_pinNum = 1; \
+  VARRESET(); \
+  VARDECL(decl); \
+ }  // Start of pinlist
 #define VARRESET_NONLIST(decl) \
-    { \
-        GRAMMARP->m_pinNum = 0; \
-        VARRESET(); \
-        VARDECL(decl); \
-    }  // Not in a pinlist
+ { \
+  GRAMMARP->m_pinNum = 0; \
+  VARRESET(); \
+  VARDECL(decl); \
+ }  // Not in a pinlist
 #define VARRESET() \
-    { \
-        VARDECL(UNKNOWN); \
-        VARIO(NONE); \
-        VARDTYPE_NDECL(nullptr); \
-        GRAMMARP->m_varLifetime = VLifetime::NONE; \
-        GRAMMARP->m_varDeclTyped = false; \
-    }
+ { \
+  VARDECL(UNKNOWN); \
+  VARIO(NONE); \
+  VARDTYPE_NDECL(nullptr); \
+  GRAMMARP->m_varLifetime = VLifetime::NONE; \
+  GRAMMARP->m_varDeclTyped = false; \
+ }
 #define VARDECL(type) \
-    { GRAMMARP->setVarDecl(VVarType::type); }
+ { GRAMMARP->setVarDecl(VVarType::type); }
 #define VARIO(type) \
-    { GRAMMARP->m_varIO = VDirection::type; }
+ { GRAMMARP->m_varIO = VDirection::type; }
 #define VARLIFE(flag) \
-    { GRAMMARP->m_varLifetime = flag; }
+ { GRAMMARP->m_varLifetime = flag; }
 #define VARDTYPE(dtypep) \
-    { \
-        GRAMMARP->setDType(dtypep); \
-        GRAMMARP->m_varDeclTyped = true; \
-    }
+ { \
+  GRAMMARP->setDType(dtypep); \
+  GRAMMARP->m_varDeclTyped = true; \
+ }
 #define VARDTYPE_NDECL(dtypep) \
-    { GRAMMARP->setDType(dtypep); }  // Port that is range or signed only (not a decl)
+ { GRAMMARP->setDType(dtypep); }  // Port that is range or signed only (not a decl)
 
 #define VARDONEA(fl, name, array, attrs) GRAMMARP->createVariable((fl), (name), (array), (attrs))
 #define VARDONEP(portp, array, attrs) \
-    GRAMMARP->createVariable((portp)->fileline(), (portp)->name(), (array), (attrs))
+ GRAMMARP->createVariable((portp)->fileline(), (portp)->name(), (array), (attrs))
 #define PINNUMINC() (GRAMMARP->m_pinNum++)
 
 #define GATERANGE(rangep) \
-    { GRAMMARP->m_gateRangep = rangep; }
+ { GRAMMARP->m_gateRangep = rangep; }
 
 #define INSTPREP(modfl, modname, paramsp) \
-    { \
-        GRAMMARP->m_impliedDecl = true; \
-        GRAMMARP->m_instModuleFl = modfl; \
-        GRAMMARP->m_instModule = modname; \
-        GRAMMARP->m_instParamp = paramsp; \
-    }
+ { \
+  GRAMMARP->m_impliedDecl = true; \
+  GRAMMARP->m_instModuleFl = modfl; \
+  GRAMMARP->m_instModule = modname; \
+  GRAMMARP->m_instParamp = paramsp; \
+ }
 
 #define DEL(nodep) \
-    { \
-        if (nodep) nodep->deleteTree(); \
-    }
+ { \
+  if (nodep) nodep->deleteTree(); \
+ }
 
 // Apply a strength to a list of nodes under beginp
 #define STRENGTH_LIST(beginp, strengthSpecNodep, typeToCast) \
-    { \
-        if (AstStrengthSpec* const specp = VN_CAST(strengthSpecNodep, StrengthSpec)) { \
-            for (auto* nodep = beginp; nodep; nodep = nodep->nextp()) { \
-                if (VN_IS(nodep, Implicit)) continue; \
-                auto* const assignp = VN_AS(nodep, typeToCast); \
-                assignp->strengthSpecp(nodep == beginp ? specp : specp->cloneTree(false)); \
-            } \
-        } \
-    }
+ { \
+  if (AstStrengthSpec* const specp = VN_CAST(strengthSpecNodep, StrengthSpec)) { \
+   for (auto* nodep = beginp; nodep; nodep = nodep->nextp()) { \
+    if (VN_IS(nodep, Implicit)) continue; \
+    auto* const assignp = VN_AS(nodep, typeToCast); \
+    assignp->strengthSpecp(nodep == beginp ? specp : specp->cloneTree(false)); \
+   } \
+  } \
+ }
 
 static void ERRSVKWD(FileLine* fileline, const string& tokname) {
     static int toldonce = 0;

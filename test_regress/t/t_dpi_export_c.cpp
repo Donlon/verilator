@@ -19,17 +19,17 @@
 //======================================================================
 
 #if defined(VERILATOR)
-#ifdef T_DPI_EXPORT_NOOPT
-#include "Vt_dpi_export_noopt__Dpi.h"
-#else
-#include "Vt_dpi_export__Dpi.h"
-#endif
+# ifdef T_DPI_EXPORT_NOOPT
+#  include "Vt_dpi_export_noopt__Dpi.h"
+# else
+#  include "Vt_dpi_export__Dpi.h"
+# endif
 #elif defined(VCS)
-#include "../vc_hdrs.h"
+# include "../vc_hdrs.h"
 #elif defined(CADENCE)
-#define NEED_EXTERNS
+# define NEED_EXTERNS
 #else
-#error "Unknown simulator for DPI test"
+# error "Unknown simulator for DPI test"
 #endif
 // clang-format on
 
@@ -78,10 +78,10 @@ extern void dpix_t_time(const svLogicVecVal* i, svLogicVecVal* o);
     }
 // clang-format on
 #define CHECK_RESULT_NNULL(got) \
-    if (!(got)) { \
-        printf("%%Error: %s:%d: GOT = %p   EXP = !NULL\n", __FILE__, __LINE__, (got)); \
-        return __LINE__; \
-    }
+ if (!(got)) { \
+  printf("%%Error: %s:%d: GOT = %p   EXP = !NULL\n", __FILE__, __LINE__, (got)); \
+  return __LINE__; \
+ }
 
 static int check_sub(const char* name, int i) {
     svScope scope = svGetScopeFromName(name);
@@ -107,9 +107,9 @@ int dpix_run_tests() {
 #ifdef VERILATOR
     static int didDump = 0;
     if (didDump++ == 0) {
-#ifdef TEST_VERBOSE
+# ifdef TEST_VERBOSE
         Verilated::internalsDump();
-#endif
+# endif
     }
 #endif
 

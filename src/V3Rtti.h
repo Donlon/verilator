@@ -71,61 +71,58 @@ using VJoinedTypeLists = decltype(TL1{} + TL2{});
 
 // Common code used by VL_RTTI_COMMON_IMPL and VL_RTTI_COMMON_IMPL_BASE.
 #define V3RTTIINTERNAL_VL_RTTI_COMMON_IMPL(ThisClass) \
-private: \
-    /* A type used only for implementation of the static_assert below. */ \
-    struct RttiUniqueTypeForThisClass {}; \
-    static_assert( \
-        std::is_same<RttiUniqueTypeForThisClass, ThisClass::RttiUniqueTypeForThisClass>::value, \
-        "'ThisClass' argument (" #ThisClass ") does not match the class name"); \
+ private: \
+ /* A type used only for implementation of the static_assert below. */ \
+ struct RttiUniqueTypeForThisClass {}; \
+ static_assert( \
+     std::is_same<RttiUniqueTypeForThisClass, ThisClass::RttiUniqueTypeForThisClass>::value, \
+     "'ThisClass' argument (" #ThisClass ") does not match the class name"); \
 \
-public: \
-    /* Returns unique ID of the class. Useful with `isInstanceOfClassWithId()` method. */ \
-    static uintptr_t rttiClassId() VL_PURE { \
-        /* The only purpose of the following variable is to occupy an unique memory address. */ \
-        /* This address is used as an unique class ID. */ \
-        static char aStaticVariable; \
-        return reinterpret_cast<uintptr_t>(&aStaticVariable); \
-    }
+ public: \
+ /* Returns unique ID of the class. Useful with `isInstanceOfClassWithId()` method. */ \
+ static uintptr_t rttiClassId() VL_PURE { \
+  /* The only purpose of the following variable is to occupy an unique memory address. */ \
+  /* This address is used as an unique class ID. */ \
+  static char aStaticVariable; \
+  return reinterpret_cast<uintptr_t>(&aStaticVariable); \
+ }
 
 // Call this macro at the beginning of class definition if the class derives from a
 // class with VL_RTTI_IMPL or VL_RTTI_IMPL_BASE calls.
 #define VL_RTTI_IMPL(ThisClass, DirectBaseClass) \
-    V3RTTIINTERNAL_VL_RTTI_COMMON_IMPL(ThisClass) \
-    static_assert( \
-        std::is_same<DirectBaseClass, \
-                     VTypeListFront<DirectBaseClass::RttiThisAndBaseClassesList>>::value, \
-        "Missing VL_RTTI_IMPL(...) in the direct base class (" #DirectBaseClass ")"); \
+ V3RTTIINTERNAL_VL_RTTI_COMMON_IMPL(ThisClass) \
+ static_assert(std::is_same<DirectBaseClass, \
+                            VTypeListFront<DirectBaseClass::RttiThisAndBaseClassesList>>::value, \
+               "Missing VL_RTTI_IMPL(...) in the direct base class (" #DirectBaseClass ")"); \
 \
-public: \
-    /* Type list containing this class and all classes from the inheritance chain. */ \
-    using RttiThisAndBaseClassesList \
-        = VJoinedTypeLists<VTypeList<ThisClass>, \
-                           typename DirectBaseClass::RttiThisAndBaseClassesList>; \
+ public: \
+ /* Type list containing this class and all classes from the inheritance chain. */ \
+ using RttiThisAndBaseClassesList \
+     = VJoinedTypeLists<VTypeList<ThisClass>, \
+                        typename DirectBaseClass::RttiThisAndBaseClassesList>; \
 \
-protected: \
-    /* Returns true iff `id` has the same value as `T::rttiClassId()`, where `T` is either this \
-     * class or any class from this class' inheritance chain. */ \
-    bool isInstanceOfClassWithId(uintptr_t id) const override VL_PURE { \
-        return ::V3RttiInternal::isClassIdOfOneOf(id, RttiThisAndBaseClassesList{}); \
-    } \
+ protected: \
+ /* Returns true iff `id` has the same value as `T::rttiClassId()`, where `T` is either this \
+  * class or any class from this class' inheritance chain. */ \
+ bool isInstanceOfClassWithId(uintptr_t id) const override VL_PURE { \
+  return ::V3RttiInternal::isClassIdOfOneOf(id, RttiThisAndBaseClassesList{}); \
+ } \
 \
-private: /* Revert to private visibility after this macro */
+ private: /* Revert to private visibility after this macro */
 
 // Call this macro at the beginning of a base class to implement class type queries using
 // `p->isInstanceOfClassWithId(ClassName::rttiClassId())`.
 #define VL_RTTI_IMPL_BASE(ThisClass) \
-    V3RTTIINTERNAL_VL_RTTI_COMMON_IMPL(ThisClass) \
-public: \
-    /* Type list containing this class and all classes from the inheritance chain. */ \
-    using RttiThisAndBaseClassesList = VTypeList<ThisClass>; \
+ V3RTTIINTERNAL_VL_RTTI_COMMON_IMPL(ThisClass) \
+ public: \
+ /* Type list containing this class and all classes from the inheritance chain. */ \
+ using RttiThisAndBaseClassesList = VTypeList<ThisClass>; \
 \
-protected: \
-    /* Returns true iff `id` has the same value as value returned by this class' \
-       `rttiClassId()` method. */ \
-    virtual bool isInstanceOfClassWithId(uintptr_t id) const VL_PURE { \
-        return id == rttiClassId(); \
-    } \
+ protected: \
+ /* Returns true iff `id` has the same value as value returned by this class' \
+    `rttiClassId()` method. */ \
+ virtual bool isInstanceOfClassWithId(uintptr_t id) const VL_PURE { return id == rttiClassId(); } \
 \
-private: /* Revert to private visibility after this macro */
+ private: /* Revert to private visibility after this macro */
 
 #endif  // Guard

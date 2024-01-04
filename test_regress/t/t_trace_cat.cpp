@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
             top->trace(tfp.get(), 99);
             tfp->open(trace_name());
 #else
-#error "Unknown test"
+# error "Unknown test"
 #endif
         }
         tfp->dump((unsigned int)(main_time));
