@@ -4,7 +4,8 @@
 // any use, without warranty, 2014 by Wilson Snyder.
 // SPDX-License-Identifier: CC0-1.0
 
-`define checkh(gotv,expv) do if ((gotv) !== (expv)) begin $write("%%Error: %s:%0d:  got='h%x exp='h%x\n", `__FILE__,`__LINE__, (gotv), (expv)); $stop; end while(0);
+`define stop $stop
+`define checkh(gotv,expv) do if ((gotv) !== (expv)) begin $write("%%Error: %s:%0d:  got='h%x exp='h%x\n", `__FILE__,`__LINE__, (gotv), (expv)); `stop; end while(0);
 
 function automatic int f_au_st_global ();
    static int st = 0; st++; return st;
@@ -15,6 +16,17 @@ package my_pkg;
       static int st = 0; st++; return st;
    endfunction
 endpackage
+
+class my_cls;
+   static function int get_cnt1;
+      static int cnt = 0;
+      return ++cnt;
+   endfunction
+   static function static int get_cnt2;
+      int cnt = 0;
+      return ++cnt;
+   endfunction
+endclass
 
 module t (/*AUTOARG*/
    // Inputs
@@ -88,6 +100,11 @@ module t (/*AUTOARG*/
       v = f_au_st_global(); `checkh(v,   2);
       v = my_pkg::f_no_st_pkg(); `checkh(v, 1);
       v = my_pkg::f_no_st_pkg(); `checkh(v,   2);
+      //
+      v = my_cls::get_cnt1(); `checkh(v,   1);
+      v = my_cls::get_cnt1(); `checkh(v,   2);
+      v = my_cls::get_cnt2(); `checkh(v,   1);
+      v = my_cls::get_cnt2(); `checkh(v,   2);
       //
    end
 

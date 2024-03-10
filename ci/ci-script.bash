@@ -21,12 +21,6 @@ fatal() {
   echo "ERROR: $(basename "$0"): $1" >&2; exit 1;
 }
 
-if [ "$CI_M32" = "0" ]; then
-  unset CI_M32
-elif [ "$CI_M32" != "1" ]; then
-  fatal "\$CI_M32 must be '0' or '1'";
-fi
-
 if [ "$CI_OS_NAME" = "linux" ]; then
   export MAKE=make
   NPROC=$(nproc)
@@ -46,9 +40,10 @@ if [ "$CI_BUILD_STAGE_NAME" = "build" ]; then
 
   if [ "$COVERAGE" != 1 ]; then
     autoconf
-    ./configure --enable-longtests --enable-ccwarn ${CI_M32:+--enable-m32}
+    ./configure --enable-longtests --enable-ccwarn --prefix="$INSTALL_DIR"
     ccache -z
     "$MAKE" -j "$NPROC" -k
+    # 22.04: ccache -s -v
     ccache -s
     if [ "$CI_OS_NAME" = "osx" ]; then
       file bin/verilator_bin
@@ -89,26 +84,40 @@ elif [ "$CI_BUILD_STAGE_NAME" = "test" ]; then
     export VERILATOR_TEST_NO_GPROF=1 # gprof is a bit different on FreeBSD, disable
   fi
 
-  # Run sanitize on Ubuntu 20.04 only
-  [ "$CI_RUNS_ON" = 'ubuntu-20.04' ] && [ "$CI_M32" = "" ] && sanitize='--sanitize' || sanitize=''
+  # Run sanitize on Ubuntu 22.04 only
+  [ "$CI_RUNS_ON" = 'ubuntu-22.04' ] && sanitize='--sanitize' || sanitize=''
+
+  TEST_REGRESS=test_regress
+  if [ "$CI_RELOC" == 1 ]; then
+     # Testing that the installation is relocatable.
+     "$MAKE" install
+     mkdir -p "$RELOC_DIR"
+     mv "$INSTALL_DIR" "$RELOC_DIR/relocated-install"
+     export VERILATOR_ROOT="$RELOC_DIR/relocated-install/share/verilator"
+     TEST_REGRESS="$RELOC_DIR/test_regress"
+     mv test_regress "$TEST_REGRESS"
+     # Feeling brave?
+     find . -delete
+     ls -la .
+  fi
 
   # Run the specified test
   ccache -z
   case $TESTS in
     dist-vlt-0)
-      "$MAKE" -C test_regress SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=0/3
+      "$MAKE" -C "$TEST_REGRESS" SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=0/3
       ;;
     dist-vlt-1)
-      "$MAKE" -C test_regress SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=1/3
+      "$MAKE" -C "$TEST_REGRESS" SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=1/3
       ;;
     dist-vlt-2)
-      "$MAKE" -C test_regress SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=2/3
+      "$MAKE" -C "$TEST_REGRESS" SCENARIOS="--dist --vlt $sanitize" DRIVER_HASHSET=--hashset=2/3
       ;;
     vltmt-0)
-      "$MAKE" -C test_regress SCENARIOS=--vltmt DRIVER_HASHSET=--hashset=0/2
+      "$MAKE" -C "$TEST_REGRESS" SCENARIOS=--vltmt DRIVER_HASHSET=--hashset=0/2
       ;;
     vltmt-1)
-      "$MAKE" -C test_regress SCENARIOS=--vltmt DRIVER_HASHSET=--hashset=1/2
+      "$MAKE" -C "$TEST_REGRESS" SCENARIOS=--vltmt DRIVER_HASHSET=--hashset=1/2
       ;;
     coverage-all)
       nodist/code_coverage --stages 1-
@@ -180,6 +189,7 @@ elif [ "$CI_BUILD_STAGE_NAME" = "test" ]; then
       fatal "Unknown test: $TESTS"
       ;;
   esac
+  # 22.04: ccache -s -v
   ccache -s
 
   # Upload coverage data

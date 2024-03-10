@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -21,9 +21,52 @@
 #include "verilatedos.h"
 
 #include "V3Graph.h"
-#include "V3OrderMoveGraph.h"
+#include "V3OrderGraph.h"
 
 #include <list>
+
+// Similar to OrderMoveVertex, but modified for threaded code generation.
+class MTaskMoveVertex final : public V3GraphVertex {
+    VL_RTTI_IMPL(MTaskMoveVertex, V3GraphVertex)
+    //  This could be more compact, since we know m_varp and m_logicp
+    //  cannot both be set. Each MTaskMoveVertex represents a logic node
+    //  or a var node, it can't be both.
+    OrderLogicVertex* const m_logicp;  // Logic represented by this vertex
+    const AstSenTree* const m_domainp;
+
+public:
+    MTaskMoveVertex(V3Graph& graph, OrderLogicVertex* logicp,
+                    const AstSenTree* domainp) VL_MT_DISABLED : V3GraphVertex{&graph},
+                                                                m_logicp{logicp},
+                                                                m_domainp{domainp} {}
+    ~MTaskMoveVertex() override = default;
+
+    // ACCESSORS
+    OrderLogicVertex* logicp() const { return m_logicp; }
+    const AstScope* scopep() const { return m_logicp ? m_logicp->scopep() : nullptr; }
+    const AstSenTree* domainp() const { return m_domainp; }
+
+    string dotColor() const override {
+        if (logicp()) {
+            return logicp()->dotColor();
+        } else {
+            return "yellow";
+        }
+    }
+    string name() const override {
+        string nm;
+        if (logicp()) {
+            nm = logicp()->name();
+            nm += (string{"\\nMV:"} + " d=" + cvtToHex(logicp()->domainp()) + " s="
+                   + cvtToHex(logicp()->scopep())
+                   // "color()" represents the mtask ID.
+                   + "\\nt=" + cvtToStr(color()));
+        } else {
+            nm = "nolog\\nt=" + cvtToStr(color());
+        }
+        return nm;
+    }
+};
 
 //*************************************************************************
 // MTasks and graph structures
@@ -84,9 +127,9 @@ public:
     uint64_t profilerId() const { return m_profilerId; }
     string cFuncName() const {
         // If this MTask maps to a C function, this should be the name
-        return std::string{"__Vmtask"} + "__" + cvtToStr(m_id);
+        return "__Vmtask"s + "__" + cvtToStr(m_id);
     }
-    string name() const override VL_MT_STABLE { return std::string{"mt"} + cvtToStr(id()); }
+    string name() const override VL_MT_STABLE { return "mt"s + cvtToStr(id()); }
     string hashName() const { return m_hashName; }
     void hashName(const string& name) { m_hashName = name; }
     void dump(std::ostream& str) const {

@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -40,9 +40,8 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 //######################################################################
 
 class ReloopVisitor final : public VNVisitor {
-private:
     // NODE STATE
-    // AstCFunc::user1p      -> Var* for temp var, 0=not set yet
+    // AstCFunc::user1p      -> Var number temp var, 0=not set yet
     const VNUser1InUse m_inuser1;
 
     // STATE
@@ -64,18 +63,11 @@ private:
 
     // METHODS
 
-    static AstVar* findCreateVarTemp(FileLine* fl, AstCFunc* cfuncp) {
-        AstVar* varp = VN_AS(cfuncp->user1p(), Var);
-        if (!varp) {
-            const string newvarname{"__Vilp"};
-            varp = new AstVar{fl, VVarType::STMTTEMP, newvarname, VFlagLogicPacked{}, 32};
-            UASSERT_OBJ(cfuncp, fl, "Assignment not under a function");
-            if (cfuncp->initsp())
-                cfuncp->initsp()->addNextHere(varp);
-            else
-                cfuncp->addInitsp(varp);
-            cfuncp->user1p(varp);
-        }
+    static AstVar* createVarTemp(FileLine* fl, AstCFunc* cfuncp) {
+        UASSERT_OBJ(cfuncp, fl, "Assignment not under a function");
+        const string newvarname{"__Vilp" + std::to_string(cfuncp->user1Inc() + 1)};
+        AstVar* const varp
+            = new AstVar{fl, VVarType::STMTTEMP, newvarname, VFlagLogicPacked{}, 32};
         return varp;
     }
     void mergeEnd() {
@@ -94,7 +86,7 @@ private:
                 AstNodeAssign* const bodyp = m_mgAssignps.front();
                 UASSERT_OBJ(bodyp->lhsp() == m_mgSelLp, bodyp, "Corrupt queue/state");
                 FileLine* const fl = bodyp->fileline();
-                AstVar* const itp = findCreateVarTemp(fl, m_mgCfuncp);
+                AstVar* const itp = createVarTemp(fl, m_mgCfuncp);
 
                 if (m_mgOffset > 0) {
                     UASSERT_OBJ(m_mgIndexLo >= m_mgOffset, bodyp,
@@ -112,7 +104,8 @@ private:
                     new AstAdd{fl, new AstConst{fl, 1}, new AstVarRef{fl, itp, VAccess::READ}}};
                 AstWhile* const whilep = new AstWhile{fl, condp, nullptr, incp};
                 initp->addNext(whilep);
-                bodyp->replaceWith(initp);
+                itp->AstNode::addNext(initp);
+                bodyp->replaceWith(itp);
                 whilep->addStmtsp(bodyp);
 
                 // Replace constant index with new loop index
@@ -207,10 +200,10 @@ private:
         if (m_mgSelLp) {  // Old merge
             if (m_mgCfuncp == m_cfuncp  // In same function
                 && m_mgNextp == nodep  // Consecutive node
-                && m_mgVarrefLp->same(lvarrefp)  // Same array on left hand side
+                && m_mgVarrefLp->isSame(lvarrefp)  // Same array on left hand side
                 && (m_mgConstRp  // On the right hand side either ...
-                        ? (rconstp && m_mgConstRp->same(rconstp))  // ... same constant
-                        : (rselp && m_mgVarrefRp->same(rvarrefp)))  // ... or same array
+                        ? (rconstp && m_mgConstRp->isSame(rconstp))  // ... same constant
+                        : (rselp && m_mgVarrefRp->isSame(rvarrefp)))  // ... or same array
                 && (lindex == m_mgIndexLo - 1 || lindex == m_mgIndexHi + 1)  // Left index +/- 1
                 && (m_mgConstRp || lindex == rindex + m_mgOffset)  // Same right index offset
             ) {
@@ -269,5 +262,5 @@ public:
 void V3Reloop::reloopAll(AstNetlist* nodep) {
     UINFO(2, __FUNCTION__ << ": " << endl);
     { ReloopVisitor{nodep}; }  // Destruct before checking
-    V3Global::dumpCheckGlobalTree("reloop", 0, dumpTreeLevel() >= 6);
+    V3Global::dumpCheckGlobalTree("reloop", 0, dumpTreeEitherLevel() >= 6);
 }

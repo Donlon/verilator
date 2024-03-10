@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2004-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2004-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -102,8 +102,8 @@ protected:
             // intervening +<lang>ext+ options since it was first encountered.
             FileLine* const modfileline = new FileLine{modfilename};
             modfileline->language(v3Global.opt.fileLanguage(modfilename));
-            V3Parse::ppPushText(parsep, (std::string{"`begin_keywords \""}
-                                         + modfileline->language().ascii() + "\"\n"));
+            V3Parse::ppPushText(
+                parsep, ("`begin_keywords \""s + modfileline->language().ascii() + "\"\n"));
             // FileLine tracks and frees modfileline
         }
 
@@ -176,3 +176,4 @@ void V3PreShell::dumpDefines(std::ostream& os) { V3PreShellImp::s_preprocp->dump
 void V3PreShell::candidateDefines(VSpellCheck* spellerp) {
     V3PreShellImp::s_preprocp->candidateDefines(spellerp);
 }
+void V3PreShell::selfTest() { V3PreProc::selfTest(); }

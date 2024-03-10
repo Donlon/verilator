@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -50,7 +50,7 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 
 class ForceConvertVisitor final : public VNVisitor {
     // TYPES
-    struct ForceComponentsVar {
+    struct ForceComponentsVar final {
         AstVar* const m_rdVarp;  // New variable to replace read references with
         AstVar* const m_valVarp;  // Forced value
         AstVar* const m_enVarp;  // Force enabled signal
@@ -76,7 +76,7 @@ class ForceConvertVisitor final : public VNVisitor {
         }
     };
 
-    struct ForceComponentsVarScope {
+    struct ForceComponentsVarScope final {
         AstVarScope* const m_rdVscp;  // New variable to replace read references with
         AstVarScope* const m_enVscp;  // Force enabled signal
         AstVarScope* const m_valVscp;  // Forced value
@@ -224,7 +224,7 @@ class ForceConvertVisitor final : public VNVisitor {
         transformWritenVarScopes(resetEnp->lhsp(), [this](AstVarScope* vscp) {
             return getForceComponents(vscp).m_enVscp;
         });
-        // IEEE 1800-2017 10.6.2: If this is a net, and not a variable, then reset the read
+        // IEEE 1800-2023 10.6.2: If this is a net, and not a variable, then reset the read
         // signal directly as well, in case something in the same process reads it later. Also, if
         // it is a variable, and not a net, set the original signal to the forced value, as it
         // needs to retain the forced value until the next procedural update, which might happen on
@@ -283,8 +283,8 @@ class ForceConvertVisitor final : public VNVisitor {
         // If this signal is marked externally forceable, create the public force signals
         if (nodep->varp()->isForceable()) {
             const ForceComponentsVarScope& fc = getForceComponents(nodep);
-            fc.m_enVscp->varp()->sigPublic(true);
-            fc.m_valVscp->varp()->sigPublic(true);
+            fc.m_enVscp->varp()->sigUserRWPublic(true);
+            fc.m_valVscp->varp()->sigUserRWPublic(true);
         }
     }
 
@@ -328,5 +328,5 @@ void V3Force::forceAll(AstNetlist* nodep) {
     UINFO(2, __FUNCTION__ << ": " << endl);
     if (!v3Global.hasForceableSignals()) return;
     ForceConvertVisitor::apply(nodep);
-    V3Global::dumpCheckGlobalTree("force", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("force", 0, dumpTreeEitherLevel() >= 3);
 }

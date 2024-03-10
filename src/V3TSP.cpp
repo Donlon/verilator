@@ -11,7 +11,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -85,10 +85,8 @@ public:
 
     // METHODS
     void addVertex(const T_Key& key) {
-        const auto itr = m_vertices.find(key);
-        UASSERT(itr == m_vertices.end(), "Vertex already exists with same key");
-        Vertex* v = new Vertex{this, key};
-        m_vertices[key] = v;
+        const bool newEntry = m_vertices.emplace(key, new Vertex{this, key}).second;
+        UASSERT(newEntry, "Vertex already exists with same key");
     }
 
     // For purposes of TSP, we are using non-directional graphs.

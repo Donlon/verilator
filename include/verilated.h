@@ -3,7 +3,7 @@
 //
 // Code available from: https://verilator.org
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you can
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you can
 // redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -73,6 +73,8 @@
 #endif
 // clang-format on
 
+using namespace std::literals;  // "<std::string literal>"s; see SF.7 core guideline
+
 //=============================================================================
 // Switches
 
@@ -133,7 +135,8 @@ enum VerilatedVarType : uint8_t {
     VLVT_UINT32,  // AKA IData
     VLVT_UINT64,  // AKA QData
     VLVT_WDATA,  // AKA WData
-    VLVT_STRING  // C++ string
+    VLVT_STRING,  // C++ string
+    VLVT_REAL  // AKA double
 };
 
 enum VerilatedVarFlags {
@@ -164,7 +167,9 @@ inline constexpr size_t roundUpToMultipleOf(size_t value) {
 // Return current thread ID (or 0), not super fast, cache if needed
 extern uint32_t VL_THREAD_ID() VL_MT_SAFE;
 
+#ifndef VL_LOCK_SPINS
 #define VL_LOCK_SPINS 50000  /// Number of times to spin for a mutex before yielding
+#endif
 
 /// Mutex, wrapped to allow -fthread_safety checks
 class VL_CAPABILITY("mutex") VerilatedMutex final {
@@ -346,7 +351,7 @@ protected:
     // Slow path variables
     mutable VerilatedMutex m_mutex;  // Mutex for most s_s/s_ns members
 
-    struct Serialized {  // All these members serialized/deserialized
+    struct Serialized final {  // All these members serialized/deserialized
         // No std::strings or pointers or will serialize badly!
         // Fast path
         bool m_assertOn = true;  // Assertions are enabled
@@ -376,12 +381,13 @@ protected:
     std::string m_timeFormatSuffix VL_GUARDED_BY(m_timeDumpMutex);  // $timeformat printf format
     std::string m_dumpfile VL_GUARDED_BY(m_timeDumpMutex);  // $dumpfile setting
 
-    struct NonSerialized {  // Non-serialized information
+    struct NonSerialized final {  // Non-serialized information
         // These are reloaded from on command-line settings, so do not need to persist
         // Fast path
         uint64_t m_profExecStart = 1;  // +prof+exec+start time
         uint32_t m_profExecWindow = 2;  // +prof+exec+window size
         // Slow path
+        std::string m_coverageFilename;  // +coverage+file filename
         std::string m_profExecFilename;  // +prof+exec+file filename
         std::string m_profVltFilename;  // +prof+vlt filename
     } m_ns;
@@ -389,7 +395,7 @@ protected:
     mutable VerilatedMutex m_argMutex;  // Protect m_argVec, m_argVecLoaded
     // no need to be save-restored (serialized) the
     // assumption is that the restore is allowed to pass different arguments
-    struct NonSerializedCommandArgs {
+    struct NonSerializedCommandArgs final {
         // Medium speed
         std::vector<std::string> m_argVec;  // Argument list
         bool m_argVecLoaded = false;  // Ever loaded argument list
@@ -573,6 +579,10 @@ public:
     VerilatedVirtualBase*
     enableExecutionProfiler(VerilatedVirtualBase* (*construct)(VerilatedContext&));
 
+    // Internal: coverage
+    void coverageFilename(const std::string& flag) VL_MT_SAFE;
+    std::string coverageFilename() const VL_MT_SAFE;
+
     // Internal: $dumpfile
     void dumpfile(const std::string& flag) VL_MT_SAFE_EXCLUDES(m_timeDumpMutex);
     std::string dumpfile() const VL_MT_SAFE_EXCLUDES(m_timeDumpMutex);
@@ -624,8 +634,9 @@ class VerilatedScope final {
 public:
     enum Type : uint8_t {
         SCOPE_MODULE,
-        SCOPE_OTHER
-    };  // Type of a scope, currently module is only interesting
+        SCOPE_OTHER,
+        SCOPE_PACKAGE
+    };  // Type of a scope, currently only module and package are interesting
 private:
     // Fastpath:
     VerilatedSyms* m_symsp = nullptr;  // Symbol table
@@ -894,6 +905,7 @@ public:
     static void overWidthError(const char* signame) VL_ATTR_NORETURN VL_MT_SAFE;
     static void scTimePrecisionError(int sc_prec, int vl_prec) VL_ATTR_NORETURN VL_MT_SAFE;
     static void scTraceBeforeElaborationError() VL_ATTR_NORETURN VL_MT_SAFE;
+    static void stackCheck(QData needSize) VL_MT_UNSAFE;
 
     // Internal: Get and set DPI context
     static const VerilatedScope* dpiScope() VL_MT_SAFE { return t_s.t_dpiScopep; }
@@ -919,6 +931,7 @@ public:
 
     // Internal: Called at end of each thread mtask, before finishing eval
     static void endOfThreadMTask(VerilatedEvalMsgQueue* evalMsgQp) VL_MT_SAFE {
+        mtaskId(0);
         if (VL_UNLIKELY(t_s.t_endOfEvalReqd)) endOfThreadMTaskGuts(evalMsgQp);
     }
     // Internal: Called at end of eval loop
@@ -966,6 +979,7 @@ void VerilatedContext::timeprecision(int value) VL_MT_SAFE {
         } else if (sc_res == sc_core::sc_time(1, sc_core::SC_FS)) {
             sc_prec = 15;
         }
+        // SC_AS, SC_ZS, SC_YS not supported as no Verilog equivalent; will error below
 #endif
     }
 #if VM_SC

@@ -3,7 +3,7 @@
 //
 // Code available from: https://verilator.org
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you can
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you can
 // redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -125,19 +125,27 @@ extern void VL_FCLOSE_I(IData fdi) VL_MT_SAFE;
 extern IData VL_FREAD_I(int width, int array_lsb, int array_size, void* memp, IData fpi,
                         IData start, IData count) VL_MT_SAFE;
 
-extern void VL_WRITEF(const char* formatp, ...) VL_MT_SAFE;
-extern void VL_FWRITEF(IData fpi, const char* formatp, ...) VL_MT_SAFE;
+extern void VL_WRITEF_NX(const std::string& format, int argc, ...) VL_MT_SAFE;
+extern void VL_FWRITEF_NX(IData fpi, const std::string& format, int argc, ...) VL_MT_SAFE;
 
-extern IData VL_FSCANF_IX(IData fpi, const char* formatp, ...) VL_MT_SAFE;
-extern IData VL_SSCANF_IIX(int lbits, IData ld, const char* formatp, ...) VL_MT_SAFE;
-extern IData VL_SSCANF_IQX(int lbits, QData ld, const char* formatp, ...) VL_MT_SAFE;
-extern IData VL_SSCANF_IWX(int lbits, WDataInP const lwp, const char* formatp, ...) VL_MT_SAFE;
+extern IData VL_FSCANF_INX(IData fpi, const std::string& format, int argc, ...) VL_MT_SAFE;
+extern IData VL_SSCANF_IINX(int lbits, IData ld, const std::string& format, int argc,
+                            ...) VL_MT_SAFE;
+extern IData VL_SSCANF_IQNX(int lbits, QData ld, const std::string& format, int argc,
+                            ...) VL_MT_SAFE;
+extern IData VL_SSCANF_IWNX(int lbits, WDataInP const lwp, const std::string& format, int argc,
+                            ...) VL_MT_SAFE;
 
-extern void VL_SFORMAT_X(int obits, CData& destr, const char* formatp, ...) VL_MT_SAFE;
-extern void VL_SFORMAT_X(int obits, SData& destr, const char* formatp, ...) VL_MT_SAFE;
-extern void VL_SFORMAT_X(int obits, IData& destr, const char* formatp, ...) VL_MT_SAFE;
-extern void VL_SFORMAT_X(int obits, QData& destr, const char* formatp, ...) VL_MT_SAFE;
-extern void VL_SFORMAT_X(int obits, void* destp, const char* formatp, ...) VL_MT_SAFE;
+extern void VL_SFORMAT_NX(int obits, CData& destr, const std::string& format, int argc,
+                          ...) VL_MT_SAFE;
+extern void VL_SFORMAT_NX(int obits, SData& destr, const std::string& format, int argc,
+                          ...) VL_MT_SAFE;
+extern void VL_SFORMAT_NX(int obits, IData& destr, const std::string& format, int argc,
+                          ...) VL_MT_SAFE;
+extern void VL_SFORMAT_NX(int obits, QData& destr, const std::string& format, int argc,
+                          ...) VL_MT_SAFE;
+extern void VL_SFORMAT_NX(int obits, void* destp, const std::string& format, int argc,
+                          ...) VL_MT_SAFE;
 
 extern void VL_STACKTRACE() VL_MT_SAFE;
 extern std::string VL_STACKTRACE_N() VL_MT_SAFE;
@@ -284,6 +292,8 @@ inline uint64_t vl_time_stamp64() VL_MT_SAFE {
 # endif
 #endif
 
+// clang-format on
+
 uint64_t VerilatedContext::time() const VL_MT_SAFE {
     // When using non-default context, fastest path is return time
     if (VL_LIKELY(m_s.m_time)) return m_s.m_time;
@@ -303,32 +313,14 @@ uint64_t VerilatedContext::time() const VL_MT_SAFE {
 // Time scaled from 1-per-precision into a module's time units ("Unit"-ed, not "United")
 // Optimized assuming scale is always constant.
 // Can't use multiply in Q flavor, as might lose precision
-#define VL_TIME_UNITED_Q(scale) (VL_TIME_Q() / static_cast<QData>(scale))
+#define VL_TIME_ROUND(t, p) (((t) + ((p) / 2)) / (p))
+#define VL_TIME_UNITED_Q(scale) VL_TIME_ROUND(VL_TIME_Q(), static_cast<QData>(scale))
 #define VL_TIME_UNITED_D(scale) (VL_TIME_D() / static_cast<double>(scale))
 
 // Return time precision as multiplier of time units
 double vl_time_multiplier(int scale) VL_PURE;
 // Return power of 10. e.g. returns 100 if n==2
 uint64_t vl_time_pow10(int n) VL_PURE;
-
-#ifdef VL_DEBUG
-/// Evaluate statement if VL_DEBUG defined
-# define VL_DEBUG_IFDEF(stmt) \
-    do { \
-        stmt \
-    } while (false)
-/// Evaluate statement if VL_DEBUG defined and Verilated::debug() enabled
-# define VL_DEBUG_IF(stmt) \
-    do { \
-        if (VL_UNLIKELY(Verilated::debug())) {stmt} \
-    } while (false)
-#else
-// We intentionally do not compile the stmt to improve compile speed
-# define VL_DEBUG_IFDEF(stmt) do {} while (false)
-# define VL_DEBUG_IF(stmt) do {} while (false)
-#endif
-
-// clang-format on
 
 //=========================================================================
 // Functional macros/routines
@@ -341,6 +333,19 @@ uint64_t vl_time_pow10(int n) VL_PURE;
 
 //===================================================================
 // SETTING OPERATORS
+
+VL_ATTR_ALWINLINE
+static WDataOutP VL_MEMSET_ZERO_W(WDataOutP owp, int words) VL_MT_SAFE {
+    return static_cast<WDataOutP>(std::memset(owp, 0, words * sizeof(EData)));
+}
+VL_ATTR_ALWINLINE
+static WDataOutP VL_MEMSET_ONES_W(WDataOutP owp, int words) VL_MT_SAFE {
+    return static_cast<WDataOutP>(std::memset(owp, 0xff, words * sizeof(EData)));
+}
+VL_ATTR_ALWINLINE
+static WDataOutP VL_MEMCPY_W(WDataOutP owp, WDataInP const iwp, int words) VL_MT_SAFE {
+    return static_cast<WDataOutP>(std::memcpy(owp, iwp, words * sizeof(EData)));
+}
 
 // Output clean
 // EMIT_RULE: VL_CLEAN:  oclean=clean; obits=lbits;
@@ -356,18 +361,16 @@ static inline WDataOutP _vl_clean_inplace_w(int obits, WDataOutP owp) VL_MT_SAFE
 }
 static inline WDataOutP VL_CLEAN_WW(int obits, WDataOutP owp, WDataInP const lwp) VL_MT_SAFE {
     const int words = VL_WORDS_I(obits);
-    for (int i = 0; (i < (words - 1)); ++i) owp[i] = lwp[i];
+    VL_MEMCPY_W(owp, lwp, words - 1);
     owp[words - 1] = lwp[words - 1] & VL_MASK_E(obits);
     return owp;
 }
 static inline WDataOutP VL_ZERO_W(int obits, WDataOutP owp) VL_MT_SAFE {
-    const int words = VL_WORDS_I(obits);
-    for (int i = 0; i < words; ++i) owp[i] = 0;
-    return owp;
+    return VL_MEMSET_ZERO_W(owp, VL_WORDS_I(obits));
 }
 static inline WDataOutP VL_ALLONES_W(int obits, WDataOutP owp) VL_MT_SAFE {
     const int words = VL_WORDS_I(obits);
-    for (int i = 0; i < (words - 1); ++i) owp[i] = ~VL_EUL(0);
+    VL_MEMSET_ONES_W(owp, words - 1);
     owp[words - 1] = VL_MASK_E(obits);
     return owp;
 }
@@ -376,9 +379,7 @@ static inline WDataOutP VL_ALLONES_W(int obits, WDataOutP owp) VL_MT_SAFE {
 // For now, we always have a clean rhs.
 // Note: If a ASSIGN isn't clean, use VL_ASSIGNCLEAN instead to do the same thing.
 static inline WDataOutP VL_ASSIGN_W(int obits, WDataOutP owp, WDataInP const lwp) VL_MT_SAFE {
-    const int words = VL_WORDS_I(obits);
-    for (int i = 0; i < words; ++i) owp[i] = lwp[i];
-    return owp;
+    return VL_MEMCPY_W(owp, lwp, VL_WORDS_I(obits));
 }
 
 // EMIT_RULE: VL_ASSIGNBIT:  rclean=clean;
@@ -449,7 +450,7 @@ static inline void VL_ASSIGNBIT_WO(int bit, WDataOutP owp) VL_MT_SAFE {
 #define VL_ASSIGN_WSB(obits, owp, svar) \
     { \
         const int words = VL_WORDS_I(obits); \
-        sc_biguint<(obits)> _butemp = (svar).read(); \
+        sc_dt::sc_biguint<(obits)> _butemp = (svar).read(); \
         uint32_t* chunkp = _butemp.get_raw(); \
         int32_t lsb = 0; \
         while (lsb < obits - BITS_PER_DIGIT) { \
@@ -475,20 +476,20 @@ static inline void VL_ASSIGNBIT_WO(int bit, WDataOutP owp) VL_MT_SAFE {
 
 #define VL_ASSIGN_SWI(obits, svar, rd) \
     { \
-        sc_bv<(obits)> _bvtemp; \
+        sc_dt::sc_bv<(obits)> _bvtemp; \
         _bvtemp.set_word(0, (rd)); \
         (svar).write(_bvtemp); \
     }
 #define VL_ASSIGN_SWQ(obits, svar, rd) \
     { \
-        sc_bv<(obits)> _bvtemp; \
+        sc_dt::sc_bv<(obits)> _bvtemp; \
         _bvtemp.set_word(0, static_cast<IData>(rd)); \
         _bvtemp.set_word(1, static_cast<IData>((rd) >> VL_IDATASIZE)); \
         (svar).write(_bvtemp); \
     }
 #define VL_ASSIGN_SWW(obits, svar, rwp) \
     { \
-        sc_bv<(obits)> _bvtemp; \
+        sc_dt::sc_bv<(obits)> _bvtemp; \
         for (int i = 0; i < VL_WORDS_I(obits); ++i) _bvtemp.set_word(i, (rwp)[i]); \
         (svar).write(_bvtemp); \
     }
@@ -504,7 +505,7 @@ static inline void VL_ASSIGNBIT_WO(int bit, WDataOutP owp) VL_MT_SAFE {
 #define VL_SC_BITS_PER_DIGIT 30  // This comes from sc_nbdefs.h BITS_PER_DIGIT
 #define VL_ASSIGN_SBW(obits, svar, rwp) \
     { \
-        sc_biguint<(obits)> _butemp; \
+        sc_dt::sc_biguint<(obits)> _butemp; \
         int32_t lsb = 0; \
         uint32_t* chunkp = _butemp.get_raw(); \
         while (lsb + VL_SC_BITS_PER_DIGIT < (obits)) { \
@@ -519,6 +520,7 @@ static inline void VL_ASSIGNBIT_WO(int bit, WDataOutP owp) VL_MT_SAFE {
             const uint32_t msb_data = VL_SEL_IWII((obits) + 1, (rwp).data(), lsb, (obits)-lsb); \
             *chunkp = msb_data & VL_MASK_E((obits)-lsb); \
         } \
+        _butemp.set(0, *(rwp).data() & 1); /* force update the sign */ \
         (svar).write(_butemp); \
     }
 
@@ -536,19 +538,20 @@ static inline void VL_ASSIGNBIT_WO(int bit, WDataOutP owp) VL_MT_SAFE {
 static inline WDataOutP VL_EXTEND_WI(int obits, int, WDataOutP owp, IData ld) VL_MT_SAFE {
     // Note for extracts that obits != lbits
     owp[0] = ld;
-    for (int i = 1; i < VL_WORDS_I(obits); ++i) owp[i] = 0;
+    VL_MEMSET_ZERO_W(owp + 1, VL_WORDS_I(obits) - 1);
     return owp;
 }
 static inline WDataOutP VL_EXTEND_WQ(int obits, int, WDataOutP owp, QData ld) VL_MT_SAFE {
     VL_SET_WQ(owp, ld);
-    for (int i = VL_WQ_WORDS_E; i < VL_WORDS_I(obits); ++i) owp[i] = 0;
+    VL_MEMSET_ZERO_W(owp + VL_WQ_WORDS_E, VL_WORDS_I(obits) - VL_WQ_WORDS_E);
     return owp;
 }
 static inline WDataOutP VL_EXTEND_WW(int obits, int lbits, WDataOutP owp,
                                      WDataInP const lwp) VL_MT_SAFE {
-    for (int i = 0; i < VL_WORDS_I(lbits); ++i) owp[i] = lwp[i];
-    for (int i = VL_WORDS_I(lbits); i < VL_WORDS_I(obits); ++i) owp[i] = 0;
-    return owp;
+    const int lwords = VL_WORDS_I(lbits);
+    VL_PREFETCH_RD(lwp);
+    VL_MEMSET_ZERO_W(owp + lwords, VL_WORDS_I(obits) - lwords);
+    return VL_MEMCPY_W(owp, lwp, lwords);
 }
 
 // EMIT_RULE: VL_EXTENDS:  oclean=*dirty*; obits=lbits;
@@ -564,26 +567,37 @@ static inline QData VL_EXTENDS_QQ(int, int lbits, QData lhs) VL_PURE {
 }
 
 static inline WDataOutP VL_EXTENDS_WI(int obits, int lbits, WDataOutP owp, IData ld) VL_MT_SAFE {
-    const EData sign = VL_SIGNONES_E(lbits, static_cast<EData>(ld));
-    owp[0] = ld | (sign & ~VL_MASK_E(lbits));
-    for (int i = 1; i < VL_WORDS_I(obits); ++i) owp[i] = sign;
+    owp[0] = ld;
+    if (VL_SIGN_E(lbits, owp[0])) {
+        owp[0] |= ~VL_MASK_E(lbits);
+        VL_MEMSET_ONES_W(owp + 1, VL_WORDS_I(obits) - 1);
+    } else {
+        VL_MEMSET_ZERO_W(owp + 1, VL_WORDS_I(obits) - 1);
+    }
     return owp;
 }
 static inline WDataOutP VL_EXTENDS_WQ(int obits, int lbits, WDataOutP owp, QData ld) VL_MT_SAFE {
     VL_SET_WQ(owp, ld);
-    const EData sign = VL_SIGNONES_E(lbits, owp[1]);
-    owp[1] |= sign & ~VL_MASK_E(lbits);
-    for (int i = VL_WQ_WORDS_E; i < VL_WORDS_I(obits); ++i) owp[i] = sign;
+    if (VL_SIGN_E(lbits, owp[1])) {
+        owp[1] |= ~VL_MASK_E(lbits);
+        VL_MEMSET_ONES_W(owp + VL_WQ_WORDS_E, VL_WORDS_I(obits) - VL_WQ_WORDS_E);
+    } else {
+        VL_MEMSET_ZERO_W(owp + VL_WQ_WORDS_E, VL_WORDS_I(obits) - VL_WQ_WORDS_E);
+    }
     return owp;
 }
 static inline WDataOutP VL_EXTENDS_WW(int obits, int lbits, WDataOutP owp,
                                       WDataInP const lwp) VL_MT_SAFE {
-    for (int i = 0; i < VL_WORDS_I(lbits) - 1; ++i) owp[i] = lwp[i];
-    const int lmsw = VL_WORDS_I(lbits) - 1;
-    const EData sign = VL_SIGNONES_E(lbits, lwp[lmsw]);
-    owp[lmsw] = lwp[lmsw] | (sign & ~VL_MASK_E(lbits));
-    for (int i = VL_WORDS_I(lbits); i < VL_WORDS_I(obits); ++i) owp[i] = sign;
-    return owp;
+    const int lwords = VL_WORDS_I(lbits);
+    VL_PREFETCH_RD(lwp);
+    owp[lwords - 1] = lwp[lwords - 1];
+    if (VL_SIGN_E(lbits, lwp[lwords - 1])) {
+        owp[lwords - 1] |= ~VL_MASK_E(lbits);
+        VL_MEMSET_ONES_W(owp + lwords, VL_WORDS_I(obits) - lwords);
+    } else {
+        VL_MEMSET_ZERO_W(owp + lwords, VL_WORDS_I(obits) - lwords);
+    }
+    return VL_MEMCPY_W(owp, lwp, lwords - 1);
 }
 
 //===================================================================
@@ -1028,6 +1042,7 @@ static inline QData VL_MULS_QQQ(int lbits, QData lhs, QData rhs) VL_PURE {
 static inline WDataOutP VL_MULS_WWW(int lbits, WDataOutP owp, WDataInP const lwp,
                                     WDataInP const rwp) VL_MT_SAFE {
     const int words = VL_WORDS_I(lbits);
+    VL_DEBUG_IFDEF(assert(words <= VL_MULS_MAX_WORDS););
     // cppcheck-suppress variableScope
     WData lwstore[VL_MULS_MAX_WORDS];  // Fixed size, as MSVC++ doesn't allow [words] here
     // cppcheck-suppress variableScope
@@ -1098,21 +1113,22 @@ static inline QData VL_MODDIVS_QQQ(int lbits, QData lhs, QData rhs) VL_PURE {
 
 static inline WDataOutP VL_DIVS_WWW(int lbits, WDataOutP owp, WDataInP const lwp,
                                     WDataInP const rwp) VL_MT_SAFE {
-    const int words = VL_WORDS_I(lbits);
-    const EData lsign = VL_SIGN_E(lbits, lwp[words - 1]);
-    const EData rsign = VL_SIGN_E(lbits, rwp[words - 1]);
+    const int lwords = VL_WORDS_I(lbits);
+    const EData lsign = VL_SIGN_E(lbits, lwp[lwords - 1]);
+    const EData rsign = VL_SIGN_E(lbits, rwp[lwords - 1]);
+    VL_DEBUG_IFDEF(assert(lwords <= VL_MULS_MAX_WORDS););
     // cppcheck-suppress variableScope
     WData lwstore[VL_MULS_MAX_WORDS];  // Fixed size, as MSVC++ doesn't allow [words] here
     // cppcheck-suppress variableScope
     WData rwstore[VL_MULS_MAX_WORDS];
     WDataInP ltup = lwp;
     WDataInP rtup = rwp;
-    if (lsign) ltup = _vl_clean_inplace_w(lbits, VL_NEGATE_W(VL_WORDS_I(lbits), lwstore, lwp));
-    if (rsign) rtup = _vl_clean_inplace_w(lbits, VL_NEGATE_W(VL_WORDS_I(lbits), rwstore, rwp));
+    if (lsign) ltup = _vl_clean_inplace_w(lbits, VL_NEGATE_W(lwords, lwstore, lwp));
+    if (rsign) rtup = _vl_clean_inplace_w(lbits, VL_NEGATE_W(lwords, rwstore, rwp));
     if ((lsign && !rsign) || (!lsign && rsign)) {
         WData qNoSign[VL_MULS_MAX_WORDS];
         VL_DIV_WWW(lbits, qNoSign, ltup, rtup);
-        _vl_clean_inplace_w(lbits, VL_NEGATE_W(VL_WORDS_I(lbits), owp, qNoSign));
+        _vl_clean_inplace_w(lbits, VL_NEGATE_W(lwords, owp, qNoSign));
         return owp;
     } else {
         return VL_DIV_WWW(lbits, owp, ltup, rtup);
@@ -1120,21 +1136,22 @@ static inline WDataOutP VL_DIVS_WWW(int lbits, WDataOutP owp, WDataInP const lwp
 }
 static inline WDataOutP VL_MODDIVS_WWW(int lbits, WDataOutP owp, WDataInP const lwp,
                                        WDataInP const rwp) VL_MT_SAFE {
-    const int words = VL_WORDS_I(lbits);
-    const EData lsign = VL_SIGN_E(lbits, lwp[words - 1]);
-    const EData rsign = VL_SIGN_E(lbits, rwp[words - 1]);
+    const int lwords = VL_WORDS_I(lbits);
+    const EData lsign = VL_SIGN_E(lbits, lwp[lwords - 1]);
+    const EData rsign = VL_SIGN_E(lbits, rwp[lwords - 1]);
+    VL_DEBUG_IFDEF(assert(lwords <= VL_MULS_MAX_WORDS););
     // cppcheck-suppress variableScope
     WData lwstore[VL_MULS_MAX_WORDS];  // Fixed size, as MSVC++ doesn't allow [words] here
     // cppcheck-suppress variableScope
     WData rwstore[VL_MULS_MAX_WORDS];
     WDataInP ltup = lwp;
     WDataInP rtup = rwp;
-    if (lsign) ltup = _vl_clean_inplace_w(lbits, VL_NEGATE_W(VL_WORDS_I(lbits), lwstore, lwp));
-    if (rsign) rtup = _vl_clean_inplace_w(lbits, VL_NEGATE_W(VL_WORDS_I(lbits), rwstore, rwp));
+    if (lsign) ltup = _vl_clean_inplace_w(lbits, VL_NEGATE_W(lwords, lwstore, lwp));
+    if (rsign) rtup = _vl_clean_inplace_w(lbits, VL_NEGATE_W(lwords, rwstore, rwp));
     if (lsign) {  // Only dividend sign matters for modulus
         WData qNoSign[VL_MULS_MAX_WORDS];
         VL_MODDIV_WWW(lbits, qNoSign, ltup, rtup);
-        _vl_clean_inplace_w(lbits, VL_NEGATE_W(VL_WORDS_I(lbits), owp, qNoSign));
+        _vl_clean_inplace_w(lbits, VL_NEGATE_W(lwords, owp, qNoSign));
         return owp;
     } else {
         return VL_MODDIV_WWW(lbits, owp, ltup, rtup);
@@ -1258,6 +1275,7 @@ static inline void _vl_insert_QQ(QData& lhsr, QData ld, int hbit, int lbit, int 
 }
 static inline void _vl_insert_WI(WDataOutP iowp, IData ld, int hbit, int lbit,
                                  int rbits = 0) VL_MT_SAFE {
+    // Insert value ld into iowp at bit slice [hbit:lbit]. iowp is rbits wide.
     const int hoffset = VL_BITBIT_E(hbit);
     const int loffset = VL_BITBIT_E(lbit);
     const int roffset = VL_BITBIT_E(rbits);
@@ -1268,7 +1286,7 @@ static inline void _vl_insert_WI(WDataOutP iowp, IData ld, int hbit, int lbit,
 
     if (hoffset == VL_SIZEBITS_E && loffset == 0) {
         // Fast and common case, word based insertion
-        iowp[VL_BITWORD_E(lbit)] = ld & cleanmask;
+        iowp[lword] = ld & cleanmask;
     } else {
         const EData lde = static_cast<EData>(ld);
         if (hword == lword) {  // know < EData bits because above checks it
@@ -1281,9 +1299,33 @@ static inline void _vl_insert_WI(WDataOutP iowp, IData ld, int hbit, int lbit,
             const EData linsmask = (VL_MASK_E((VL_EDATASIZE - 1) - loffset + 1)) << loffset;
             const int nbitsonright = VL_EDATASIZE - loffset;  // bits that end up in lword
             iowp[lword] = (iowp[lword] & ~linsmask) | ((lde << loffset) & linsmask);
-            iowp[hword]
-                = (iowp[hword] & ~hinsmask) | ((lde >> nbitsonright) & (hinsmask & cleanmask));
+            // Prevent unsafe write where lword was final writable location and hword is
+            // out-of-bounds.
+            if (VL_LIKELY(!(hword == rword && roffset == 0))) {
+                iowp[hword]
+                    = (iowp[hword] & ~hinsmask) | ((lde >> nbitsonright) & (hinsmask & cleanmask));
+            }
         }
+    }
+}
+
+// Copy bits from lwp[hbit:lbit] to low bits of lhsr. rbits is real width of lshr
+static inline void _vl_insert_IW(IData& lhsr, WDataInP const lwp, int hbit, int lbit,
+                                 int rbits = 0) VL_MT_SAFE {
+    const int hoffset = VL_BITBIT_E(hbit);
+    const int loffset = VL_BITBIT_E(lbit);
+    const int hword = VL_BITWORD_E(hbit);
+    const int lword = VL_BITWORD_E(lbit);
+    const IData cleanmask = VL_MASK_I(rbits);
+    if (hword == lword) {
+        const IData insmask = (VL_MASK_I(hoffset - loffset + 1));
+        lhsr = (lhsr & ~insmask) | ((lwp[lword] >> loffset) & (insmask & cleanmask));
+    } else {
+        const int nbitsonright = VL_IDATASIZE - loffset;  // bits that filled by lword
+        const IData hinsmask = (VL_MASK_E(hoffset - 0 + 1)) << nbitsonright;
+        const IData linsmask = VL_MASK_E(VL_EDATASIZE - loffset);
+        lhsr = (lhsr & ~linsmask) | ((lwp[lword] >> loffset) & (linsmask & cleanmask));
+        lhsr = (lhsr & ~hinsmask) | ((lwp[hword] << nbitsonright) & (hinsmask & cleanmask));
     }
 }
 
@@ -1566,63 +1608,66 @@ static inline QData VL_DYN_TO_Q(const VlQueue<T>& q, int elem_size) {
 static inline WDataOutP VL_CONCAT_WII(int obits, int lbits, int rbits, WDataOutP owp, IData ld,
                                       IData rd) VL_MT_SAFE {
     owp[0] = rd;
-    for (int i = 1; i < VL_WORDS_I(obits); ++i) owp[i] = 0;
+    VL_MEMSET_ZERO_W(owp + 1, VL_WORDS_I(obits) - 1);
     _vl_insert_WI(owp, ld, rbits + lbits - 1, rbits);
     return owp;
 }
 static inline WDataOutP VL_CONCAT_WWI(int obits, int lbits, int rbits, WDataOutP owp,
                                       WDataInP const lwp, IData rd) VL_MT_SAFE {
     owp[0] = rd;
-    for (int i = 1; i < VL_WORDS_I(obits); ++i) owp[i] = 0;
+    VL_MEMSET_ZERO_W(owp + 1, VL_WORDS_I(obits) - 1);
     _vl_insert_WW(owp, lwp, rbits + lbits - 1, rbits);
     return owp;
 }
 static inline WDataOutP VL_CONCAT_WIW(int obits, int lbits, int rbits, WDataOutP owp, IData ld,
                                       WDataInP const rwp) VL_MT_SAFE {
-    for (int i = 0; i < VL_WORDS_I(rbits); ++i) owp[i] = rwp[i];
-    for (int i = VL_WORDS_I(rbits); i < VL_WORDS_I(obits); ++i) owp[i] = 0;
+    const int rwords = VL_WORDS_I(rbits);
+    VL_MEMCPY_W(owp, rwp, rwords);
+    VL_MEMSET_ZERO_W(owp + rwords, VL_WORDS_I(obits) - rwords);
     _vl_insert_WI(owp, ld, rbits + lbits - 1, rbits);
     return owp;
 }
 static inline WDataOutP VL_CONCAT_WIQ(int obits, int lbits, int rbits, WDataOutP owp, IData ld,
                                       QData rd) VL_MT_SAFE {
     VL_SET_WQ(owp, rd);
-    for (int i = VL_WQ_WORDS_E; i < VL_WORDS_I(obits); ++i) owp[i] = 0;
+    VL_MEMSET_ZERO_W(owp + VL_WQ_WORDS_E, VL_WORDS_I(obits) - VL_WQ_WORDS_E);
     _vl_insert_WI(owp, ld, rbits + lbits - 1, rbits);
     return owp;
 }
 static inline WDataOutP VL_CONCAT_WQI(int obits, int lbits, int rbits, WDataOutP owp, QData ld,
                                       IData rd) VL_MT_SAFE {
     owp[0] = rd;
-    for (int i = 1; i < VL_WORDS_I(obits); ++i) owp[i] = 0;
+    VL_MEMSET_ZERO_W(owp + 1, VL_WORDS_I(obits) - 1);
     _vl_insert_WQ(owp, ld, rbits + lbits - 1, rbits);
     return owp;
 }
 static inline WDataOutP VL_CONCAT_WQQ(int obits, int lbits, int rbits, WDataOutP owp, QData ld,
                                       QData rd) VL_MT_SAFE {
     VL_SET_WQ(owp, rd);
-    for (int i = VL_WQ_WORDS_E; i < VL_WORDS_I(obits); ++i) owp[i] = 0;
+    VL_MEMSET_ZERO_W(owp + VL_WQ_WORDS_E, VL_WORDS_I(obits) - VL_WQ_WORDS_E);
     _vl_insert_WQ(owp, ld, rbits + lbits - 1, rbits);
     return owp;
 }
 static inline WDataOutP VL_CONCAT_WWQ(int obits, int lbits, int rbits, WDataOutP owp,
                                       WDataInP const lwp, QData rd) VL_MT_SAFE {
     VL_SET_WQ(owp, rd);
-    for (int i = VL_WQ_WORDS_E; i < VL_WORDS_I(obits); ++i) owp[i] = 0;
+    VL_MEMSET_ZERO_W(owp + VL_WQ_WORDS_E, VL_WORDS_I(obits) - VL_WQ_WORDS_E);
     _vl_insert_WW(owp, lwp, rbits + lbits - 1, rbits);
     return owp;
 }
 static inline WDataOutP VL_CONCAT_WQW(int obits, int lbits, int rbits, WDataOutP owp, QData ld,
                                       WDataInP const rwp) VL_MT_SAFE {
-    for (int i = 0; i < VL_WORDS_I(rbits); ++i) owp[i] = rwp[i];
-    for (int i = VL_WORDS_I(rbits); i < VL_WORDS_I(obits); ++i) owp[i] = 0;
+    const int rwords = VL_WORDS_I(rbits);
+    VL_MEMCPY_W(owp, rwp, rwords);
+    VL_MEMSET_ZERO_W(owp + rwords, VL_WORDS_I(obits) - rwords);
     _vl_insert_WQ(owp, ld, rbits + lbits - 1, rbits);
     return owp;
 }
 static inline WDataOutP VL_CONCAT_WWW(int obits, int lbits, int rbits, WDataOutP owp,
                                       WDataInP const lwp, WDataInP const rwp) VL_MT_SAFE {
-    for (int i = 0; i < VL_WORDS_I(rbits); ++i) owp[i] = rwp[i];
-    for (int i = VL_WORDS_I(rbits); i < VL_WORDS_I(obits); ++i) owp[i] = 0;
+    const int rwords = VL_WORDS_I(rbits);
+    VL_MEMCPY_W(owp, rwp, rwords);
+    VL_MEMSET_ZERO_W(owp + rwords, VL_WORDS_I(obits) - rwords);
     _vl_insert_WW(owp, lwp, rbits + lbits - 1, rbits);
     return owp;
 }
@@ -1846,10 +1891,13 @@ static inline WDataOutP VL_SHIFTRS_WWW(int obits, int lbits, int rbits, WDataOut
     EData overshift = 0;  // Huge shift 1>>32 or more
     for (int i = 1; i < VL_WORDS_I(rbits); ++i) overshift |= rwp[i];
     if (VL_UNLIKELY(overshift || rwp[0] >= static_cast<IData>(obits))) {
-        const int lmsw = VL_WORDS_I(obits) - 1;
-        const EData sign = VL_SIGNONES_E(lbits, lwp[lmsw]);
-        for (int j = 0; j <= lmsw; ++j) owp[j] = sign;
-        owp[lmsw] &= VL_MASK_E(lbits);
+        const int owords = VL_WORDS_I(obits);
+        if (VL_SIGN_E(lbits, lwp[owords - 1])) {
+            VL_MEMSET_ONES_W(owp, owords);
+            owp[owords - 1] &= VL_MASK_E(lbits);
+        } else {
+            VL_MEMSET_ZERO_W(owp, owords);
+        }
         return owp;
     }
     return VL_SHIFTRS_WWI(obits, lbits, 32, owp, lwp, rwp[0]);
@@ -2055,14 +2103,103 @@ static inline void VL_ASSIGNSEL_WW(int rbits, int obits, int lsb, WDataOutP iowp
     _vl_insert_WW(iowp, rwp, lsb + obits - 1, lsb, rbits);
 }
 
+//====================================================
+// Range assignments
+
+// These additional functions copy bits range [obis+roffset-1:roffset] from rhs to lower bits
+// of lhs(select before assigning). Rhs should always be wider than lhs.
+static inline void VL_SELASSIGN_II(int rbits, int obits, CData& lhsr, IData rhs,
+                                   int roffset) VL_PURE {
+    _vl_insert_II(lhsr, rhs >> roffset, obits - 1, 0, rbits);
+}
+static inline void VL_SELASSIGN_II(int rbits, int obits, SData& lhsr, IData rhs,
+                                   int roffset) VL_PURE {
+    _vl_insert_II(lhsr, rhs >> roffset, obits - 1, 0, rbits);
+}
+static inline void VL_SELASSIGN_II(int rbits, int obits, IData& lhsr, IData rhs,
+                                   int roffset) VL_PURE {
+    _vl_insert_II(lhsr, rhs >> roffset, obits - 1, 0, rbits);
+}
+static inline void VL_SELASSIGN_IQ(int rbits, int obits, CData& lhsr, QData rhs,
+                                   int roffset) VL_PURE {
+    // it will be truncated to right CData mask
+    const CData cleanmask = VL_MASK_I(rbits);
+    const CData insmask = VL_MASK_I(obits);
+    lhsr = (lhsr & ~insmask) | (static_cast<CData>(rhs >> roffset) & (insmask & cleanmask));
+}
+static inline void VL_SELASSIGN_IQ(int rbits, int obits, SData& lhsr, QData rhs,
+                                   int roffset) VL_PURE {
+    // it will be truncated to right CData mask
+    const SData cleanmask = VL_MASK_I(rbits);
+    const SData insmask = VL_MASK_I(obits);
+    lhsr = (lhsr & ~insmask) | (static_cast<SData>(rhs >> roffset) & (insmask & cleanmask));
+}
+static inline void VL_SELASSIGN_IQ(int rbits, int obits, IData& lhsr, QData rhs,
+                                   int roffset) VL_PURE {
+    const IData cleanmask = VL_MASK_I(rbits);
+    const IData insmask = VL_MASK_I(obits);
+    lhsr = (lhsr & ~insmask) | (static_cast<IData>(rhs >> roffset) & (insmask & cleanmask));
+}
+
+static inline void VL_SELASSIGN_QQ(int rbits, int obits, QData& lhsr, QData rhs,
+                                   int roffset) VL_PURE {
+    _vl_insert_QQ(lhsr, rhs >> roffset, obits - 1, 0, rbits);
+}
+
+static inline void VL_SELASSIGN_IW(int rbits, int obits, CData& lhsr, WDataInP const rhs,
+                                   int roffset) VL_MT_SAFE {
+    IData l = static_cast<IData>(lhsr);
+    _vl_insert_IW(l, rhs, roffset + obits - 1, roffset, rbits);
+    lhsr = static_cast<CData>(l);
+}
+static inline void VL_SELASSIGN_IW(int rbits, int obits, SData& lhsr, WDataInP const rhs,
+                                   int roffset) VL_MT_SAFE {
+    IData l = static_cast<IData>(lhsr);
+    _vl_insert_IW(l, rhs, roffset + obits - 1, roffset, rbits);
+    lhsr = static_cast<SData>(l);
+}
+static inline void VL_SELASSIGN_IW(int rbits, int obits, IData& lhsr, WDataInP const rhs,
+                                   int roffset) VL_MT_SAFE {
+    _vl_insert_IW(lhsr, rhs, roffset + obits - 1, roffset, rbits);
+}
+static inline void VL_SELASSIGN_QW(int rbits, int obits, QData& lhsr, WDataInP const rhs,
+                                   int roffset) VL_MT_SAFE {
+    // assert VL_QDATASIZE >= rbits > VL_IDATASIZE;
+    IData low = static_cast<IData>(lhsr);
+    IData high = static_cast<IData>(lhsr >> VL_IDATASIZE);
+    if (obits <= VL_IDATASIZE) {
+        _vl_insert_IW(low, rhs, obits + roffset - 1, roffset, VL_IDATASIZE);
+    } else {
+        _vl_insert_IW(low, rhs, roffset + VL_IDATASIZE - 1, roffset, VL_IDATASIZE);
+        _vl_insert_IW(high, rhs, roffset + obits - 1, roffset + VL_IDATASIZE,
+                      rbits - VL_IDATASIZE);
+    }
+    lhsr = (static_cast<QData>(high) << VL_IDATASIZE) | low;
+}
+
+static inline void VL_SELASSIGN_WW(int rbits, int obits, WDataOutP iowp, WDataInP const rwp,
+                                   int roffset) VL_MT_SAFE {
+    // assert rbits > VL_QDATASIZE
+    const int wordoff = roffset / VL_EDATASIZE;
+    const int lsb = roffset & VL_SIZEBITS_E;
+    const int upperbits = lsb == 0 ? 0 : VL_EDATASIZE - lsb;
+    // If roffset is not aligned, we copy some bits to align it.
+    if (lsb != 0) {
+        const int w = obits < upperbits ? obits : upperbits;
+        const int insmask = VL_MASK_E(w);
+        iowp[0] = (iowp[0] & ~insmask) | ((rwp[wordoff] >> lsb) & insmask);
+        if (w == obits) return;
+        obits -= w;
+    }
+    _vl_insert_WW(iowp, rwp + wordoff + (lsb != 0), upperbits + obits - 1, upperbits, rbits);
+}
+
 //======================================================================
 // Triops
 
 static inline WDataOutP VL_COND_WIWW(int obits, WDataOutP owp, int cond, WDataInP const w1p,
                                      WDataInP const w2p) VL_MT_SAFE {
-    const int words = VL_WORDS_I(obits);
-    for (int i = 0; i < words; ++i) owp[i] = cond ? w1p[i] : w2p[i];
-    return owp;
+    return VL_MEMCPY_W(owp, cond ? w1p : w2p, VL_WORDS_I(obits));
 }
 
 //======================================================================
@@ -2075,7 +2212,7 @@ static inline WDataOutP VL_COND_WIWW(int obits, WDataOutP owp, int cond, WDataIn
 // If changing the number of functions here, also change EMITCINLINES_NUM_CONSTW
 
 #define VL_C_END_(obits, wordsSet) \
-    for (int i = (wordsSet); i < VL_WORDS_I(obits); ++i) o[i] = 0; \
+    VL_MEMSET_ZERO_W(o + (wordsSet), VL_WORDS_I(obits) - (wordsSet)); \
     return o
 
 // clang-format off
@@ -2273,10 +2410,11 @@ extern void VL_READMEM_N(bool hex, int bits, QData depth, int array_lsb,
 extern void VL_WRITEMEM_N(bool hex, int bits, QData depth, int array_lsb,
                           const std::string& filename, const void* memp, QData start,
                           QData end) VL_MT_SAFE;
-extern IData VL_SSCANF_INX(int lbits, const std::string& ld, const char* formatp, ...) VL_MT_SAFE;
-extern void VL_SFORMAT_X(int obits_ignored, std::string& output, const char* formatp,
-                         ...) VL_MT_SAFE;
-extern std::string VL_SFORMATF_NX(const char* formatp, ...) VL_MT_SAFE;
+extern IData VL_SSCANF_INNX(int lbits, const std::string& ld, const std::string& format, int argc,
+                            ...) VL_MT_SAFE;
+extern void VL_SFORMAT_NX(int obits_ignored, std::string& output, const std::string& format,
+                          int argc, ...) VL_MT_SAFE;
+extern std::string VL_SFORMATF_N_NX(const std::string& format, int argc, ...) VL_MT_SAFE;
 extern void VL_TIMEFORMAT_IINI(int units, int precision, const std::string& suffix, int width,
                                VerilatedContext* contextp) VL_MT_SAFE;
 extern IData VL_VALUEPLUSARGS_INW(int rbits, const std::string& ld, WDataOutP rwp) VL_MT_SAFE;

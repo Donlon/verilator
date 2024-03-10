@@ -66,9 +66,9 @@ executable performs the design simulation. Verilator also supports linking
 Verilated generated libraries, optionally encrypted, into other simulators.
 
 Verilator may not be the best choice if you are expecting a full-featured
-replacement for a closed-source Verilog simulator, needs SDF annotation,
+replacement for a closed-source Verilog simulator, need SDF annotation,
 mixed-signal simulation, or are doing a quick class project (we recommend
-`Icarus Verilog`_ for classwork.)  However, if you are looking for a path
+`Icarus Verilog`_ for classwork).  However, if you are looking for a path
 to migrate SystemVerilog to C++/SystemC, or want high-speed simulation of
 designs, Verilator is the tool for you.
 
@@ -80,12 +80,12 @@ Verilator does not directly translate Verilog HDL to C++ or SystemC. Rather,
 Verilator compiles your code into a much faster optimized and optionally
 thread-partitioned model, which is in turn wrapped inside a C++/SystemC
 module. The results are a compiled Verilog model that executes even on a
-single-thread over 10x faster than standalone SystemC, and on a single
+single thread over 10x faster than standalone SystemC, and on a single
 thread is about 100 times faster than interpreted Verilog simulators such
 as `Icarus Verilog`_. Another 2-10x speedup might be gained from
 multithreading (yielding 200-1000x total over interpreted simulators).
 
-Verilator has typically similar or better performance versus the
+Verilator has typically similar or better performance versus
 closed-source Verilog simulators (e.g., Carbon Design Systems Carbonator,
 Modelsim/Questa, Cadence Incisive/NC-Verilog, Synopsys VCS, VTOC, and
 Pragmatic CVer/CVC). But, Verilator is open-sourced, so you can spend on
@@ -142,7 +142,7 @@ Related Projects
 Open License
 ============
 
-Verilator is Copyright 2003-2023 by Wilson Snyder. (Report bugs to
+Verilator is Copyright 2003-2024 by Wilson Snyder. (Report bugs to
 `Verilator Issues <https://verilator.org/issues>`_.)
 
 Verilator is free software; you can redistribute it and/or modify it under
@@ -150,7 +150,7 @@ the terms of either the GNU Lesser General Public License Version 3 or the
 Perl Artistic License Version 2.0. See the documentation for more details.
 
 .. _CHIPS Alliance: https://chipsalliance.org
-.. _Icarus Verilog: http://iverilog.icarus.com
+.. _Icarus Verilog: https://steveicarus.github.io/iverilog
 .. _Linux Foundation: https://www.linuxfoundation.org
 .. |Logo| image:: https://www.veripool.org/img/verilator_256_200_min.png
 .. |verilator multithreaded performance| image:: https://www.veripool.org/img/verilator_multithreaded_performance_bg-min.png

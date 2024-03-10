@@ -3,7 +3,7 @@
 //
 // Code available from: https://verilator.org
 //
-// Copyright 2012-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2012-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -127,7 +127,7 @@ public:
 class VlWorkerThread final {
 private:
     // TYPES
-    struct ExecRec {
+    struct ExecRec final {
         VlExecFnp m_fnp = nullptr;  // Function to execute
         VlSelfP m_selfp = nullptr;  // Symbol table to execute
         bool m_evenCycle = false;  // Even/odd for flag alternation
@@ -214,10 +214,10 @@ public:
     ~VlThreadPool() override;
 
     // METHODS
-    int numThreads() const { return m_workers.size(); }
+    int numThreads() const { return static_cast<int>(m_workers.size()); }
     VlWorkerThread* workerp(int index) {
         assert(index >= 0);
-        assert(static_cast<size_t>(index) < m_workers.size());
+        assert(index < static_cast<int>(m_workers.size()));
         return m_workers[index];
     }
 

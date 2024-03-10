@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -30,7 +30,6 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 // ProtectLib top-level visitor
 
 class ProtectVisitor final : public VNVisitor {
-private:
     AstVFile* m_vfilep = nullptr;  // DPI-enabled Verilog wrapper
     AstCFile* m_cfilep = nullptr;  // C implementation of DPI functions
     // Verilog text blocks
@@ -150,18 +149,16 @@ private:
         // Timescale
         if (v3Global.opt.hierChild() && v3Global.rootp()->timescaleSpecified()) {
             // Emit timescale for hierarchical Verilation if input HDL specifies timespec
-            txtp->addText(fl, std::string{"timeunit "} + modp->timeunit().ascii() + ";\n");
-            txtp->addText(fl, std::string{"timeprecision "}
-                                  + +v3Global.rootp()->timeprecision().ascii() + ";\n");
+            txtp->addText(fl, "timeunit "s + modp->timeunit().ascii() + ";\n");
+            txtp->addText(fl,
+                          "timeprecision "s + +v3Global.rootp()->timeprecision().ascii() + ";\n");
         } else {
             addComment(txtp, fl,
                        "Precision of submodule"
                        " (commented out to avoid requiring timescale on all modules)");
+            addComment(txtp, fl, "timeunit "s + v3Global.rootp()->timeunit().ascii() + ";");
             addComment(txtp, fl,
-                       std::string{"timeunit "} + v3Global.rootp()->timeunit().ascii() + ";");
-            addComment(txtp, fl,
-                       std::string{"timeprecision "} + v3Global.rootp()->timeprecision().ascii()
-                           + ";\n");
+                       "timeprecision "s + v3Global.rootp()->timeprecision().ascii() + ";\n");
         }
 
         // DPI declarations

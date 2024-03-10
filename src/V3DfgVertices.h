@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -40,6 +40,7 @@
 
 class DfgVertexVar VL_NOT_FINAL : public DfgVertexVariadic {
     AstVar* const m_varp;  // The AstVar associated with this vertex (not owned by this vertex)
+    bool m_hasDfgRefs = false;  // This AstVar is referenced in a different DFG of the module
     bool m_hasModRefs = false;  // This AstVar is referenced outside the DFG, but in the module
     bool m_hasExtRefs = false;  // This AstVar is referenced from outside the module
 
@@ -62,11 +63,13 @@ public:
     bool isDrivenByDfg() const { return arity() > 0; }
 
     AstVar* varp() const { return m_varp; }
+    bool hasDfgRefs() const { return m_hasDfgRefs; }
+    void setHasDfgRefs() { m_hasDfgRefs = true; }
     bool hasModRefs() const { return m_hasModRefs; }
     void setHasModRefs() { m_hasModRefs = true; }
     bool hasExtRefs() const { return m_hasExtRefs; }
     void setHasExtRefs() { m_hasExtRefs = true; }
-    bool hasRefs() const { return m_hasModRefs || m_hasExtRefs; }
+    bool hasNonLocalRefs() const { return hasDfgRefs() || hasModRefs() || hasExtRefs(); }
 
     // Variable cannot be removed, even if redundant in the DfgGraph (might be used externally)
     bool keep() const {
@@ -224,7 +227,7 @@ public:
     uint32_t driverIndex(size_t idx) const { return m_driverData[idx].second; }
 
     DfgVertex* driverAt(size_t idx) const {
-        const DfgEdge* const edgep = findSourceEdge([=](const DfgEdge&, size_t i) {  //
+        const DfgEdge* const edgep = findSourceEdge([this, idx](const DfgEdge&, size_t i) {  //
             return driverIndex(i) == idx;
         });
         return edgep ? edgep->sourcep() : nullptr;
@@ -245,7 +248,9 @@ public:
         : DfgVertexVar{dfg, dfgType(), varp, 1u} {}
     ASTGEN_MEMBERS_DfgVarPacked;
 
-    bool isDrivenFullyByDfg() const { return arity() == 1 && source(0)->dtypep() == dtypep(); }
+    bool isDrivenFullyByDfg() const {
+        return arity() == 1 && source(0)->dtypep() == dtypep() && !varp()->isForceable();
+    }
 
     void addDriver(FileLine* flp, uint32_t lsb, DfgVertex* vtxp) {
         m_driverData.emplace_back(flp, lsb);

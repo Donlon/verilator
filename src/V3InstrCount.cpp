@@ -7,7 +7,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -30,11 +30,10 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 /// whichever is larger. We know we won't run both.
 
 class InstrCountVisitor final : public VNVisitorConst {
-private:
     // NODE STATE
-    //  AstNode::user4()        -> int.  Path cost + 1, 0 means don't dump
-    //  AstNode::user5()        -> bool. Processed if assertNoDups
-    const VNUser4InUse m_inuser4;
+    //  AstNode::user1()        -> bool. Processed if assertNoDups
+    //  AstNode::user2()        -> int.  Path cost + 1, 0 means don't dump
+    const VNUser2InUse m_inuser2;
 
     // MEMBERS
     uint32_t m_instrCount = 0;  // Running count of instructions
@@ -48,7 +47,6 @@ private:
     // TYPES
     // Little class to cleanly call startVisitBase/endVisitBase
     class VisitBase final {
-    private:
         // MEMBERS
         uint32_t m_savedCount;
         AstNode* const m_nodep;
@@ -73,7 +71,7 @@ public:
         : m_startNodep{nodep}
         , m_assertNoDups{assertNoDups}
         , m_osp{osp} {
-        if (nodep) iterateConst(nodep);
+        iterateConstNull(nodep);
     }
     ~InstrCountVisitor() override = default;
 
@@ -99,10 +97,10 @@ private:
             // (which at the V3Order stage represent verilog tasks, not to
             // the CFuncs that V3Order will generate.) So don't check for
             // collisions in CFuncs.
-            UASSERT_OBJ(!nodep->user5p(), nodep,
+            UASSERT_OBJ(!nodep->user1p(), nodep,
                         "Node originally inserted below logic vertex "
-                            << static_cast<AstNode*>(nodep->user5p()));
-            nodep->user5p(const_cast<void*>(reinterpret_cast<const void*>(m_startNodep)));
+                            << static_cast<AstNode*>(nodep->user1p()));
+            nodep->user1p(const_cast<void*>(reinterpret_cast<const void*>(m_startNodep)));
         }
 
         // Save the count, and add it back in during ~VisitBase This allows
@@ -118,7 +116,7 @@ private:
         if (!m_ignoreRemaining) m_instrCount += savedCount;
     }
     void markCost(AstNode* nodep) {
-        if (m_osp) nodep->user4(m_instrCount + 1);  // Else don't mark to avoid writeback
+        if (m_osp) nodep->user2(m_instrCount + 1);  // Else don't mark to avoid writeback
     }
 
     // VISITORS
@@ -146,11 +144,9 @@ private:
     }
     void visit(AstConcat* nodep) override {
         if (m_ignoreRemaining) return;
-        // Nop.
-        //
-        // Ignore concat. The problem with counting concat is that when we
-        // have many things concatted together, it's not a single
-        // operation, but this:
+        // Ignore the cost of the concat node itself. The problem with
+        // counting concat is that when we have many things concatted
+        // together, it's not a single operation, but this:
         //
         //  concat(a, concat(b, concat(c, concat(d, ... ))))
         //
@@ -162,7 +158,8 @@ private:
         // cost is linear with the size of the data. We don't need to count
         // the concat at all to reflect a linear cost; it's already there
         // in the width of the destination (which we count) and the sum of
-        // the widths of the operands (ignored here).
+        // the cost of the operands.
+        iterateChildrenConst(nodep);
         markCost(nodep);
     }
     void visit(AstNodeIf* nodep) override {
@@ -186,10 +183,10 @@ private:
         reset();
         if (ifCount >= elseCount) {
             m_instrCount = savedCount + ifCount;
-            if (nodep->elsesp()) nodep->elsesp()->user4(0);  // Don't dump it
+            if (nodep->elsesp()) nodep->elsesp()->user2(0);  // Don't dump it
         } else {
             m_instrCount = savedCount + elseCount;
-            if (nodep->thensp()) nodep->thensp()->user4(0);  // Don't dump it
+            if (nodep->thensp()) nodep->thensp()->user2(0);  // Don't dump it
         }
     }
     void visit(AstNodeCond* nodep) override {
@@ -211,12 +208,12 @@ private:
         const uint32_t elseCount = m_instrCount;
 
         reset();
-        if (ifCount < elseCount) {
-            m_instrCount = savedCount + elseCount;
-            if (nodep->thenp()) nodep->thenp()->user4(0);  // Don't dump it
-        } else {
+        if (ifCount >= elseCount) {
             m_instrCount = savedCount + ifCount;
-            if (nodep->elsep()) nodep->elsep()->user4(0);  // Don't dump it
+            if (nodep->elsep()) nodep->elsep()->user2(0);  // Don't dump it
+        } else {
+            m_instrCount = savedCount + elseCount;
+            if (nodep->thenp()) nodep->thenp()->user2(0);  // Don't dump it
         }
     }
     void visit(AstCAwait* nodep) override {
@@ -288,9 +285,8 @@ private:
 
 // Iterate the graph printing the critical path marked by previous visitation
 class InstrCountDumpVisitor final : public VNVisitorConst {
-private:
     // NODE STATE
-    //  AstNode::user4()        -> int.  Path cost, 0 means don't dump
+    //  AstNode::user2()        -> int.  Path cost, 0 means don't dump
 
     // MEMBERS
     std::ostream* const m_osp;  // Dump file
@@ -311,7 +307,7 @@ private:
     string indent() const { return string(m_depth, ':') + " "; }
     void visit(AstNode* nodep) override {
         ++m_depth;
-        if (unsigned costPlus1 = nodep->user4()) {
+        if (unsigned costPlus1 = nodep->user2()) {
             *m_osp << "  " << indent() << "cost " << std::setw(6) << std::left << (costPlus1 - 1)
                    << "  " << nodep << '\n';
             iterateChildrenConst(nodep);

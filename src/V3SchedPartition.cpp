@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -155,10 +155,9 @@ class SchedGraphBuilder final : public VNVisitor {
             // rst), so we use a hash map to get the unique SchedSenVertex. (Note: This creates
             // separate vertices for ET_CHANGED and ET_HYBRID over the same expression, but that is
             // OK for now).
-            auto it = m_senVertices.find(*senItemp);
-
+            const auto pair = m_senVertices.emplace(*senItemp, nullptr);
             // If it does not exist, create it
-            if (it == m_senVertices.end()) {
+            if (pair.second) {
                 // Create the vertex
                 SchedSenVertex* const vtxp = new SchedSenVertex{m_graphp, senItemp};
 
@@ -168,11 +167,11 @@ class SchedGraphBuilder final : public VNVisitor {
                 });
 
                 // Store back to hash map so we can find it next time
-                it = m_senVertices.emplace(*senItemp, vtxp).first;
+                pair.first->second = vtxp;
             }
 
             // Cache sensitivity vertex
-            senItemp->user1p(it->second);
+            senItemp->user1p(pair.first->second);
         }
         return senItemp->user1u().to<SchedSenVertex*>();
     }
@@ -185,8 +184,7 @@ class SchedGraphBuilder final : public VNVisitor {
 
         // Clocked or hybrid logic has explicit sensitivity, so add edge from sensitivity vertex
         if (!m_senTreep->hasCombo()) {
-            m_senTreep->foreach([=](AstSenItem* senItemp) {
-                if (senItemp->isIllegal()) return;
+            m_senTreep->foreach([this, nodep, logicVtxp](AstSenItem* senItemp) {
                 UASSERT_OBJ(senItemp->isClocked() || senItemp->isHybrid(), nodep,
                             "Non-clocked SenItem under clocked SenTree");
                 V3GraphVertex* const eventVtxp = getSenVertex(senItemp);
@@ -195,7 +193,7 @@ class SchedGraphBuilder final : public VNVisitor {
         }
 
         // Add edges based on references
-        nodep->foreach([=](const AstVarRef* vrefp) {
+        nodep->foreach([this, logicVtxp](const AstVarRef* vrefp) {
             AstVarScope* const vscp = vrefp->varScopep();
             if (vrefp->access().isReadOrRW() && m_readTriggersThisLogic(vscp)) {
                 new V3GraphEdge{m_graphp, getVarVertex(vscp), logicVtxp, 10};
@@ -207,7 +205,7 @@ class SchedGraphBuilder final : public VNVisitor {
 
         // If the logic calls a 'context' DPI import, it might fire the DPI Export trigger
         if (m_dpiExportTriggerp) {
-            nodep->foreach([=](const AstCCall* callp) {
+            nodep->foreach([this, logicVtxp](const AstCCall* callp) {
                 if (!callp->funcp()->dpiImportWrapper()) return;
                 if (!callp->funcp()->dpiContext()) return;
                 new V3GraphEdge{m_graphp, logicVtxp, getVarVertex(m_dpiExportTriggerp), 10};

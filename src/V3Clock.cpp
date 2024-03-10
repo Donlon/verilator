@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -39,7 +39,6 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 // Convert every WRITE AstVarRef to a READ ref
 
 class ConvertWriteRefsToRead final : public VNVisitor {
-private:
     // MEMBERS
     AstNodeExpr* m_result = nullptr;
 
@@ -67,7 +66,9 @@ public:
 // Clock state, as a visitor of each AstNode
 
 class ClockVisitor final : public VNVisitor {
-private:
+    // NODE STATE
+    // ???
+    const VNUser1InUse m_user1InUse;
     // STATE
     AstCFunc* m_evalp = nullptr;  // The '_eval' function
     AstScope* m_scopep = nullptr;  // Current scope
@@ -124,8 +125,15 @@ private:
         AstNodeExpr* const origp = nodep->origp()->unlinkFrBack();
         AstNodeExpr* const changeWrp = nodep->changep()->unlinkFrBack();
         AstNodeExpr* const changeRdp = ConvertWriteRefsToRead::main(changeWrp->cloneTree(false));
-        AstIf* const newp
-            = new AstIf{nodep->fileline(), new AstXor{nodep->fileline(), origp, changeRdp}, incp};
+        AstNodeExpr* comparedp = nullptr;
+        // Xor will optimize better than Eq, when CoverToggle has bit selects,
+        // but can only use Xor with non-opaque types
+        if (const AstBasicDType* const bdtypep
+            = VN_CAST(origp->dtypep()->skipRefp(), BasicDType)) {
+            if (!bdtypep->isOpaque()) comparedp = new AstXor{nodep->fileline(), origp, changeRdp};
+        }
+        if (!comparedp) comparedp = AstEq::newTyped(nodep->fileline(), origp, changeRdp);
+        AstIf* const newp = new AstIf{nodep->fileline(), comparedp, incp};
         // We could add another IF to detect posedges, and only increment if so.
         // It's another whole branch though versus a potential memory miss.
         // We'll go with the miss.
@@ -219,5 +227,5 @@ public:
 void V3Clock::clockAll(AstNetlist* nodep) {
     UINFO(2, __FUNCTION__ << ": " << endl);
     { ClockVisitor{nodep}; }  // Destruct before checking
-    V3Global::dumpCheckGlobalTree("clock", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("clock", 0, dumpTreeEitherLevel() >= 3);
 }

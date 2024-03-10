@@ -24,12 +24,10 @@
 #include "Vtop.h"
 
 using namespace sc_core;
+using namespace sc_dt;
 
 int sc_main(int argc, char* argv[]) {
     // This is a more complicated example, please also see the simpler examples/make_hello_c.
-
-    // Prevent unused variable warnings
-    if (false && argc && argv) {}
 
     // Create logs/ directory in case we have traces to put under it
     Verilated::mkdir("logs");
@@ -52,7 +50,7 @@ int sc_main(int argc, char* argv[]) {
     Verilated::commandArgs(argc, argv);
 
     // General logfile
-    ios::sync_with_stdio();
+    std::ios::sync_with_stdio();
 
     // Define clocks
     sc_clock clk{"clk", 10, SC_NS, 0.5, 3, SC_NS, true};

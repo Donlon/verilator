@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -32,8 +32,7 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 //######################################################################
 // Find all split variables in a block
 
-class SplitAsFindVisitor final : public VNVisitor {
-private:
+class SplitAsFindVisitor final : public VNVisitorConst {
     // STATE - across all visitors
     AstVarScope* m_splitVscp = nullptr;  // Variable we want to split
 
@@ -49,11 +48,11 @@ private:
         // This will break if the m_splitVscp is a "ref" argument to the function,
         // but little we can do.
     }
-    void visit(AstNode* nodep) override { iterateChildren(nodep); }
+    void visit(AstNode* nodep) override { iterateChildrenConst(nodep); }
 
 public:
     // CONSTRUCTORS
-    explicit SplitAsFindVisitor(AstAlways* nodep) { iterate(nodep); }
+    explicit SplitAsFindVisitor(AstAlways* nodep) { iterateConst(nodep); }
     ~SplitAsFindVisitor() override = default;
     // METHODS
     AstVarScope* splitVscp() const { return m_splitVscp; }
@@ -63,7 +62,6 @@ public:
 // Remove nodes not containing proper references
 
 class SplitAsCleanVisitor final : public VNVisitor {
-private:
     // STATE - across all visitors
     const AstVarScope* const m_splitVscp;  // Variable we want to split
     const bool m_modeMatch;  // Remove matching Vscp, else non-matching
@@ -125,7 +123,6 @@ public:
 // SplitAs class functions
 
 class SplitAsVisitor final : public VNVisitor {
-private:
     // NODE STATE
     //  AstAlways::user()       -> bool.  True if already processed
     const VNUser1InUse m_inuser1;
@@ -165,11 +162,10 @@ private:
             if (splitVscp) {
                 UINFO(3, "Split  " << nodep << endl);
                 UINFO(3, "   For " << splitVscp << endl);
-                if (splitVscp == lastSplitVscp) {
-                    // We did this last time!  Something's stuck!
-                    nodep->v3fatalSrc("Infinite loop in isolate_assignments removal for: "
-                                      << splitVscp->prettyNameQ());
-                }
+                // If we did this last time!  Something's stuck!
+                UASSERT_OBJ(splitVscp != lastSplitVscp, nodep,
+                            "Infinite loop in isolate_assignments removal for: "
+                                << splitVscp->prettyNameQ());
                 lastSplitVscp = splitVscp;
                 splitAlways(nodep, splitVscp);
                 ++m_statSplits;
@@ -196,5 +192,5 @@ public:
 void V3SplitAs::splitAsAll(AstNetlist* nodep) {
     UINFO(2, __FUNCTION__ << ": " << endl);
     { SplitAsVisitor{nodep}; }  // Destruct before checking
-    V3Global::dumpCheckGlobalTree("splitas", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("splitas", 0, dumpTreeEitherLevel() >= 3);
 }

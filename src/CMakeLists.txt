@@ -4,7 +4,7 @@
 #
 #*****************************************************************************
 #
-# Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+# Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 # can redistribute it and/or modify it under the terms of either the GNU
 # Lesser General Public License Version 3 or the Perl Artistic License
 # Version 2.0.
@@ -35,7 +35,6 @@ set(HEADERS
     V3Assert.h
     V3AssertPre.h
     V3Ast.h
-    V3AstConstOnly.h
     V3AstInlines.h
     V3AstNodeDType.h
     V3AstNodeExpr.h
@@ -63,8 +62,10 @@ set(HEADERS
     V3DepthBlock.h
     V3Descope.h
     V3Dfg.h
+    V3DfgCache.h
     V3DfgOptimizer.h
     V3DfgPasses.h
+    V3DfgPatternStats.h
     V3DfgPeephole.h
     V3DfgVertices.h
     V3DupFinder.h
@@ -120,8 +121,9 @@ set(HEADERS
     V3OptionParser.h
     V3Options.h
     V3Order.h
+    V3OrderInternal.h
     V3OrderGraph.h
-    V3OrderMoveGraph.h
+    V3OrderMoveGraphBuilder.h
     V3Os.h
     V3PairingHeap.h
     V3Param.h
@@ -132,6 +134,7 @@ set(HEADERS
     V3PartitionGraph.h
     V3PchAstMT.h
     V3PchAstNoMT.h
+    V3PreExpr.h
     V3PreLex.h
     V3PreProc.h
     V3PreShell.h
@@ -150,6 +153,7 @@ set(HEADERS
     V3Split.h
     V3SplitAs.h
     V3SplitVar.h
+    V3StackCount.h
     V3Stats.h
     V3StdFuture.h
     V3String.h
@@ -212,11 +216,13 @@ set(COMMON_SOURCES
     V3Descope.cpp
     V3Dfg.cpp
     V3DfgAstToDfg.cpp
+    V3DfgCache.cpp
     V3DfgDecomposition.cpp
     V3DfgDfgToAst.cpp
     V3DfgOptimizer.cpp
     V3DfgPasses.cpp
     V3DfgPeephole.cpp
+    V3DfgRegularize.cpp
     V3DupFinder.cpp
     V3Timing.cpp
     V3EmitCBase.cpp
@@ -228,6 +234,7 @@ set(COMMON_SOURCES
     V3EmitCMain.cpp
     V3EmitCMake.cpp
     V3EmitCModel.cpp
+    V3EmitCPch.cpp
     V3EmitCSyms.cpp
     V3EmitMk.cpp
     V3EmitV.cpp
@@ -258,8 +265,8 @@ set(COMMON_SOURCES
     V3LinkDot.cpp
     V3LinkInc.cpp
     V3LinkJump.cpp
-    V3LinkLevel.cpp
     V3LinkLValue.cpp
+    V3LinkLevel.cpp
     V3LinkParse.cpp
     V3LinkResolve.cpp
     V3Localize.cpp
@@ -269,6 +276,10 @@ set(COMMON_SOURCES
     V3OptionParser.cpp
     V3Options.cpp
     V3Order.cpp
+    V3OrderGraphBuilder.cpp
+    V3OrderParallel.cpp
+    V3OrderProcessDomains.cpp
+    V3OrderSerial.cpp
     V3Os.cpp
     V3Param.cpp
     V3Partition.cpp
@@ -282,12 +293,14 @@ set(COMMON_SOURCES
     V3SchedPartition.cpp
     V3SchedReplicate.cpp
     V3SchedTiming.cpp
+    V3SchedVirtIface.cpp
     V3Scope.cpp
     V3Scoreboard.cpp
     V3Slice.cpp
     V3Split.cpp
     V3SplitAs.cpp
     V3SplitVar.cpp
+    V3StackCount.cpp
     V3Stats.cpp
     V3StatsReport.cpp
     V3String.cpp
@@ -466,7 +479,7 @@ set_target_properties(${verilator} PROPERTIES
     #UNITY_BUILD $<IF:$<CONFIG:DEBUG>,FALSE,${CMAKE_UNITY_BUILD}>
     MSVC_RUNTIME_LIBRARY  MultiThreaded$<IF:$<CONFIG:Release>,,DebugDLL>
     #JOB_POOL_LINK         one_job      # Linking takes lots of resources
-    INTERPROCEDURAL_OPTIMIZATION_RELEASE  TRUE
+    INTERPROCEDURAL_OPTIMIZATION_RELEASE  $<IF:MINGW,FALSE,TRUE>
 )
 
 add_dependencies(${verilator}
@@ -501,13 +514,19 @@ target_include_directories(${verilator}
 )
 
 if (WIN32)
-    target_compile_options(${verilator} PRIVATE /bigobj)
+    if(MINGW)
+        target_compile_options(${verilator} PRIVATE -Wa,-mbig-obj)
+        target_link_options(${verilator} PRIVATE -Wl,--stack,10000000 -mconsole -lcomctl32 -DWIN_32_LEAN_AND_MEAN)
+    else()
+        target_compile_options(${verilator} PRIVATE /bigobj)
+        target_link_options(${verilator} PRIVATE /STACK:10000000)
+    endif()
+
     target_compile_definitions(${verilator} PRIVATE
         YY_NO_UNISTD_H
     )
     target_include_directories(${verilator} PRIVATE ../platform/win32)
     target_link_libraries(${verilator} PRIVATE bcrypt psapi)
-    target_link_options(${verilator} PRIVATE /STACK:10000000)
 endif()
 
 install(TARGETS ${verilator})

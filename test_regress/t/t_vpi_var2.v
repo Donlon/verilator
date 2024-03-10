@@ -23,8 +23,10 @@ module t
 /* verilator public_off */
 )
 (/*AUTOARG*/
+   // Outputs
+   x,
    // Inputs
-   clk
+   clk, a
    );
 
 `ifdef VERILATOR
@@ -34,6 +36,10 @@ extern "C" int mon_check();
 `endif
 
    input clk;
+
+   input [7:0] a /* verilator public_flat_rw */;
+   output reg [7:0] x /* verilator public_flat_rw */;
+
 /*verilator public_flat_rw_on @(posedge clk)*/
    reg          onebit;
    reg [2:1]    twoone;
@@ -60,6 +66,11 @@ extern "C" int mon_check();
 /*verilator public_off*/
    integer        status;
 
+/*verilator public_flat_rw_on*/
+   real           real1;
+   string         str1;
+/*verilator public_off*/
+
    sub sub();
 
    // Test loop
@@ -72,6 +83,10 @@ extern "C" int mon_check();
       text_word = "Word";
       text_long = "Long64b";
       text = "Verilog Test module";
+
+      real1 = 1.0;
+      str1 = "hello";
+
 `ifdef VERILATOR
       status = $c32("mon_check()");
 `endif
@@ -94,6 +109,8 @@ extern "C" int mon_check();
       if (text_word != "Tree") $stop;
       if (text_long != "44Four44") $stop;
       if (text != "lorem ipsum") $stop;
+      if (str1 != "something a lot longer than hello") $stop;
+      if (real1 > 123456.7895 || real1 < 123456.7885 ) $stop;
    end
 
    always @(posedge clk) begin

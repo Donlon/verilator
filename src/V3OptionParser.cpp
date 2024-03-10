@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -26,7 +26,7 @@
 
 //######################################################################
 // V3OptionParser::Impl
-struct V3OptionParser::Impl {
+struct V3OptionParser::Impl final {
     // TYPES
 
     // Setting for isOnOffAllowed() and isPartialMatchAllowed()
@@ -145,9 +145,7 @@ V3OptionParser::ActionIfs* V3OptionParser::find(const char* optp) {
         if (act.second->isOnOffAllowed()) {  // Find starts with "-no"
             if (const char* const nop
                 = VString::startsWith(optp, "-no") ? (optp + std::strlen("-no")) : nullptr) {
-                if (act.first == nop || act.first == (std::string{"-"} + nop)) {
-                    return act.second.get();
-                }
+                if (act.first == nop || act.first == ("-"s + nop)) { return act.second.get(); }
             }
         } else if (act.second->isPartialMatchAllowed()) {
             if (VString::startsWith(optp, act.first)) return act.second.get();

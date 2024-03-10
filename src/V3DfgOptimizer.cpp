@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -95,7 +95,7 @@ class DataflowExtractVisitor final : public VNVisitor {
     // VISIT methods
 
     void visit(AstNetlist* nodep) override {
-        // Analyse the whole design
+        // Analyze the whole design
         iterateChildrenConst(nodep);
 
         // Replace candidate expressions only reading combinationally driven signals with variables
@@ -233,14 +233,14 @@ void V3DfgOptimizer::extract(AstNetlist* netlistp) {
     UINFO(2, __FUNCTION__ << ": " << endl);
     // Extract more optimization candidates
     DataflowExtractVisitor::apply(netlistp);
-    V3Global::dumpCheckGlobalTree("dfg-extract", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("dfg-extract", 0, dumpTreeEitherLevel() >= 3);
 }
 
 void V3DfgOptimizer::optimize(AstNetlist* netlistp, const string& label) {
     UINFO(2, __FUNCTION__ << ": " << endl);
 
     // NODE STATE
-    // AstVar::user1 -> Used by V3DfgPasses::astToDfg and DfgPassed::dfgToAst
+    // AstVar::user1 -> Used by V3DfgPasses::astToDfg, V3DfgPasses::eliminateVars
     // AstVar::user2 -> bool: Flag indicating referenced by AstVarXRef (set just below)
     // AstVar::user3 -> bool: Flag indicating written by logic not representable as DFG
     //                        (set by V3DfgPasses::astToDfg)
@@ -278,14 +278,6 @@ void V3DfgOptimizer::optimize(AstNetlist* netlistp, const string& label) {
         // Quick sanity check
         UASSERT_OBJ(dfg->size() == 0, nodep, "DfgGraph should have become empty");
 
-        // For each cyclic component
-        for (auto& component : cyclicComponents) {
-            if (dumpDfgLevel() >= 7) component->dumpDotFilePrefixed(ctx.prefix() + "source");
-            // TODO: Apply optimizations safe for cyclic graphs
-            // Add back under the main DFG (we will convert everything back in one go)
-            dfg->addGraph(*component);
-        }
-
         // For each acyclic component
         for (auto& component : acyclicComponents) {
             if (dumpDfgLevel() >= 7) component->dumpDotFilePrefixed(ctx.prefix() + "source");
@@ -295,10 +287,24 @@ void V3DfgOptimizer::optimize(AstNetlist* netlistp, const string& label) {
             dfg->addGraph(*component);
         }
 
+        // Eliminate redundant variables. Run this on the whole acyclic DFG. It needs to traverse
+        // the module to perform variable substitutions. Doing this by component would do
+        // redundant traversals and can be extremely slow in large modules with many components.
+        V3DfgPasses::eliminateVars(*dfg, ctx.m_eliminateVarsContext);
+
+        // For each cyclic component
+        for (auto& component : cyclicComponents) {
+            if (dumpDfgLevel() >= 7) component->dumpDotFilePrefixed(ctx.prefix() + "source");
+            // TODO: Apply optimizations safe for cyclic graphs
+            // Add back under the main DFG (we will convert everything back in one go)
+            dfg->addGraph(*component);
+        }
+
         // Convert back to Ast
         if (dumpDfgLevel() >= 8) dfg->dumpDotFilePrefixed(ctx.prefix() + "whole-optimized");
         AstModule* const resultModp = V3DfgPasses::dfgToAst(*dfg, ctx);
         UASSERT_OBJ(resultModp == modp, modp, "Should be the same module");
     }
-    V3Global::dumpCheckGlobalTree("dfg-optimize", 0, dumpTreeLevel() >= 3);
+
+    V3Global::dumpCheckGlobalTree("dfg-optimize", 0, dumpTreeEitherLevel() >= 3);
 }

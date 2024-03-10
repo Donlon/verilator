@@ -3,7 +3,7 @@
 //
 // Code available from: https://verilator.org
 //
-// Copyright 2012-2023 by Wilson Snyder. This program is free software; you can
+// Copyright 2012-2024 by Wilson Snyder. This program is free software; you can
 // redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -106,7 +106,7 @@ VerilatedVirtualBase* VlExecutionProfiler::construct(VerilatedContext& context) 
     if (VlThreadPool* const threadPoolp = static_cast<VlThreadPool*>(context.threadPoolp())) {
         for (int i = 0; i < threadPoolp->numThreads(); ++i) {
             // Data to pass to worker thread initialization
-            struct Data {
+            struct Data final {
                 VlExecutionProfiler* const selfp;
                 const uint32_t threadId;
             } data{selfp, static_cast<uint32_t>(i + 1)};
@@ -161,12 +161,18 @@ void VlExecutionProfiler::dump(const char* filenamep, uint64_t tickEnd)
 
     // TODO Perhaps merge with verilated_coverage output format, so can
     // have a common merging and reporting tool, etc.
-    fprintf(fp, "VLPROFVERSION 2.0 # Verilator execution profile version 2.0\n");
+    fprintf(fp, "VLPROFVERSION 2.1 # Verilator execution profile version 2.1\n");
     fprintf(fp, "VLPROF arg +verilator+prof+exec+start+%" PRIu64 "\n",
             Verilated::threadContextp()->profExecStart());
     fprintf(fp, "VLPROF arg +verilator+prof+exec+window+%u\n",
             Verilated::threadContextp()->profExecWindow());
-    const unsigned threads = static_cast<unsigned>(m_traceps.size());
+    // Note that VerilatedContext will by default create as many threads as there are hardware
+    // processors, but not all of them might be utilized. Report the actual number that has trace
+    // entries to avoid over-counting.
+    unsigned threads = 0;
+    for (const auto& pair : m_traceps) {
+        if (!pair.second->empty()) ++threads;
+    }
     fprintf(fp, "VLPROF stat threads %u\n", threads);
     fprintf(fp, "VLPROF stat yields %" PRIu64 "\n", VlMTaskVertex::yields());
 
@@ -183,6 +189,7 @@ void VlExecutionProfiler::dump(const char* filenamep, uint64_t tickEnd)
     for (const auto& pair : m_traceps) {
         const uint32_t threadId = pair.first;
         ExecutionTrace* const tracep = pair.second;
+        if (tracep->empty()) continue;
         fprintf(fp, "VLPROFTHREAD %" PRIu32 "\n", threadId);
 
         for (const VlExecutionRecord& er : *tracep) {
@@ -191,10 +198,9 @@ void VlExecutionProfiler::dump(const char* filenamep, uint64_t tickEnd)
             fprintf(fp, "VLPROFEXEC %s %" PRIu64, name, time);
 
             switch (er.m_type) {
-            case VlExecutionRecord::Type::EVAL_BEGIN:
-            case VlExecutionRecord::Type::EVAL_END:
-            case VlExecutionRecord::Type::EVAL_LOOP_BEGIN:
-            case VlExecutionRecord::Type::EVAL_LOOP_END:
+            case VlExecutionRecord::Type::SECTION_POP:
+            case VlExecutionRecord::Type::EXEC_GRAPH_BEGIN:
+            case VlExecutionRecord::Type::EXEC_GRAPH_END:
                 // No payload
                 fprintf(fp, "\n");
                 break;
@@ -207,6 +213,11 @@ void VlExecutionProfiler::dump(const char* filenamep, uint64_t tickEnd)
             case VlExecutionRecord::Type::MTASK_END: {
                 const auto& payload = er.m_payload.mtaskEnd;
                 fprintf(fp, " id %u predictCost %u\n", payload.m_id, payload.m_predictCost);
+                break;
+            }
+            case VlExecutionRecord::Type::SECTION_PUSH: {
+                const auto& payload = er.m_payload.sectionPush;
+                fprintf(fp, " %s\n", payload.m_name);
                 break;
             }
             default: abort();  // LCOV_EXCL_LINE

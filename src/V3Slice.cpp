@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -135,7 +135,7 @@ class SliceVisitor final : public VNVisitor {
                     const AstUnpackArrayDType* const itemDTypep
                         = VN_CAST(itemRawDTypep, UnpackArrayDType);
                     if (!itemDTypep
-                        || !expectedItemDTypep->same(itemDTypep->subDTypep()->skipRefp())) {
+                        || !expectedItemDTypep->isSame(itemDTypep->subDTypep()->skipRefp())) {
                         if (!m_assignError) {
                             itemp->v3error("Item is incompatible with the array type.");
                         }
@@ -148,7 +148,7 @@ class SliceVisitor final : public VNVisitor {
                         if (AstSliceSel* const slicep = VN_CAST(itemp, SliceSel)) {
                             offset += slicep->declRange().lo();
                             newp = new AstArraySel{nodep->fileline(),
-                                                   slicep->lhsp()->cloneTreePure(false), offset};
+                                                   slicep->fromp()->cloneTreePure(false), offset};
                         } else {
                             newp = new AstArraySel{nodep->fileline(), itemp->cloneTreePure(false),
                                                    offset};
@@ -335,5 +335,5 @@ public:
 void V3Slice::sliceAll(AstNetlist* nodep) {
     UINFO(2, __FUNCTION__ << ": " << endl);
     { SliceVisitor{nodep}; }  // Destruct before checking
-    V3Global::dumpCheckGlobalTree("slice", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("slice", 0, dumpTreeEitherLevel() >= 3);
 }

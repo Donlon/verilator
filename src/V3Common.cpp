@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -98,7 +98,7 @@ static void makeToString(AstClass* nodep) {
     funcp->isStatic(false);
     funcp->protect(false);
     AstCExpr* const exprp
-        = new AstCExpr{nodep->fileline(), R"(std::string{"'{"} + to_string_middle() + "}")", 0};
+        = new AstCExpr{nodep->fileline(), R"("'{"s + to_string_middle() + "}")", 0};
     exprp->dtypeSetString();
     funcp->addStmtsp(new AstCReturn{nodep->fileline(), exprp});
     nodep->addStmtsp(funcp);
@@ -172,5 +172,5 @@ void V3Common::commonAll() {
             if (!dtypep->packed()) makeVlToString(dtypep);
         }
     }
-    V3Global::dumpCheckGlobalTree("common", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("common", 0, dumpTreeEitherLevel() >= 3);
 }

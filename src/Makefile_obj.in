@@ -7,7 +7,7 @@
 #
 #*****************************************************************************
 #
-# Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+# Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 # can redistribute it and/or modify it under the terms of either the GNU
 # Lesser General Public License Version 3 or the Perl Artistic License
 # Version 2.0.
@@ -193,6 +193,7 @@ RAW_OBJS_PCH_ASTMT = \
 	V3EmitCHeaders.o \
 	V3EmitCImp.o \
 	V3EmitCInlines.o \
+	V3EmitCPch.o \
 	V3EmitV.o \
 	V3File.o \
 	V3Global.o \
@@ -227,11 +228,13 @@ RAW_OBJS_PCH_ASTNOMT = \
 	V3Descope.o \
 	V3Dfg.o \
 	V3DfgAstToDfg.o \
+	V3DfgCache.o \
 	V3DfgDecomposition.o \
 	V3DfgDfgToAst.o \
 	V3DfgOptimizer.o \
 	V3DfgPasses.o \
 	V3DfgPeephole.o \
+	V3DfgRegularize.o \
 	V3DupFinder.o \
 	V3EmitCMain.o \
 	V3EmitCMake.o \
@@ -262,6 +265,10 @@ RAW_OBJS_PCH_ASTNOMT = \
 	V3MergeCond.o \
 	V3Name.o \
 	V3Order.o \
+	V3OrderGraphBuilder.o \
+	V3OrderParallel.o \
+	V3OrderProcessDomains.o \
+	V3OrderSerial.o \
 	V3Param.o \
 	V3Partition.o \
 	V3Premit.o \
@@ -273,12 +280,14 @@ RAW_OBJS_PCH_ASTNOMT = \
 	V3SchedPartition.o \
 	V3SchedReplicate.o \
 	V3SchedTiming.o \
+	V3SchedVirtIface.o \
 	V3Scope.o \
 	V3Scoreboard.o \
 	V3Slice.o \
 	V3Split.o \
 	V3SplitAs.o \
 	V3SplitVar.o \
+	V3StackCount.o \
 	V3Subst.o \
 	V3TSP.o \
 	V3Table.o \

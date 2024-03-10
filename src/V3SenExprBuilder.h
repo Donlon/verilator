@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -91,13 +91,13 @@ class SenExprBuilder final {
     }
     AstVarScope* getPrev(AstNodeExpr* exprp) {
         FileLine* const flp = exprp->fileline();
-        const auto rdCurr = [=]() { return getCurr(exprp); };
+        const auto rdCurr = [this, exprp]() { return getCurr(exprp); };
 
         AstNode* scopeExprp = exprp;
         if (AstVarRef* const refp = VN_CAST(exprp, VarRef)) scopeExprp = refp->varScopep();
         // Create the 'previous value' variable
-        auto it = m_prev.find(*scopeExprp);
-        if (it == m_prev.end()) {
+        const auto pair = m_prev.emplace(*scopeExprp, nullptr);
+        if (pair.second) {
             AstVarScope* prevp;
             if (m_scopep->isTop()) {
                 // For readability, use the scoped signal name if the trigger is a simple AstVarRef
@@ -118,7 +118,7 @@ class SenExprBuilder final {
                 prevp = new AstVarScope{flp, m_scopep, varp};
                 m_scopep->addVarsp(prevp);
             }
-            it = m_prev.emplace(*scopeExprp, prevp).first;
+            pair.first->second = prevp;
 
             // Add the initializer init
             AstAssign* const initp = new AstAssign{flp, new AstVarRef{flp, prevp, VAccess::WRITE},
@@ -126,7 +126,7 @@ class SenExprBuilder final {
             m_inits.push_back(initp);
         }
 
-        AstVarScope* const prevp = it->second;
+        AstVarScope* const prevp = pair.first->second;
 
         const auto wrPrev = [=]() { return new AstVarRef{flp, prevp, VAccess::WRITE}; };
 
@@ -139,7 +139,8 @@ class SenExprBuilder final {
                 return prevp;
             }
 
-            if (AstUnpackArrayDType* const dtypep = VN_CAST(exprp->dtypep(), UnpackArrayDType)) {
+            if (AstUnpackArrayDType* const dtypep
+                = VN_CAST(exprp->dtypep()->skipRefp(), UnpackArrayDType)) {
                 AstCMethodHard* const cmhp = new AstCMethodHard{flp, wrPrev(), "assign", rdCurr()};
                 cmhp->dtypeSetVoid();
                 m_postUpdates.push_back(cmhp->makeStmt());
@@ -155,17 +156,17 @@ class SenExprBuilder final {
         FileLine* const flp = senItemp->fileline();
         AstNodeExpr* const senp = senItemp->sensp();
 
-        const auto currp = [=]() { return getCurr(senp); };
-        const auto prevp = [=]() { return new AstVarRef{flp, getPrev(senp), VAccess::READ}; };
+        const auto currp = [this, senp]() { return getCurr(senp); };
+        const auto prevp = [this, flp, senp]() {
+            return new AstVarRef{flp, getPrev(senp), VAccess::READ};
+        };
         const auto lsb = [=](AstNodeExpr* opp) { return new AstSel{flp, opp, 0, 1}; };
 
         // All event signals should be 1-bit at this point
         switch (senItemp->edgeType()) {
-        case VEdgeType::ET_ILLEGAL:
-            return {nullptr, false};  // We already warn for this in V3LinkResolve
         case VEdgeType::ET_CHANGED:
         case VEdgeType::ET_HYBRID:  //
-            if (VN_IS(senp->dtypep(), UnpackArrayDType)) {
+            if (VN_IS(senp->dtypep()->skipRefp(), UnpackArrayDType)) {
                 AstCMethodHard* const resultp = new AstCMethodHard{flp, currp(), "neq", prevp()};
                 resultp->dtypeSetBit();
                 return {resultp, true};
@@ -223,7 +224,9 @@ public:
         for (AstSenItem* senItemp = senTreep->sensesp(); senItemp;
              senItemp = VN_AS(senItemp->nextp(), SenItem)) {
             const auto& pair = createTerm(senItemp);
-            if (AstNodeExpr* const termp = pair.first) {
+            if (AstNodeExpr* termp = pair.first) {
+                AstNodeExpr* const condp = senItemp->condp();
+                if (condp) termp = new AstAnd{flp, condp->cloneTreePure(false), termp};
                 resultp = resultp ? new AstOr{flp, resultp, termp} : termp;
                 firedAtInitialization |= pair.second;
             }
