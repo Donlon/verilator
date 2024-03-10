@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 ######################################################################
 #
-# Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+# Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 # can redistribute it and/or modify it under the terms of either the GNU
 # Lesser General Public License Version 3 or the Perl Artistic License
 # Version 2.0.
@@ -177,18 +177,18 @@ L<https://verilator.org/guide/latest/exe_verilator_coverage.html>.
     --write <filename>            Write aggregate coverage results.
     --write-info <filename.info>  Write lcov .info.
 
-    +libext+I<ext>+I<ext>...      Extensions for Verilog files.
-    +define+I<var>+I<value>       Defines the given variable.
-    -DI<var>=I<value>             Defines the given variable.
-    +incdir+I<dir>                Add directory for finding include files.
-    -II<dir>                      Add directory for finding include files.
-    -y I<dir>                     Specifies module search directory.
+    +libext+<ext>+<ext>...        Extensions for Verilog files.
+    +define+<var>+<value>         Defines the given variable.
+    -D<var>=<value>               Defines the given variable.
+    +incdir+<dir>                 Add directory for finding include files.
+    -I<dir>                       Add directory for finding include files.
+    -y <dir>                      Specifies module search directory.
 
 =head1 DISTRIBUTION
 
 The latest version is available from L<https://verilator.org>.
 
-Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 can redistribute it and/or modify the Verilator internals under the terms
 of either the GNU Lesser General Public License Version 3 or the Perl
 Artistic License Version 2.0.

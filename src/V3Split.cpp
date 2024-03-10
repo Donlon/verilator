@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -241,7 +241,6 @@ public:
 // Split class functions
 
 class SplitReorderBaseVisitor VL_NOT_FINAL : public VNVisitor {
-private:
     // NODE STATE
     // AstVarScope::user1p      -> Var SplitNodeVertex* for usage var, 0=not set yet
     // AstVarScope::user2p      -> Var SplitNodeVertex* for delayed assignment var, 0=not set yet
@@ -303,7 +302,7 @@ private:
     }
     void scoreboardPopStmt() {
         // UINFO(9, "    pop" << endl);
-        if (m_stmtStackps.empty()) v3fatalSrc("Stack underflow");
+        UASSERT(!m_stmtStackps.empty(), "Stack underflow");
         m_stmtStackps.pop_back();
     }
 
@@ -456,7 +455,7 @@ protected:
     void cleanupBlockGraph(AstNode* nodep) {
         // Transform the graph into what we need
         UINFO(5, "ReorderBlock " << nodep << endl);
-        m_graph.removeRedundantEdges(&V3GraphEdge::followAlwaysTrue);
+        m_graph.removeRedundantEdgesMax(&V3GraphEdge::followAlwaysTrue);
 
         if (dumpGraphLevel() >= 9) m_graph.dumpDotFilePrefixed("reorderg_nodup", false);
 
@@ -845,7 +844,6 @@ public:
 };
 
 class SplitVisitor final : public SplitReorderBaseVisitor {
-private:
     // Keys are original always blocks pending delete,
     // values are newly split always blocks pending insertion
     // at the same position as the originals:
@@ -893,7 +891,7 @@ protected:
     void colorAlwaysGraph() {
         // Color the graph to indicate subsets, each of which
         // we can split into its own always block.
-        m_graph.removeRedundantEdges(&V3GraphEdge::followAlwaysTrue);
+        m_graph.removeRedundantEdgesMax(&V3GraphEdge::followAlwaysTrue);
 
         // Some vars are primary inputs to the always block; prune
         // edges on those vars. Reasoning: if two statements both depend
@@ -1007,10 +1005,10 @@ private:
 void V3Split::splitReorderAll(AstNetlist* nodep) {
     UINFO(2, __FUNCTION__ << ": " << endl);
     { ReorderVisitor{nodep}; }  // Destruct before checking
-    V3Global::dumpCheckGlobalTree("reorder", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("reorder", 0, dumpTreeEitherLevel() >= 3);
 }
 void V3Split::splitAlwaysAll(AstNetlist* nodep) {
     UINFO(2, __FUNCTION__ << ": " << endl);
     { SplitVisitor{nodep}; }  // Destruct before checking
-    V3Global::dumpCheckGlobalTree("split", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("split", 0, dumpTreeEitherLevel() >= 3);
 }

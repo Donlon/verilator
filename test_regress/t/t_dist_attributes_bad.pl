@@ -13,14 +13,20 @@ use JSON::PP;
 use IO::File;
 
 scenarios(dist => 1);
+
+my $root = "..";
+
 if ($ENV{VERILATOR_TEST_NO_ATTRIBUTES}) {
     skip("Skipping due to VERILATOR_TEST_NO_ATTRIBUTES");
+} elsif (!-r "$root/.git") {
+    skip("Not in a git repository");
 } else {
     check();
 }
 
 sub gen_compile_commands_json {
     my $json = JSON::PP->new->utf8->pretty;
+    $json->canonical();  # Sort hash keys on ouptut
 
     my $root_dir = abs_path("..");
     my $srcs_dir = abs_path("./t/t_dist_attributes");

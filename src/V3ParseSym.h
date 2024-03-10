@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2009-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2009-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -91,7 +91,7 @@ public:
     void reinsert(AstNode* nodep, VSymEnt* parentp, string name) {
         if (!parentp) parentp = symCurrentp();
         if (name == "") {  // New name with space in name so can't collide with users
-            name = std::string{" anon"} + nodep->type().ascii() + cvtToStr(++s_anonNum);
+            name = " anon"s + nodep->type().ascii() + cvtToStr(++s_anonNum);
         }
         parentp->reinsert(name, findNewTable(nodep));
     }

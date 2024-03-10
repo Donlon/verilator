@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -40,12 +40,15 @@ struct LogicByScope;
 
 namespace V3Order {
 
+// Callable to add extra external Triggers to a variable
 using ExternalDomainsProvider = std::function<void(const AstVarScope*, std::vector<AstSenTree*>&)>;
+// Map from Trigger expression to original Sensitivity tree
+using TrigToSenMap = std::unordered_map<const AstSenItem*, const AstSenTree*>;
 
 AstCFunc* order(
     AstNetlist* netlistp,  //
     const std::vector<V3Sched::LogicByScope*>& logic,  //
-    const std::unordered_map<const AstSenItem*, const AstSenTree*>& trigToSen,
+    const TrigToSenMap& trigToSen,  //
     const string& tag,  //
     bool parallel,  //
     bool slow,  //

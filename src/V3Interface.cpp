@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -33,7 +33,6 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 // Track interface references under the Cell they reference
 
 class InlineIntfRefVisitor final : public VNVisitor {
-private:
     // NODE STATE
     //   AstVar::user1p()   // AstCell which this Var points to
     const VNUser1InUse m_inuser1;
@@ -114,5 +113,5 @@ void V3Interface::interfaceAll(AstNetlist* nodep) {
 
     { InlineIntfRefVisitor{nodep}; }
 
-    V3Global::dumpCheckGlobalTree("interface", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("interface", 0, dumpTreeEitherLevel() >= 3);
 }

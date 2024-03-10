@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2004-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2004-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -54,7 +54,7 @@ void V3Global::readFiles() {
     if (v3Global.opt.std()) {
         parser.parseFile(new FileLine{V3Options::getStdPackagePath()},
                          V3Options::getStdPackagePath(), false,
-                         "Cannot find verilated_std.sv containing built-in std:: definitions:");
+                         "Cannot find verilated_std.sv containing built-in std:: definitions: ");
     }
 
     // Read top module
@@ -106,16 +106,40 @@ string V3Global::digitsFilename(int number) {
 
 void V3Global::dumpCheckGlobalTree(const string& stagename, int newNumber, bool doDump) {
     const string treeFilename = v3Global.debugFilename(stagename + ".tree", newNumber);
-    v3Global.rootp()->dumpTreeFile(treeFilename, false, doDump);
+    v3Global.rootp()->dumpTreeFile(treeFilename, doDump);
     if (v3Global.opt.dumpTreeDot()) {
-        v3Global.rootp()->dumpTreeDotFile(treeFilename + ".dot", false, doDump);
+        v3Global.rootp()->dumpTreeDotFile(treeFilename + ".dot", doDump);
     }
     if (v3Global.opt.stats()) V3Stats::statsStage(stagename);
 }
 
+void V3Global::idPtrMapDumpJson(std::ostream& os) {
+    std::string sep = "\n  ";
+    os << "\"pointers\": {";
+    for (const auto& itr : m_ptrToId) {
+        os << sep << '"' << itr.second << "\": \"" << cvtToHex(itr.first) << '"';
+        sep = ",\n  ";
+    }
+    os << "\n }";
+}
+
+void V3Global::saveJsonPtrFieldName(const std::string& fieldName) {
+    m_jsonPtrNames.insert(fieldName);
+}
+
+void V3Global::ptrNamesDumpJson(std::ostream& os) {
+    std::string sep = "\n  ";
+    os << "\"ptrFieldNames\": [";
+    for (const auto& itr : m_jsonPtrNames) {
+        os << sep << '"' << itr << '"';
+        sep = ",\n  ";
+    }
+    os << "\n ]";
+}
+
 const std::string& V3Global::ptrToId(const void* p) {
-    auto it = m_ptrToId.find(p);
-    if (it == m_ptrToId.end()) {
+    const auto pair = m_ptrToId.emplace(p, "");
+    if (pair.second) {
         std::ostringstream os;
         if (p) {
             os << "(";
@@ -125,7 +149,7 @@ const std::string& V3Global::ptrToId(const void* p) {
         } else {
             os << "0";
         }
-        it = m_ptrToId.insert(std::make_pair(p, os.str())).first;
+        pair.first->second = os.str();
     }
-    return it->second;
+    return pair.first->second;
 }

@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -41,7 +41,6 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 //######################################################################
 
 class UnknownVisitor final : public VNVisitor {
-private:
     // NODE STATE
     // Cleared on Netlist
     //  AstSel::user()          -> bool.  Set true if already processed
@@ -472,7 +471,10 @@ private:
                 VL_DO_DANGLING(condp->deleteTree(), condp);
             } else if (!lvalue
                        // Making a scalar would break if we're making an array
-                       && !VN_IS(nodep->dtypep()->skipRefp(), NodeArrayDType)) {
+                       && !VN_IS(nodep->dtypep()->skipRefp(), NodeArrayDType)
+                       && !(VN_IS(nodep->dtypep()->skipRefp(), NodeUOrStructDType)
+                            && !VN_CAST(nodep->dtypep()->skipRefp(), NodeUOrStructDType)
+                                    ->packed())) {
                 // ARRAYSEL(...) -> COND(LT(bit<maxbit), ARRAYSEL(...), {width{1'bx}})
                 VNRelinker replaceHandle;
                 nodep->unlinkFrBack(&replaceHandle);
@@ -526,5 +528,5 @@ public:
 void V3Unknown::unknownAll(AstNetlist* nodep) {
     UINFO(2, __FUNCTION__ << ": " << endl);
     { UnknownVisitor{nodep}; }  // Destruct before checking
-    V3Global::dumpCheckGlobalTree("unknown", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("unknown", 0, dumpTreeEitherLevel() >= 3);
 }

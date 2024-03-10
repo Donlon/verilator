@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2005-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2005-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -37,8 +37,7 @@ class StatsReport final {
     std::ofstream& os;  ///< Output stream
     static StatColl s_allStats;  ///< All statistics
 
-    void sumit() {
-        os << '\n';
+    static void sumit() {
         // If sumit is set on a statistic, combine with others of same name
         std::multimap<std::string, V3Statistic*> byName;
         // * is always first
@@ -53,9 +52,10 @@ class StatsReport final {
             V3Statistic* repp = itr.second;
             if (lastp && lastp->sumit() && lastp->printit() && lastp->name() == repp->name()
                 && lastp->stage() == repp->stage()) {
-                repp->combineWith(lastp);
+                lastp->combineWith(repp);
+            } else {
+                lastp = repp;
             }
-            lastp = repp;
         }
     }
 
@@ -73,7 +73,7 @@ class StatsReport final {
         }
 
         // Print organized by stage
-        os << "Global Statistics:\n\n";
+        os << "\nGlobal Statistics:\n\n";
         for (const auto& itr : byName) {
             const V3Statistic* repp = itr.second;
             if (repp->perf()) continue;
@@ -81,10 +81,9 @@ class StatsReport final {
             repp->dump(os);
             os << '\n';
         }
-        os << '\n';
 
         // Print organized by stage
-        os << "Performance Statistics:\n\n";
+        os << "\nPerformance Statistics:\n\n";
         for (const auto& itr : byName) {
             const V3Statistic* repp = itr.second;
             if (!repp->perf()) continue;
@@ -181,11 +180,8 @@ StatsReport::StatColl StatsReport::s_allStats;
 // V3Statstic class
 
 void V3Statistic::dump(std::ofstream& os) const {
-    if (perf()) {
-        os << "  " << std::right << std::fixed << std::setprecision(6) << std::setw(9) << count();
-    } else {
-        os << "  " << std::right << std::fixed << std::setprecision(0) << std::setw(9) << count();
-    }
+    os << "  " << std::right << std::fixed << std::setprecision(precision()) << std::setw(9)
+       << value();
 }
 
 //######################################################################

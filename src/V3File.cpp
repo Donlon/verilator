@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -191,7 +191,7 @@ void V3FileDependImp::writeTimes(const string& filename, const string& cmdlineIn
         // Read stats of files we create after we're done making them
         // (except for this file, of course)
         DependFile* const dfp = const_cast<DependFile*>(&(*iter));
-        V3Options::fileNfsFlush(dfp->filename());
+        V3Os::filesystemFlush(dfp->filename());
         dfp->loadStats();
         off_t showSize = iter->size();
         ino_t showIno = iter->ino();
@@ -256,7 +256,7 @@ bool V3FileDependImp::checkTimes(const string& filename, const string& cmdlineIn
         *ifp >> quote;
         const string chkFilename = V3Os::getline(*ifp, '"');
 
-        V3Options::fileNfsFlush(chkFilename);
+        V3Os::filesystemFlush(chkFilename);
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
         struct stat chkStat;
         const int err = stat(chkFilename.c_str(), &chkStat);
@@ -361,7 +361,8 @@ private:
         return true;
     }
     bool readContentsFilter(const string& filename, StrList& outl) {
-        if (filename != "" || outl.empty()) {}  // Prevent unused
+        (void)filename;  // Prevent unused variable warning
+        (void)outl;  // Prevent unused variable warning
 #ifdef INFILTER_PIPE
         writeFilter("read \"" + filename + "\"\n");
         const string line = readFilterLine();
@@ -484,7 +485,7 @@ private:
         }
     }
     void startFilter(const string& command) {
-        if (command == "") {}  // Prevent Unused
+        (void)command;  // Prevent Unused variable warning
 #ifdef INFILTER_PIPE
         int fd_stdin[2];  // Can't use std::array
         int fd_stdout[2];  // Can't use std::array
@@ -605,7 +606,7 @@ VInFilter::~VInFilter() {
 }
 
 bool VInFilter::readWholefile(const string& filename, VInFilter::StrList& outl) {
-    if (!m_impp) v3fatalSrc("readWholefile on invalid filter");
+    UASSERT(m_impp, "readWholefile on invalid filter");
     return m_impp->readWholefile(filename, outl);
 }
 
@@ -694,15 +695,28 @@ int V3OutFormatter::endLevels(const char* strg) {
     return levels;
 }
 
-void V3OutFormatter::puts(const char* strg) {
+void V3OutFormatter::putns(const AstNode* nodep, const char* strg) {
     if (!v3Global.opt.decoration()) {
         putsOutput(strg);
         return;
     }
+
     if (m_prependIndent && strg[0] != '\n') {
         putsNoTracking(indentSpaces(endLevels(strg)));
         m_prependIndent = false;
     }
+
+    if (nodep && v3Global.opt.decorationNodes() && !v3Global.opt.protectIds()
+        && (m_sourceLastFilenameno != nodep->fileline()->filenameno()
+            || m_sourceLastLineno != nodep->fileline()->firstLineno())
+        && FileLine::builtInFilename() != nodep->fileline()->filename()) {
+        m_sourceLastLineno = nodep->fileline()->firstLineno();
+        m_sourceLastFilenameno = nodep->fileline()->filenameno();
+        putsNoTracking("/*" + nodep->fileline()->filename() + ":"
+                       + cvtToStr(nodep->fileline()->lineno()) + " " + cvtToStr((void*)nodep)
+                       + "*/");
+    }
+
     bool notstart = false;
     bool wordstart = true;
     bool equalsForBracket = false;  // Looking for "= {"
@@ -815,10 +829,11 @@ void V3OutFormatter::putBreak() {
 void V3OutFormatter::putsQuoted(const string& strg) {
     // Quote \ and " for use inside C programs
     // Don't use to quote a filename for #include - #include doesn't \ escape.
-    putcNoTracking('"');
     const string quoted = quoteNameControls(strg);
+    putcNoTracking('"');
     for (const char c : quoted) putcNoTracking(c);
     putcNoTracking('"');
+    if (strg.find('\0') != std::string::npos) putcNoTracking('s');  // C++14 std::string
 }
 void V3OutFormatter::putsNoTracking(const string& strg) {
     if (!v3Global.opt.decoration()) {
@@ -862,26 +877,26 @@ string V3OutFormatter::quoteNameControls(const string& namein,
         // Encode chars into XML string
         for (const char c : namein) {
             if (c == '"') {
-                out += std::string{"&quot;"};
+                out += "&quot;"s;
             } else if (c == '\'') {
-                out += std::string{"&apos;"};
+                out += "&apos;"s;
             } else if (c == '<') {
-                out += std::string{"&lt;"};
+                out += "&lt;"s;
             } else if (c == '>') {
-                out += std::string{"&gt;"};
+                out += "&gt;"s;
             } else if (c == '&') {
-                out += std::string{"&amp;"};
+                out += "&amp;"s;
             } else if (std::isprint(c)) {
                 out += c;
             } else {
-                out += std::string{"&#"} + cvtToStr((unsigned int)(c & 0xff)) + ";";
+                out += "&#"s + cvtToStr((unsigned int)(c & 0xff)) + ";";
             }
         }
     } else {
         // Encode control chars into C style escapes
         for (const char c : namein) {
             if (c == '\\' || c == '"') {
-                out += std::string{"\\"} + c;
+                out += "\\"s + c;
             } else if (c == '\n') {
                 out += "\\n";
             } else if (c == '\r') {
@@ -892,8 +907,8 @@ string V3OutFormatter::quoteNameControls(const string& namein,
                 out += c;
             } else {
                 // This will also cover \a etc
-                const string octal = std::string{"\\"} + cvtToStr((c >> 6) & 3)
-                                     + cvtToStr((c >> 3) & 7) + cvtToStr(c & 7);
+                const string octal
+                    = "\\"s + cvtToStr((c >> 6) & 3) + cvtToStr((c >> 3) & 7) + cvtToStr(c & 7);
                 out += octal;
             }
         }
@@ -940,8 +955,7 @@ void V3OutFile::putsForceIncs() {
 void V3OutCFile::putsGuard() {
     UASSERT(!m_guard, "Already called putsGuard in emit file");
     m_guard = true;
-    string var
-        = VString::upcase(std::string{"VERILATED_"} + V3Os::filenameNonDir(filename()) + "_");
+    string var = VString::upcase("VERILATED_"s + V3Os::filenameNonDir(filename()) + "_");
     for (char& c : var) {
         if (!std::isalnum(c)) c = '_';
     }
@@ -991,10 +1005,8 @@ public:
     string protectIf(const string& old, bool doIt) VL_MT_SAFE_EXCLUDES(m_mutex) {
         if (!v3Global.opt.protectIds() || old.empty() || !doIt) return old;
         const V3LockGuard lock{m_mutex};
-        const auto it = m_nameMap.find(old);
-        if (it != m_nameMap.end()) {
-            return it->second;
-        } else {
+        const auto pair = m_nameMap.emplace(old, "");
+        if (pair.second) {
             string out;
             if (v3Global.opt.debugProtect()) {
                 // This lets us see the symbol being protected to debug cases
@@ -1009,16 +1021,15 @@ public:
                 // See if we can shrink the digest symbol to something smaller
                 for (size_t len = 6; len < out.size() - 3; len += 3) {
                     const string tryout = out.substr(0, len);
-                    if (m_newIdSet.find(tryout) == m_newIdSet.end()) {
+                    if (m_newIdSet.insert(tryout).second) {
                         out = tryout;
                         break;
                     }
                 }
             }
-            m_nameMap.emplace(old, out);
-            m_newIdSet.insert(out);
-            return out;
+            pair.first->second = out;
         }
+        return pair.first->second;
     }
     string protectWordsIf(const string& old, bool doIt) VL_MT_SAFE {
         // Split at " " (for traces), "." (for scopes), "->", "(", "&", ")" (for self pointers)

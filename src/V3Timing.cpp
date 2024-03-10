@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -108,7 +108,6 @@ static bool hasFlags(AstNode* const nodep, uint8_t flags) { return !(~nodep->use
 //  Detect nodes affected by timing and/or requiring a process
 
 class TimingSuspendableVisitor final : public VNVisitor {
-private:
     // TYPES
     // Vertex of a dependency graph of suspendable nodes, e.g. if a node (process or task) is
     // suspendable, all its dependents should also be suspendable
@@ -183,7 +182,7 @@ private:
     const VNUser1InUse m_user1InUse;
     const VNUser2InUse m_user2InUse;
     const VNUser3InUse m_user3InUse;
-    const VNUser5InUse m_user5InUse;
+    const VNUser4InUse m_user4InUse;
 
     // STATE
     VMemberMap m_memberMap;  // Member names cached for fast lookup
@@ -214,8 +213,8 @@ private:
                 classp = VN_CAST(funcp->scopep()->modp(), Class);
             }
         }
-        if (!nodep->user5p()) nodep->user5p(new NeedsProcDepVtx{&m_procGraph, nodep, classp});
-        return nodep->user5u().to<NeedsProcDepVtx*>();
+        if (!nodep->user4p()) nodep->user4p(new NeedsProcDepVtx{&m_procGraph, nodep, classp});
+        return nodep->user4u().to<NeedsProcDepVtx*>();
     }
     // Pass timing flag between nodes
     bool passFlag(const AstNode* from, AstNode* to, NodeFlag flag) {
@@ -278,6 +277,28 @@ private:
     void visit(AstWaitFork* nodep) override {
         visit(static_cast<AstNode*>(nodep));
         addFlags(m_procp, T_FORCES_PROC | T_NEEDS_PROC);
+    }
+    void visit(AstWait* nodep) override {
+        AstNodeExpr* const condp = V3Const::constifyEdit(nodep->condp());
+        if (AstConst* const constp = VN_CAST(condp, Const)) {
+            if (!nodep->fileline()->warnIsOff(V3ErrorCode::WAITCONST)) {
+                condp->v3warn(WAITCONST, "Wait statement condition is constant");
+            }
+            if (!constp->isZero()) {
+                // Remove AstWait before we track process as T_SUSPENDER
+                if (AstNode* const stmtsp = nodep->stmtsp()) {
+                    stmtsp->unlinkFrBackWithNext();
+                    nodep->replaceWith(stmtsp);
+                } else {
+                    nodep->unlinkFrBack();
+                }
+                VL_DO_DANGLING(pushDeletep(nodep), nodep);
+                return;
+            }
+        }
+        v3Global.setUsesTiming();
+        if (m_procp) addFlags(m_procp, T_SUSPENDEE | T_SUSPENDER | T_NEEDS_PROC);
+        iterateChildren(nodep);
     }
     void visit(AstCFunc* nodep) override {
         VL_RESTORER(m_procp);
@@ -428,7 +449,6 @@ public:
 //  Transform nodes affected by timing
 
 class TimingControlVisitor final : public VNVisitor {
-private:
     // NODE STATE
     //  Ast{Always,NodeCCall,Fork,NodeAssign}::user1()  -> bool.         Set true if the node has
     //                                                                   been processed.
@@ -452,7 +472,6 @@ private:
     AstScope* m_scopep = nullptr;  // Current scope
     AstActive* m_activep = nullptr;  // Current active
     AstNode* m_procp = nullptr;  // NodeProcedure/CFunc/Begin we're under
-    double m_timescaleFactor = 1.0;  // Factor to scale delays by
     int m_forkCnt = 0;  // Number of forks inside a module
     bool m_underJumpBlock = false;  // True if we are inside of a jump-block
     bool m_underProcedure = false;  // True if we are under an always or initial
@@ -528,8 +547,10 @@ private:
         return stmtp == nodep ? nullptr : stmtp;
     }
     // Calculate the factor to scale delays by
-    double calculateTimescaleFactor(VTimescale timeunit) const {
-        int scalePowerOfTen = timeunit.powerOfTen() - m_netlistp->timeprecision().powerOfTen();
+    double calculateTimescaleFactor(AstNode* nodep, VTimescale timeunit) const {
+        UASSERT_OBJ(!timeunit.isNone(), nodep, "timenunit must be set");
+        const int scalePowerOfTen
+            = timeunit.powerOfTen() - m_netlistp->timeprecision().powerOfTen();
         return std::pow(10.0, scalePowerOfTen);
     }
     // Creates the global delay scheduler variable
@@ -762,8 +783,6 @@ private:
         UASSERT(!m_classp, "Module or class under class");
         VL_RESTORER(m_classp);
         m_classp = VN_CAST(nodep, Class);
-        VL_RESTORER(m_timescaleFactor);
-        m_timescaleFactor = calculateTimescaleFactor(nodep->timeunit());
         VL_RESTORER(m_forkCnt);
         m_forkCnt = 0;
         iterateChildren(nodep);
@@ -875,23 +894,20 @@ private:
                     "Cycle delays should have been handled in V3AssertPre");
         FileLine* const flp = nodep->fileline();
         AstNodeExpr* valuep = V3Const::constifyEdit(nodep->lhsp()->unlinkFrBack());
-        auto* const constp = VN_CAST(valuep, Const);
-        if (constp && constp->isZero()) {
-            nodep->v3warn(ZERODLY, "Unsupported: #0 delays do not schedule process resumption in "
-                                   "the Inactive region");
-        } else {
+        AstConst* const constp = VN_CAST(valuep, Const);
+        if (!constp || !constp->isZero()) {
             // Scale the delay
+            const double timescaleFactor = calculateTimescaleFactor(nodep, nodep->timeunit());
             if (valuep->dtypep()->isDouble()) {
                 valuep = new AstRToIRoundS{
-                    flp,
-                    new AstMulD{flp, valuep,
-                                new AstConst{flp, AstConst::RealDouble{}, m_timescaleFactor}}};
+                    flp, new AstMulD{flp, valuep,
+                                     new AstConst{flp, AstConst::RealDouble{}, timescaleFactor}}};
                 valuep->dtypeSetBitSized(64, VSigning::UNSIGNED);
             } else {
                 valuep->dtypeSetBitSized(64, VSigning::UNSIGNED);
                 valuep = new AstMul{flp, valuep,
                                     new AstConst{flp, AstConst::Unsized64{},
-                                                 static_cast<uint64_t>(m_timescaleFactor)}};
+                                                 static_cast<uint64_t>(timescaleFactor)}};
             }
         }
         // Replace self with a 'co_await dlySched.delay(<valuep>)'
@@ -1029,8 +1045,12 @@ private:
         // Special case for NBA
         if (inAssignDly) {
             // Put it in a fork so it doesn't block
-            auto* const forkp = new AstFork{flp, "", nullptr};
-            forkp->joinType(VJoinType::JOIN_NONE);
+            // Could already be the only thing directly under a fork, reuse that if possible
+            AstFork* forkp = !nodep->nextp() ? VN_CAST(nodep->firstAbovep(), Fork) : nullptr;
+            if (!forkp) {
+                forkp = new AstFork{flp, "", nullptr};
+                forkp->joinType(VJoinType::JOIN_NONE);
+            }
             if (!m_underProcedure) {
                 // If it's in a function, it won't be handled by V3Delayed
                 // Put it behind an additional named event that gets triggered in the NBA region
@@ -1123,9 +1143,6 @@ private:
         AstNodeExpr* const condp = V3Const::constifyEdit(nodep->condp()->unlinkFrBack());
         auto* const constp = VN_CAST(condp, Const);
         if (constp) {
-            if (!nodep->fileline()->warnIsOff(V3ErrorCode::WAITCONST)) {
-                condp->v3warn(WAITCONST, "Wait statement condition is constant");
-            }
             if (constp->isZero()) {
                 // We have to await forever instead of simply returning in case we're deep in a
                 // callstack
@@ -1136,11 +1153,9 @@ private:
                 nodep->replaceWith(awaitp->makeStmt());
                 if (stmtsp) VL_DO_DANGLING(stmtsp->deleteTree(), stmtsp);
                 VL_DO_DANGLING(condp->deleteTree(), condp);
-            } else if (stmtsp) {
-                // Just put the statements there
-                nodep->replaceWith(stmtsp);
             } else {
-                nodep->unlinkFrBack();
+                nodep->v3fatalSrc("constant wait should have been removed in "
+                                  "TimingSuspendableVisitor::visit(AstWait)");
             }
         } else if (needDynamicTrigger(condp)) {
             // No point in making a sentree, just use the expression as sensitivity
@@ -1222,5 +1237,5 @@ void V3Timing::timingAll(AstNetlist* nodep) {
     UINFO(2, __FUNCTION__ << ": " << endl);
     TimingSuspendableVisitor susVisitor{nodep};
     if (v3Global.usesTiming()) TimingControlVisitor{nodep};
-    V3Global::dumpCheckGlobalTree("timing", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("timing", 0, dumpTreeEitherLevel() >= 3);
 }

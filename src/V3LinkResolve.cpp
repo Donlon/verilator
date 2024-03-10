@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -37,7 +37,6 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 // Link state, as a visitor of each AstNode
 
 class LinkResolveVisitor final : public VNVisitor {
-private:
     // NODE STATE
     //  Entire netlist:
     //   AstCaseItem::user2()   // bool     Moved default caseitems
@@ -117,7 +116,7 @@ private:
             if (nodep->name() == "randomize" || nodep->name() == "srandom") {
                 nodep->v3error(nodep->prettyNameQ()
                                << " is a predefined class method; redefinition not allowed"
-                                  " (IEEE 1800-2017 18.6.3)");
+                                  " (IEEE 1800-2023 18.6.3)");
             }
             nodep->classMethod(true);
         }
@@ -180,19 +179,6 @@ private:
         }
         if (nodep->taskp() && (nodep->taskp()->dpiContext() || nodep->taskp()->dpiExport())) {
             nodep->scopeNamep(new AstScopeName{nodep->fileline(), false});
-        }
-    }
-    void visit(AstNodePreSel* nodep) override {
-        if (!nodep->attrp()) {
-            iterateChildren(nodep);
-            AstNode* const basefromp = AstArraySel::baseFromp(nodep, false);
-            if (VN_IS(basefromp, Replicate)) {
-                // From {...}[...] syntax in IEEE 2017
-                if (basefromp) UINFO(1, "    Related node: " << basefromp << endl);
-            } else {
-                nodep->attrp(new AstAttrOf{nodep->fileline(), VAttrType::VAR_BASE,
-                                           basefromp->cloneTree(false)});
-            }
         }
     }
 
@@ -493,7 +479,6 @@ public:
 //      from child cells up to the top module.
 
 class LinkBotupVisitor final : public VNVisitorConst {
-private:
     // STATE
     AstNodeModule* m_modp = nullptr;  // Current module
 
@@ -530,5 +515,5 @@ void V3LinkResolve::linkResolve(AstNetlist* rootp) {
         const LinkResolveVisitor visitor{rootp};
         LinkBotupVisitor{rootp};
     }  // Destruct before checking
-    V3Global::dumpCheckGlobalTree("linkresolve", 0, dumpTreeLevel() >= 6);
+    V3Global::dumpCheckGlobalTree("linkresolve", 0, dumpTreeEitherLevel() >= 6);
 }

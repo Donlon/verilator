@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2004-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2004-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -265,7 +265,6 @@ public:
 // Undriven state, as a visitor of each AstNode
 
 class UndrivenVisitor final : public VNVisitorConst {
-private:
     // NODE STATE
     // Netlist:
     //  AstVar::user1p          -> UndrivenVar* for usage var, 0=not set yet
@@ -381,7 +380,7 @@ private:
                 && !nodep->varp()->isDeclTyped()  //
                 && !nodep->varp()->isClassMember() && !nodep->varp()->isFuncLocal()) {
                 nodep->v3warn(PROCASSWIRE, "Procedural assignment to wire, perhaps intended var"
-                                               << " (IEEE 1800-2017 6.5): "
+                                               << " (IEEE 1800-2023 6.5): "
                                                << nodep->prettyNameQ());
             }
             if (m_inContAssign && !nodep->varp()->varType().isContAssignable()
@@ -413,7 +412,7 @@ private:
                         nodep->v3warn(
                             MULTIDRIVEN,
                             "Variable written to in always_comb also written by other process"
-                                << " (IEEE 1800-2017 9.2.2.2): " << nodep->prettyNameQ() << '\n'
+                                << " (IEEE 1800-2023 9.2.2.2): " << nodep->prettyNameQ() << '\n'
                                 << nodep->warnOther() << '\n'
                                 << nodep->warnContextPrimary() << '\n'
                                 << entryp->getNodep()->warnOther()
@@ -423,7 +422,7 @@ private:
                     if (!m_alwaysCombp && entryp->isDrivenAlwaysCombWhole()) {
                         nodep->v3warn(MULTIDRIVEN,
                                       "Variable also written to in always_comb"
-                                          << " (IEEE 1800-2017 9.2.2.2): " << nodep->prettyNameQ()
+                                          << " (IEEE 1800-2023 9.2.2.2): " << nodep->prettyNameQ()
                                           << '\n'
                                           << nodep->warnOther() << '\n'
                                           << nodep->warnContextPrimary() << '\n'

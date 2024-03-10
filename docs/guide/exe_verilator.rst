@@ -1,4 +1,4 @@
-.. Copyright 2003-2023 by Wilson Snyder.
+.. Copyright 2003-2024 by Wilson Snyder.
 .. SPDX-License-Identifier: LGPL-3.0-only OR Artistic-2.0
 
 verilator Arguments
@@ -51,6 +51,8 @@ Summary:
 
 .. option:: +1800-2017ext+<ext>
 
+.. option:: +1800-2023ext+<ext>
+
    Specifies the language standard to be used with a specific filename
    extension, <ext>.
 
@@ -85,7 +87,11 @@ Summary:
 
 .. option:: --assert
 
-   Enable all assertions.
+   Enable all assertions. Implies :vlopt:`--assert-case`.
+
+.. option:: --assert-case
+
+   Enable unique/unique0/priority case related checks.
 
 .. option:: --autoflush
 
@@ -195,9 +201,10 @@ Summary:
 
 .. option:: --compiler <compiler-name>
 
-   Enables workarounds for the specified C++ compiler (list below).
-   This does not change any performance tuning options, but it may
-   in the future.
+   Enables workarounds for the specified C++ compiler (list below).  This
+   does not change any performance tuning options, but it may in the
+   future.  This also does not change default compiler flags; these are
+   determined when Verilator was configured.
 
    clang
      Tune for clang.  This may reduce execution speed as it enables several
@@ -304,19 +311,47 @@ Summary:
    detailed messages.  See :vlopt:`--debug` for other implications of
    enabling debug.
 
+.. option:: --decorations none
+
+.. option:: --decorations medium
+
+.. option:: --decorations node
+
+   When creating output Verilated code, set level of comment and whitespace
+   decoration.
+
+   With "--decorations none",
+     Minimize comments, white space, symbol names, and other decorative
+     items, at the cost of reduced readability. This may assist C++ compile
+     times. This will not typically change the ultimate model's
+     performance, but may in some cases.  See also :vlopt:`--no-decoration`
+     option.
+
+   With "--decorations medium",
+     The default, put a small amount of comments and white space, for
+     typical level of readability.
+
+   With "--decorations node",
+     Include comments indicating what caused generation of the following
+     text, including what node pointer (corresponding to
+     :vlopt:`--dump-tree` .tree printed data), and the source Verilog
+     filename and line number.  If subsequent following statements etc have
+     the same filename/line number these comments are omitted.  This
+     enables easy debug when looking at the C++ code to determine what
+     Verilog source may be related.  As node pointers are not stable
+     between different Verilator runs, this may harm compile caching and
+     should only be used for debug.
+
 .. option:: --no-decoration
 
-   When creating output Verilated code, minimize comments, white space,
-   symbol names, and other decorative items, at the cost of reduced
-   readability. This may assist C++ compile times. This will not typically
-   change the ultimate model's performance, but may in some cases.
+   Alias for ``--decorations none``.
 
 .. option:: --default-language <value>
 
    Select the language used by default when first processing each
    Verilog file.  The language value must be "VAMS", "1364-1995",
    "1364-2001", "1364-2001-noconfig", "1364-2005", "1800-2005",
-   "1800-2009", "1800-2012", "1800-2017", or "1800+VAMS".
+   "1800-2009", "1800-2012", "1800-2017", "1800-2023", or "1800+VAMS".
 
    Any language associated with a particular file extension (see the
    various +<lang>*\ ext+ options) will be used in preference to the
@@ -329,7 +364,7 @@ Summary:
    ``+<lang>ext+`` options should be used.
 
    If no language is specified, either by this option or ``+<lang>ext+``
-   options, then the latest SystemVerilog language (IEEE 1800-2017) is
+   options, then the latest SystemVerilog language (IEEE 1800-2023) is
    used.
 
 .. option:: +define+<var>=<value>
@@ -1036,7 +1071,7 @@ Summary:
 
 .. option:: --prof-threads
 
-   Deprecated. Same as --prof-exec and --prof-pgo together.
+   Removed in 5.020. Was an alias for --prof-exec and --prof-pgo together.
 
 .. option:: --protect-ids
 
@@ -1183,6 +1218,40 @@ Summary:
    Run Verilator and record with the :command:`rr` command.  See
    `https://rr-project.org <https://rr-project.org>`_.
 
+.. option:: --runtime-debug
+
+   Enable including debug assertions in the generated model. This may
+   significantly decrease model performance. This option will only work
+   with gcc/clang.
+
+   This option has the same effect as the following flags:
+
+   :vlopt:`--decorations node <--decorations>`
+     Instructs Verilator to add comments to the Verilated C++ code to
+     assist determining what Verilog code was responsible for each C++
+     statement.
+
+   ``-CFLAGS -ggdb  -LDFLAGS -ggdb``
+     Instructs the compiler and linker to enable debugger symbols.
+
+   ``-CFLAGS -fsanitize=address,undefined  -LDFLAGS -fsanitize=address,undefined``
+     Instructs the compiler and linker to enable the address sanitizer, and
+     undefined behavior sanitizer.
+
+   ``-CFLAGS -D_GLIBCXX_DEBUG``
+     Instructs the compiler to enable C++ library (glibc) internal
+     assertions to find library-misuse issues.
+
+   ``-CFLAGS -DVL_DEBUG=1``
+     Instructs the compiler to enable Verilator's runtime assertions and
+     debug capabilities.  To enable debug print messages at runtime, see
+     :vlopt:`+verilator+debug`.
+
+   The :vlopt:`-CFLAGS` and/or :vlopt:`-LDFLAGS` options used here pass the
+   following argument into the generated Makefile for use as compiler or
+   linker options respectively.  If you are using your own Makefiles, adapt
+   appropriately to pass the suggested flags to the compiler and linker.
+
 .. option:: --savable
 
    Enable including save and restore functions in the generated model.  See
@@ -1205,6 +1274,8 @@ Summary:
 
    Creates a dump file with statistics on the design in
    :file:`<prefix>__stats.txt`.
+   Also dumps DFG patterns to
+   :file:`<prefix>__stats_dfg_patterns__*.txt`.
 
 .. option:: --stats-vars
 
@@ -1216,6 +1287,10 @@ Summary:
 
    Prevents parsing standard library.
 
+.. option:: --no-stop-fail
+
+   Don't call $stop when assertion fails. Simulation will continue.
+
 .. option:: --structs-packed
 
    Converts all unpacked structures to packed structures, and issues an
@@ -1226,12 +1301,12 @@ Summary:
 .. option:: -sv
 
    Specifies SystemVerilog language features should be enabled; equivalent
-   to :vlopt:`--language 1800-2017 <--language>`.  This option is selected
+   to :vlopt:`--language 1800-2023 <--language>`.  This option is selected
    by default; it exists for compatibility with other simulators.
 
 .. option:: +systemverilogext+<ext>
 
-   A synonym for :vlopt:`+1800-2017ext+\<ext\>`.
+   A synonym for :vlopt:`+1800-2023ext+\<ext\>`.
 
 .. option:: --threads <threads>
 
@@ -1363,13 +1438,13 @@ Summary:
    Enable FST waveform tracing in the model. This overrides
    :vlopt:`--trace`.  See also :vlopt:`--trace-threads` option.
 
-.. option:: --trace-max-array *depth*
+.. option:: --trace-max-array <depth>
 
    Rarely needed.  Specify the maximum array depth of a signal that may be
    traced.  Defaults to 32, as tracing large arrays may greatly slow traced
    simulations.
 
-.. option:: --trace-max-width *width*
+.. option:: --trace-max-width <width>
 
    Rarely needed.  Specify the maximum bit width of a signal that may be
    traced.  Defaults to 256, as tracing large vectors may greatly slow
@@ -1386,7 +1461,7 @@ Summary:
    format constraints, this may result in significantly slower trace times
    and larger trace files.
 
-.. option:: --trace-threads *threads*
+.. option:: --trace-threads <threads>
 
    Enable waveform tracing using separate threads. This is typically faster
    in simulation runtime but uses more total compute. This option only
@@ -1424,15 +1499,19 @@ Summary:
 
 .. option:: --unroll-count <loops>
 
-   Rarely needed.  Specifies the maximum number of loop iterations that may be
-   unrolled.  See also :option:`BLKLOOPINIT` warning.
+   Rarely needed.  Specifies the maximum number of loop iterations that may
+   be unrolled.  See also :option:`BLKLOOPINIT` warning, and
+   :option:`/*verilator&32;unroll_disable*/` and
+   :option:`/*verilator&32;unroll_full*/` metacomments.
 
-.. option:: --unroll-stmts *statements*
+.. option:: --unroll-stmts <statements>
 
    Rarely needed.  Specifies the maximum number of statements in a loop for
-   that loop to be unrolled. See also :option:`BLKLOOPINIT` warning.
+   that loop to be unrolled.  See also :option:`BLKLOOPINIT` warning, and
+   :option:`/*verilator&32;unroll_disable*/` and
+   :option:`/*verilator&32;unroll_full*/` metacomments.
 
-.. option:: --unused-regexp *regexp*
+.. option:: --unused-regexp <regexp>
 
    Rarely needed.  Specifies a simple regexp with \* and ? that, if a signal
    name matches, will suppress the :option:`UNUSED` warning.  Defaults to
@@ -1444,11 +1523,16 @@ Summary:
    into Verilator.  (Similar to :command:`perl -V`.)  See also
    :vlopt:`--getenv` option.
 
-.. option:: -v *filename*
+.. option:: -v <filename>
 
    Read the filename as a Verilog library.  Any modules in the file may be
    used to resolve instances in the top-level module, otherwise, they are
    ignored.  Note "-v" is relatively standard across Verilog tools.
+
+.. option:: --valgrind
+
+   Run Verilator under `Valgrind <https://valgrind.org/>`_.  The command may be
+   changed with :option:`VERILATOR_VALGRIND`.
 
 .. option:: --no-verilate
 
@@ -1481,7 +1565,7 @@ Summary:
 
    Enable the use of VPI and linking against the :file:`verilated_vpi.cpp` files.
 
-.. option:: --waiver-output *filename*
+.. option:: --waiver-output <filename>
 
    Generate a waiver file that contains all waiver statements to suppress
    the warnings emitted during this Verilator run. This, in particular, is
@@ -1695,18 +1779,56 @@ Summary:
       iterations. This may be another indication of problems with the
       modeled design that should be addressed.
 
+.. option:: --json-only
+
+   Create JSON output only, do not create any other output.
+
+   The JSON format is intended to be used to leverage Verilator's parser and
+   elaboration to feed to other downstream tools. For details on the format, see
+   the Verilator Internals manual. Be aware that the JSON
+   format is still evolving; there will be some changes in future versions.
+
+   This option disables some more aggressive transformations and dumps only
+   the final state of the AST.
+
+.. option:: --json-only-meta-output <filename>
+
+   Specifies the filename for the metadata output file (`.tree.meta.json`) of --json-only.
+   Using this option automatically sets :vlopt:`--json-only`.
+
+.. option:: --json-only-output <filename>
+
+   Specifies the filename for the main output file (`.tree.json`) of --json-only.
+   Using this option automatically sets :vlopt:`--json-only`.
+
+.. option:: --no-json-edit-nums
+
+   Don't dump edit number in .tree.json files.  This may make the file more
+   run-to-run stable for easier comparison.
+
+.. option:: --no-json-ids
+
+   Don't use short identifiers instead of addresses/paths in .tree.json.
+
 .. option:: --xml-only
 
    Create XML output only, do not create any other output.
 
    The XML format is intended to be used to leverage Verilator's parser and
-   elaboration to feed to other downstream tools. Be aware that the XML
-   format is still evolving; there will be some changes in future versions.
+   elaboration to feed to other downstream tools.
+
+   .. note::
+
+      This feature is deprecated in favor of :vlopt:`--json-only`.
 
 .. option:: --xml-output <filename>
 
    Specifies the filename for the XML output file. Using this option
    automatically sets :vlopt:`--xml-only`.
+
+   .. note::
+
+      This feature is deprecated in favor of :vlopt:`--json-only`.
 
 .. option:: -y <dir>
 

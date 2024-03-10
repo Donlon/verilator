@@ -5,7 +5,7 @@
  *
  **************************************************************************
  *
- * Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+ * Copyright 2003-2024 by Wilson Snyder. This program is free software; you
  * can redistribute it and/or modify it under the terms of either the
  * GNU Lesser General Public License Version 3 or the Perl Artistic License
  * Version 2.0.
@@ -66,7 +66,6 @@ static void appendDefValue(const char* t, size_t l) { LEXP->appendDefValue(t, l)
 %}
 
 %x ARGMODE
-%x CMTBEGM
 %x CMTMODE
 %x CMTONEM
 %x DEFCMT
@@ -74,6 +73,7 @@ static void appendDefValue(const char* t, size_t l) { LEXP->appendDefValue(t, l)
 %x DEFFPAR
 %x DEFVAL
 %x ENCBASE64
+%x EXPR
 %x INCMODE
 %x PRAGMA
 %x PRAGMAERR
@@ -161,7 +161,7 @@ bom             [\357\273\277]
                           BEGIN(ENCBASE64);
                           return VP_TEXT; }
 <PRAGMAPRT>("begin_protected"|"end_protected"|"end")[\n\r]  { FL_FWDC; linenoInc(); BEGIN(INITIAL); return VP_TEXT; }
-<PRAGMAPRT>"version="[^\n\r]*[\n\r] {
+<PRAGMAPRT>"version"{wsn}*={wsn}*[^\n\r]*[\n\r] {
                           FL_FWDC;
                           linenoInc();
                           BEGIN(INITIAL);
@@ -376,6 +376,23 @@ bom             [\357\273\277]
 <DEFCMT><<EOF>>         { FL_FWDC; yyerrorf("EOF in '/* ... */' block comment\n");
                           yyleng=0; return VP_EOF_ERROR; }
 
+        /* Preprocessor expression */
+<EXPR><<EOF>>           { FL_FWDC; linenoInc(); yyerrorf("EOF in unterminated preprocessor expression");
+                          yyleng = 0; return VP_EOF_ERROR; }
+<EXPR>"/*"              { yy_push_state(CMTMODE); yymore(); }
+<EXPR>"//"[^\n\r]*      { FL_FWDC; return VP_COMMENT;}
+<EXPR>"("               { FL_FWDC; return VP_TEXT; }  /* V3PreProc will push another EXPR state to stack */
+<EXPR>")"               { FL_FWDC; yy_pop_state(); return VP_TEXT; }
+<EXPR>"!"               { FL_FWDC; return VP_TEXT; }
+<EXPR>"&&"              { FL_FWDC; return VP_TEXT; }
+<EXPR>"||"              { FL_FWDC; return VP_TEXT; }
+<EXPR>"->"              { FL_FWDC; return VP_TEXT; }
+<EXPR>"<->"             { FL_FWDC; return VP_TEXT; }
+<EXPR>{symb}            { FL_FWDC; return VP_SYMBOL; }
+<EXPR>{crnl}            { FL_FWDC; linenoInc(); yytext=(char*)"\n"; yyleng=1; return VP_WHITE; }
+<EXPR>{wsn}+            { FL_FWDC; return VP_WHITE; }
+<EXPR>.                 { FL_FWDC; return VP_TEXT; }
+
         /* Define arguments (use of a define) */
 <ARGMODE>"/*"           { yy_push_state(CMTMODE); yymore(); }
 <ARGMODE>"//"[^\n\r]*   { FL_FWDC; return VP_COMMENT; }
@@ -420,6 +437,16 @@ bom             [\357\273\277]
 <ARGMODE>[^\/\*\n\r\\(,){}\[\]\"`]+     |
 <ARGMODE>.              { FL_FWDC; appendDefValue(yytext, yyleng); FL_BRK; }
 
+        /* Pragma comments. */
+<INITIAL>"//"{ws}*"verilator lint_off"[^\n\r]*       { FL_FWDC; LEXP->verilatorCmtLint(yytext + 2, true); return VP_COMMENT; }
+<INITIAL>"//"{ws}*"verilator lint_on"[^\n\r]*        { FL_FWDC; LEXP->verilatorCmtLint(yytext + 2, false); return VP_COMMENT; }
+<INITIAL>"//"{ws}*"verilator lint_restore"[^\n\r]*   { FL_FWDC; LEXP->verilatorCmtLintRestore(); return VP_COMMENT; }
+<INITIAL>"//"{ws}*"verilator lint_save"[^\n\r]*      { FL_FWDC; LEXP->verilatorCmtLintSave(); return VP_COMMENT; }
+<INITIAL>"/*"{ws}*"verilator lint_off"[^*]*"*/"      { FL_FWDC; LEXP->verilatorCmtLint(yytext + 2, true); return VP_COMMENT; }
+<INITIAL>"/*"{ws}*"verilator lint_on"[^*]*"*/"       { FL_FWDC; LEXP->verilatorCmtLint(yytext + 2, false); return VP_COMMENT; }
+<INITIAL>"/*"{ws}*"verilator lint_restore"[^*]*"*/"  { FL_FWDC; LEXP->verilatorCmtLintRestore(); return VP_COMMENT; }
+<INITIAL>"/*"{ws}*"verilator lint_save"[^*]*"*/"     { FL_FWDC; LEXP->verilatorCmtLintSave(); return VP_COMMENT; }
+
         /* One line comments. */
 <INITIAL>"//"{ws}*{crnl} { FL_FWDC; linenoInc(); yytext=(char*)"\n"; yyleng=1; return VP_WHITE; }
 <INITIAL>"//"           { yy_push_state(CMTONEM); yymore(); }
@@ -427,16 +454,13 @@ bom             [\357\273\277]
 
         /* C-style comments. */
         /**** See also DEFCMT */
-        /* We distinguish between the start of a comment, and later, to look for prefix comments (deprecated) */
 <INITIAL>"/*"           { yy_push_state(CMTMODE); yymore(); }
-<CMTBEGM>{ws}+          { yymore(); }
-<CMTBEGM,CMTMODE>"*/"           { FL_FWDC; yy_pop_state(); return VP_COMMENT; }
-<CMTBEGM,CMTMODE>{crnl}         { linenoInc(); yymore(); }
-<CMTBEGM,CMTMODE><<EOF>>        { FL_FWDC; yyerrorf("EOF in '/* ... */' block comment\n");
+<CMTMODE>"*/"           { FL_FWDC; yy_pop_state(); return VP_COMMENT; }
+<CMTMODE>{crnl}         { linenoInc(); yymore(); }
+<CMTMODE><<EOF>>        { FL_FWDC; yyerrorf("EOF in '/* ... */' block comment\n");
                                   yyleng=0; return VP_EOF_ERROR; }
-<CMTMODE>{word}                 { yymore(); }
-<CMTBEGM>.                      { yymore(); BEGIN CMTMODE; }    /* beginning in comment */
-<CMTMODE>.                      { yymore(); }
+<CMTMODE>{word}         { yymore(); }
+<CMTMODE>.              { yymore(); }
 
         /* Define calls */
         /* symbdef prevents normal lex rules from making `\`"foo a symbol {`"foo} instead of a BACKQUOTE */
@@ -475,6 +499,11 @@ void V3PreLex::pushStateDefValue() {
     yy_push_state(DEFVAL);
     m_parenLevel = 0;
     m_defValue = "";
+}
+
+void V3PreLex::pushStateExpr() {
+    // Enter preprocessor expression state
+    yy_push_state(EXPR);
 }
 
 void V3PreLex::pushStateIncFilename() {
@@ -733,6 +762,33 @@ void V3PreLex::unused() {
         yy_top_state();
         yyerror((char*)"");
     }  // LCOV_EXCL_STOP
+}
+
+void V3PreLex::verilatorCmtLintSave() {
+    m_lexLintState.push_back(*curFilelinep());
+}
+void V3PreLex::verilatorCmtLintRestore() {
+    // No error here on restore without save - the verilog.y parse will report as appropriate
+    if (m_lexLintState.empty()) return;
+    curFilelinep()->warnStateFrom(m_lexLintState.back());
+    m_lexLintState.pop_back();
+}
+void V3PreLex::verilatorCmtLint(const char* textp, bool warnOff) {
+    const char* sp = textp;
+    while (*sp && std::isspace(*sp)) ++sp;
+    while (*sp && !std::isspace(*sp)) ++sp;  // "verilator"
+    while (*sp && std::isspace(*sp)) ++sp;
+    while (*sp && !std::isspace(*sp)) ++sp;  // "lint_on/lint_off"
+    while (*sp && std::isspace(*sp)) ++sp;
+    string msg = sp;
+    for (auto pos = msg.begin(); pos != msg.end(); ++pos) {
+        if (std::isspace(*pos) || *pos == '*') {
+            msg.erase(pos, msg.end());
+            break;
+        }
+    }
+    // No warnings on bad warning codes - the verilog.y parse will report as appropriate
+    curFilelinep()->warnOff(msg, warnOff);
 }
 
 /*###################################################################

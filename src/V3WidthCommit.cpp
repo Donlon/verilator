@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -98,10 +98,10 @@ private:
                 UINFO(9, "defclass " << defClassp << endl);
                 nodep->v3warn(ENCAPSULATED, nodep->prettyNameQ()
                                                 << " is hidden as " << how
-                                                << " within this context (IEEE 1800-2017 8.18)\n"
-                                                << nodep->warnContextPrimary() << endl
+                                                << " within this context (IEEE 1800-2023 8.18)\n"
+                                                << nodep->warnContextPrimary() << "\n"
                                                 << nodep->warnOther()
-                                                << "... Location of definition" << endl
+                                                << "... Location of definition\n"
                                                 << defp->warnContextSecondary());
             }
         }
@@ -175,7 +175,7 @@ private:
         if (nodep->classMethod() && nodep->pureVirtual() && classp && !classp->isInterfaceClass()
             && !classp->isVirtual()) {
             nodep->v3error(
-                "Illegal to have 'pure virtual' in non-virtual class (IEEE 1800-2017 8.21)");
+                "Illegal to have 'pure virtual' in non-virtual class (IEEE 1800-2023 8.21)");
         }
     }
     void visit(AstNodeVarRef* nodep) override {
@@ -232,5 +232,5 @@ public:
 void V3WidthCommit::widthCommit(AstNetlist* nodep) {
     UINFO(2, __FUNCTION__ << ": " << endl);
     { WidthCommitVisitor{nodep}; }  // Destruct before checking
-    V3Global::dumpCheckGlobalTree("widthcommit", 0, dumpTreeLevel() >= 6);
+    V3Global::dumpCheckGlobalTree("widthcommit", 0, dumpTreeEitherLevel() >= 6);
 }

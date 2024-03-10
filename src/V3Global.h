@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -34,6 +34,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 class AstNetlist;
 class V3HierBlockPlan;
@@ -74,16 +75,17 @@ public:
     VWidthMinUsage()
         : m_e{LINT_WIDTH} {}
     // cppcheck-suppress noExplicitConstructor
-    constexpr VWidthMinUsage(en _e)
-        : m_e{_e} {}
+    constexpr VWidthMinUsage(en _e) VL_PURE : m_e{_e} {}
+    constexpr VWidthMinUsage(const VWidthMinUsage& _e) VL_PURE = default;
     explicit VWidthMinUsage(int _e)
         : m_e(static_cast<en>(_e)) {}  // Need () or GCC 4.8 false warning
     constexpr operator en() const { return m_e; }
+    constexpr VWidthMinUsage& operator=(const VWidthMinUsage& _e) VL_PURE = default;
 };
 constexpr bool operator==(const VWidthMinUsage& lhs, const VWidthMinUsage& rhs) {
     return lhs.m_e == rhs.m_e;
 }
-constexpr bool operator==(const VWidthMinUsage& lhs, VWidthMinUsage::en rhs) {
+constexpr bool operator==(const VWidthMinUsage& lhs, VWidthMinUsage::en rhs) VL_PURE {
     return lhs.m_e == rhs;
 }
 constexpr bool operator==(VWidthMinUsage::en lhs, const VWidthMinUsage& rhs) {
@@ -112,6 +114,7 @@ class V3Global final {
     bool m_dpi = false;  // Need __Dpi include files
     bool m_hasEvents = false;  // Design uses SystemVerilog named events
     bool m_hasClasses = false;  // Design uses SystemVerilog classes
+    bool m_hasVirtIfaces = false;  // Design uses virtual interfaces
     bool m_usesProbDist = false;  // Uses $dist_*
     bool m_usesStdPackage = false;  // Design uses the std package
     bool m_usesTiming = false;  // Design uses timing constructs
@@ -124,6 +127,9 @@ class V3Global final {
     std::unordered_map<const void*, std::string>
         m_ptrToId;  // The actual 'address' <=> 'short string' bijection
 
+    // Names of fields that were dumped by dumpJsonPtr()
+    std::unordered_set<std::string> m_jsonPtrNames;
+
 public:
     // Options
     V3Options opt;  // All options; let user see them directly
@@ -135,7 +141,7 @@ public:
 
     // ACCESSORS (general)
     AstNetlist* rootp() const VL_MT_SAFE { return m_rootp; }
-    VWidthMinUsage widthMinUsage() const { return m_widthMinUsage; }
+    VWidthMinUsage widthMinUsage() const VL_PURE { return m_widthMinUsage; }
     bool assertDTypesResolved() const { return m_assertDTypesResolved; }
     bool assertScoped() const { return m_assertScoped; }
 
@@ -162,6 +168,8 @@ public:
     void setHasEvents() { m_hasEvents = true; }
     bool hasClasses() const { return m_hasClasses; }
     void setHasClasses() { m_hasClasses = true; }
+    bool hasVirtIfaces() const { return m_hasVirtIfaces; }
+    void setHasVirtIfaces() { m_hasVirtIfaces = true; }
     bool usesProbDist() const { return m_usesProbDist; }
     void setUsesProbDist() { m_usesProbDist = true; }
     bool usesStdPackage() const { return m_usesStdPackage; }
@@ -181,6 +189,9 @@ public:
     bool useParallelBuild() const { return m_useParallelBuild; }
     void useRandomizeMethods(bool flag) { m_useRandomizeMethods = flag; }
     bool useRandomizeMethods() const { return m_useRandomizeMethods; }
+    void saveJsonPtrFieldName(const std::string& fieldName);
+    void ptrNamesDumpJson(std::ostream& os);
+    void idPtrMapDumpJson(std::ostream& os);
     const std::string& ptrToId(const void* p);
 };
 

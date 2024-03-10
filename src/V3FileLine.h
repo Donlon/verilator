@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -77,6 +77,7 @@ class FileLineSingleton final {
         m_languages.clear();
     }
     void fileNameNumMapDumpXml(std::ostream& os);
+    void fileNameNumMapDumpJson(std::ostream& os);
     static string filenameLetters(fileNameIdx_t fileno) VL_PURE;
 
     // Add given bitset to the interned bitsets, return interned index
@@ -310,6 +311,9 @@ public:
         return defaultFileLine().warnOff(code, flag);
     }
     static void fileNameNumMapDumpXml(std::ostream& os) { singleton().fileNameNumMapDumpXml(os); }
+    static void fileNameNumMapDumpJson(std::ostream& os) {
+        singleton().fileNameNumMapDumpJson(os);
+    }
 
     // METHODS - Called from netlist
     // Merge warning disables from another fileline

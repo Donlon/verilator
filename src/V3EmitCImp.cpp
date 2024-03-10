@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -203,7 +203,7 @@ class EmitCImp final : EmitCFunc {
         for (const AstNode* nodep = modp->stmtsp(); nodep; nodep = nodep->nextp()) {
             if (const AstVar* const varp = VN_CAST(nodep, Var)) {
                 if (varp->isStatic()) {
-                    puts(varp->vlArgType(true, false, false, modName));
+                    putns(varp, varp->vlArgType(true, false, false, modName));
                     puts(";\n");
                 }
             }
@@ -217,15 +217,15 @@ class EmitCImp final : EmitCFunc {
                 if (varp->isParam()) {
                     if (first) {
                         puts("\n");
-                        putsDecoration("// Parameter definitions for " + modName + "\n");
+                        putsDecoration(modp, "// Parameter definitions for " + modName + "\n");
                         first = false;
                     }
                     UASSERT_OBJ(varp->valuep(), nodep, "No init for a param?");
                     // Only C++ LiteralTypes can be constexpr
                     const bool canBeConstexpr = varp->dtypep()->isLiteralType();
-                    puts(canBeConstexpr ? "constexpr " : "const ");
+                    putns(varp, canBeConstexpr ? "constexpr " : "const ");
                     const string scopedName = modName + "::" + varp->nameProtect();
-                    puts(varp->dtypep()->cType(scopedName, false, false));
+                    putns(varp, varp->dtypep()->cType(scopedName, false, false));
                     if (!canBeConstexpr) {
                         puts(" = ");
                         emitConstInit(varp->valuep());
@@ -244,7 +244,8 @@ class EmitCImp final : EmitCFunc {
                          "(" + modName + "* vlSelf);");
         puts("\n");
 
-        puts(modName + "::" + modName + "(" + symClassName() + "* symsp, const char* v__name)\n");
+        putns(modp,
+              modName + "::" + modName + "(" + symClassName() + "* symsp, const char* v__name)\n");
         puts("    : VerilatedModule{v__name}\n");
 
         ofp()->indentInc();
@@ -254,19 +255,19 @@ class EmitCImp final : EmitCFunc {
                     = VN_CAST(varp->dtypeSkipRefp(), BasicDType)) {
                     if (dtypep->keyword().isMTaskState()) {
                         puts(", ");
-                        puts(varp->nameProtect());
+                        putns(varp, varp->nameProtect());
                         puts("(");
                         iterateConst(varp->valuep());
                         puts(")\n");
                     } else if (varp->isIO() && varp->isSc()) {
                         puts(", ");
-                        puts(varp->nameProtect());
+                        putns(varp, varp->nameProtect());
                         puts("(");
                         putsQuoted(varp->nameProtect());
                         puts(")\n");
                     } else if (dtypep->isDelayScheduler()) {
                         puts(", ");
-                        puts(varp->nameProtect());
+                        putns(varp, varp->nameProtect());
                         puts("{*symsp->_vm_contextp__}\n");
                     }
                 }
@@ -277,7 +278,7 @@ class EmitCImp final : EmitCFunc {
 
         puts(" {\n");
 
-        putsDecoration("// Reset structure values\n");
+        putsDecoration(modp, "// Reset structure values\n");
         puts(modName + "__" + protect("_ctor_var_reset") + "(this);\n");
         emitTextSection(modp, VNType::atScCtor);
 
@@ -293,7 +294,7 @@ class EmitCImp final : EmitCFunc {
         }
 
         puts("\nvoid " + modName + "::" + protect("__Vconfigure") + "(bool first) {\n");
-        puts("if (false && first) {}  // Prevent unused\n");
+        puts("(void)first;  // Prevent unused variable warning\n");
         if (v3Global.opt.coverage()) {
             puts(modName + "__" + protect("_configure_coverage") + "(this, first);\n");
         }
@@ -323,13 +324,14 @@ class EmitCImp final : EmitCFunc {
             // Used for second++ instantiation of identical bin
             puts("if (!enable) count32p = &fake_zero_count;\n");
             puts("*count32p = 0;\n");
-            puts("VL_COVER_INSERT(vlSymsp->_vm_contextp__->coveragep(), count32p,");
+            puts("VL_COVER_INSERT(vlSymsp->_vm_contextp__->coveragep(), VerilatedModule::name(), "
+                 "count32p,");
             puts("  \"filename\",filenamep,");
             puts("  \"lineno\",lineno,");
             puts("  \"column\",column,\n");
             // Need to move hier into scopes and back out if do this
             // puts( "\"hier\",std::string{vlSymsp->name()} + hierp,");
-            puts("\"hier\",std::string{name()} + hierp,");
+            puts("\"hier\",std::string{VerilatedModule::name()} + hierp,");
             puts("  \"page\",pagep,");
             puts("  \"comment\",commentp,");
             puts("  (linescovp[0] ? \"linescov\" : \"\"), linescovp);\n");
@@ -339,7 +341,7 @@ class EmitCImp final : EmitCFunc {
     }
     void emitDestructorImp(const AstNodeModule* modp) {
         puts("\n");
-        puts(prefixNameProtect(modp) + "::~" + prefixNameProtect(modp) + "() {\n");
+        putns(modp, prefixNameProtect(modp) + "::~" + prefixNameProtect(modp) + "() {\n");
         emitTextSection(modp, VNType::atScDtor);
         puts("}\n");
         splitSizeInc(10);
@@ -352,8 +354,8 @@ class EmitCImp final : EmitCFunc {
                 const string funcname = de ? "__Vdeserialize" : "__Vserialize";
                 const string op = de ? ">>" : "<<";
                 // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
-                puts("void " + prefixNameProtect(modp) + "::" + protect(funcname) + "(" + classname
-                     + "& os) {\n");
+                putns(modp, "void " + prefixNameProtect(modp) + "::" + protect(funcname) + "("
+                                + classname + "& os) {\n");
                 // Place a computed checksum to ensure proper structure save/restore formatting
                 // OK if this hash includes some things we won't dump, since
                 // just looking for loading the wrong model
@@ -414,7 +416,7 @@ class EmitCImp final : EmitCFunc {
                                 puts("; " + ivar + " < " + cvtToStr(elementp->widthWords()));
                                 puts("; ++" + ivar + ") {\n");
                             }
-                            puts("os" + op + varp->nameProtect());
+                            putns(varp, "os" + op + varp->nameProtect());
                             for (int v = 0; v < vects; ++v) puts("[__Vi" + cvtToStr(v) + "]");
                             puts(";\n");
                             for (int v = 0; v < vects; ++v) puts("}\n");
@@ -577,6 +579,9 @@ class EmitCTrace final : EmitCFunc {
     V3UniqueNames m_uniqueNames;  // For generating unique file names
     std::unordered_map<AstNode*, int> m_enumNumMap;  // EnumDType to enumeration number
     std::deque<AstCFile*>& m_cfilesr;  // cfiles generated by this emit
+    V3OutCFile* m_typesFp = nullptr;  // File for type declarations
+    int m_traceTypeSubs = 0;  // Number of trace type declaration sub-functions
+    int m_typeSplitSize = 0;  // # of cfunc nodes placed into output file
 
     // METHODS
     void openNextOutputFile() {
@@ -608,6 +613,66 @@ class EmitCTrace final : EmitCFunc {
         puts("#include \"" + v3Global.opt.traceSourceLang() + ".h\"\n");
         puts("#include \"" + symClassName() + ".h\"\n");
         puts("\n");
+    }
+
+    V3OutCFile* typesFp() const VL_MT_SAFE { return m_typesFp; }
+
+    void openNextTypesFile() {
+        UASSERT(!m_typesFp, "Declarations output file already open");
+
+        string filename
+            = (v3Global.opt.makeDir() + "/" + topClassName() + "_" + protect("_TraceDecls"));
+        filename = m_uniqueNames.get(filename);
+        filename += "__Slow.cpp";
+
+        AstCFile* const cfilep = createCFile(filename, m_slow, true /*source*/);
+        cfilep->support(true);
+        m_cfilesr.push_back(cfilep);
+
+        if (optSystemC()) {
+            m_typesFp = new V3OutScFile{filename};
+        } else {
+            m_typesFp = new V3OutCFile{filename};
+        }
+        typesFp()->putsHeader();
+        typesFp()->puts("// DESCR"
+                        "IPTION: Verilator output: Tracing declarations\n");
+
+        // Includes
+        typesFp()->puts("#include \"" + v3Global.opt.traceSourceLang() + ".h\"\n");
+        typesFp()->puts("\n");
+
+        typesFp()->puts("\nvoid " + prefixNameProtect(m_modp) + "__"
+                        + protect("traceDeclTypesSub" + cvtToStr(m_traceTypeSubs++)) + "("
+                        + v3Global.opt.traceClassBase() + "* tracep) {\n");
+    }
+
+    void closeTypesFile() {
+        typesFp()->puts("}\n");
+        VL_DO_CLEAR(delete m_typesFp, m_typesFp = nullptr);
+    }
+
+    void callTypeSubs() {
+        typesFp()->puts("}\n");
+
+        // Forward declarations for subs in other files
+        for (int i = 0; i < m_traceTypeSubs - 1; ++i) {
+            typesFp()->puts("void " + prefixNameProtect(m_modp) + "__"
+                            + protect("traceDeclTypesSub" + cvtToStr(i)) + "("
+                            + v3Global.opt.traceClassBase() + "* tracep);\n");
+        }
+
+        typesFp()->puts("\nvoid " + prefixNameProtect(m_modp) + "__" + protect("trace_decl_types")
+                        + "(" + v3Global.opt.traceClassBase() + "* tracep) {\n");
+        for (int i = 0; i < m_traceTypeSubs; ++i) {
+            typesFp()->puts(prefixNameProtect(m_modp) + "__"
+                            + protect("traceDeclTypesSub" + cvtToStr(i)) + "(tracep);\n");
+        }
+    }
+
+    bool typesSplitNeeded() {
+        return v3Global.opt.outputSplitCTrace()
+               && m_typeSplitSize >= v3Global.opt.outputSplitCTrace();
     }
 
     bool emitTraceIsScBv(AstTraceInc* nodep) {
@@ -697,73 +762,85 @@ class EmitCTrace final : EmitCFunc {
         puts(");");
     }
 
+    int getEnumMapNum(AstEnumDType* nodep) {
+        int enumNum = m_enumNumMap[nodep];
+        if (!enumNum) {
+            if (typesSplitNeeded()) {
+                // Splitting file, so using parallel build.
+                v3Global.useParallelBuild(true);
+                closeTypesFile();
+                openNextTypesFile();
+            }
+            enumNum = ++m_enumNum;
+            m_enumNumMap[nodep] = enumNum;
+            int nvals = 0;
+            typesFp()->puts("{\n");
+            typesFp()->putns(nodep, "const char* " + protect("__VenumItemNames") + "[]\n");
+            typesFp()->puts("= {");
+            for (AstEnumItem* itemp = nodep->itemsp(); itemp;
+                 itemp = VN_AS(itemp->nextp(), EnumItem)) {
+                if (++nvals > 1) typesFp()->puts(", ");
+                typesFp()->putbs("\"" + itemp->prettyName() + "\"");
+            }
+            typesFp()->puts("};\n");
+            nvals = 0;
+            typesFp()->puts("const char* " + protect("__VenumItemValues") + "[]\n");
+            typesFp()->puts("= {");
+            for (AstEnumItem* itemp = nodep->itemsp(); itemp;
+                 itemp = VN_AS(itemp->nextp(), EnumItem)) {
+                AstConst* const constp = VN_AS(itemp->valuep(), Const);
+                if (++nvals > 1) typesFp()->puts(", ");
+                typesFp()->putbs("\"" + constp->num().displayed(nodep, "%0b") + "\"");
+            }
+            typesFp()->puts("};\n");
+            typesFp()->puts("tracep->declDTypeEnum(" + cvtToStr(enumNum) + ", \""
+                            + nodep->prettyName() + "\", " + cvtToStr(nvals) + ", "
+                            + cvtToStr(nodep->widthMin()) + ", " + protect("__VenumItemNames")
+                            + ", " + protect("__VenumItemValues") + ");\n");
+            typesFp()->puts("}\n");
+            m_typeSplitSize += 3;
+        }
+        return enumNum;
+    }
+
     int emitTraceDeclDType(AstNodeDType* nodep) {
         // Return enum number or -1 for none
         if (v3Global.opt.traceFormat().fst()) {
             // Skip over refs-to-refs, but stop before final ref so can get data type name
             // Alternatively back in V3Width we could push enum names from upper typedefs
             if (AstEnumDType* const enump = VN_CAST(nodep->skipRefToEnump(), EnumDType)) {
-                int enumNum = m_enumNumMap[enump];
-                if (!enumNum) {
-                    enumNum = ++m_enumNum;
-                    m_enumNumMap[enump] = enumNum;
-                    int nvals = 0;
-                    puts("{\n");
-                    puts("const char* " + protect("__VenumItemNames") + "[]\n");
-                    puts("= {");
-                    for (AstEnumItem* itemp = enump->itemsp(); itemp;
-                         itemp = VN_AS(itemp->nextp(), EnumItem)) {
-                        if (++nvals > 1) puts(", ");
-                        putbs("\"" + itemp->prettyName() + "\"");
-                    }
-                    puts("};\n");
-                    nvals = 0;
-                    puts("const char* " + protect("__VenumItemValues") + "[]\n");
-                    puts("= {");
-                    for (AstEnumItem* itemp = enump->itemsp(); itemp;
-                         itemp = VN_AS(itemp->nextp(), EnumItem)) {
-                        AstConst* const constp = VN_AS(itemp->valuep(), Const);
-                        if (++nvals > 1) puts(", ");
-                        putbs("\"" + constp->num().displayed(nodep, "%0b") + "\"");
-                    }
-                    puts("};\n");
-                    puts("tracep->declDTypeEnum(" + cvtToStr(enumNum) + ", \""
-                         + enump->prettyName() + "\", " + cvtToStr(nvals) + ", "
-                         + cvtToStr(enump->widthMin()) + ", " + protect("__VenumItemNames") + ", "
-                         + protect("__VenumItemValues") + ");\n");
-                    puts("}\n");
-                }
-                return enumNum;
+                return getEnumMapNum(enump);
             }
         }
         return -1;
     }
 
     void emitTraceChangeOne(AstTraceInc* nodep, int arrayindex) {
-        iterateAndNextConstNull(nodep->precondsp());
         // Note: Both VTraceType::CHANGE and VTraceType::FULL use the 'full' methods
         const std::string func = nodep->traceType() == VTraceType::CHANGE ? "chg" : "full";
         bool emitWidth = true;
+        string stype;
         if (nodep->dtypep()->basicp()->isDouble()) {
-            puts("bufp->" + func + "Double");
+            stype = "Double";
             emitWidth = false;
         } else if (nodep->isWide() || emitTraceIsScBv(nodep) || emitTraceIsScBigUint(nodep)) {
-            puts("bufp->" + func + "WData");
+            stype = "WData";
         } else if (nodep->isQuad()) {
-            puts("bufp->" + func + "QData");
+            stype = "QData";
         } else if (nodep->declp()->widthMin() > 16) {
-            puts("bufp->" + func + "IData");
+            stype = "IData";
         } else if (nodep->declp()->widthMin() > 8) {
-            puts("bufp->" + func + "SData");
+            stype = "SData";
         } else if (nodep->declp()->widthMin() > 1) {
-            puts("bufp->" + func + "CData");
+            stype = "CData";
         } else if (nodep->dtypep()->basicp()->isEvent()) {
-            puts("bufp->" + func + "Event");
+            stype = "Event";
             emitWidth = false;
         } else {
-            puts("bufp->" + func + "Bit");
+            stype = "Bit";
             emitWidth = false;
         }
+        putns(nodep, "bufp->" + func + stype);
 
         const uint32_t offset = (arrayindex < 0) ? 0 : (arrayindex * nodep->declp()->widthWords());
         const uint32_t code = nodep->declp()->code() + offset;
@@ -833,17 +910,18 @@ class EmitCTrace final : EmitCFunc {
         EmitCFunc::visit(nodep);
     }
     void visit(AstTracePushPrefix* nodep) override {
-        puts("tracep->pushPrefix(");
+        putns(nodep, "tracep->pushPrefix(");
         putsQuoted(VIdProtect::protectWordsIf(nodep->prefix(), nodep->protect()));
         puts(", VerilatedTracePrefixType::");
         puts(nodep->prefixType().ascii());
         puts(");\n");
     }
     void visit(AstTracePopPrefix* nodep) override {  //
-        puts("tracep->popPrefix();\n");
+        putns(nodep, "tracep->popPrefix();\n");
     }
     void visit(AstTraceDecl* nodep) override {
         const int enumNum = emitTraceDeclDType(nodep->dtypep());
+        putns(nodep, "");
         if (nodep->arrayRange().ranged()) {
             puts("for (int i = 0; i < " + cvtToStr(nodep->arrayRange().elements()) + "; ++i) {\n");
             emitTraceInitOne(nodep, enumNum);
@@ -870,12 +948,17 @@ class EmitCTrace final : EmitCFunc {
         m_modp = modp;
         // Open output file
         openNextOutputFile();
+        if (m_slow) openNextTypesFile();
         // Emit functions
         for (AstNode* nodep = modp->stmtsp(); nodep; nodep = nodep->nextp()) {
-            if (AstCFunc* const funcp = VN_CAST(nodep, CFunc)) { iterateConst(funcp); }
+            if (AstCFunc* const funcp = VN_CAST(nodep, CFunc)) iterateConst(funcp);
         }
         // Close output file
         VL_DO_CLEAR(delete m_ofp, m_ofp = nullptr);
+        if (m_slow) {
+            callTypeSubs();
+            closeTypesFile();
+        }
     }
     ~EmitCTrace() override = default;
 

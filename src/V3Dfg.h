@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -109,12 +109,12 @@ class DfgGraph final {
         // cppcheck-suppress noExplicitConstructor
         UserDataInUse(UserDataInUse&& that) {
             UASSERT(that.m_graphp, "Moving from empty");
-            m_graphp = vlstd::exchange(that.m_graphp, nullptr);
+            m_graphp = std::exchange(that.m_graphp, nullptr);
         }
         VL_UNCOPYABLE(UserDataInUse);
         UserDataInUse& operator=(UserDataInUse&& that) {
             UASSERT(that.m_graphp, "Moving from empty");
-            m_graphp = vlstd::exchange(that.m_graphp, nullptr);
+            m_graphp = std::exchange(that.m_graphp, nullptr);
             return *this;
         }
 
@@ -504,9 +504,6 @@ public:
     // Is this a DfgConst that is all ones
     inline bool isOnes() const VL_MT_DISABLED;
 
-    // Should this vertex be inlined when rendering to Ast, or be stored to a temporary
-    inline bool inlined() const VL_MT_DISABLED;
-
     // Methods that allow DfgVertex to participate in error reporting/messaging
     void v3errorEnd(std::ostringstream& str) const VL_RELEASE(V3Error::s().m_mutex) {
         m_filelinep->v3errorEnd(str);
@@ -752,13 +749,13 @@ class DfgVertexWithArity VL_NOT_FINAL : public DfgVertex {
     std::array<DfgEdge, Arity> m_srcs;  // Source edges
 
 protected:
-    DfgVertexWithArity<Arity>(DfgGraph& dfg, VDfgType type, FileLine* flp, AstNodeDType* dtypep)
+    DfgVertexWithArity(DfgGraph& dfg, VDfgType type, FileLine* flp, AstNodeDType* dtypep)
         : DfgVertex{dfg, type, flp, dtypep} {
         // Initialize source edges
         for (size_t i = 0; i < Arity; ++i) m_srcs[i].init(this);
     }
 
-    ~DfgVertexWithArity<Arity>() override = default;
+    ~DfgVertexWithArity() override = default;
 
 public:
     std::pair<DfgEdge*, size_t> sourceEdges() final override {  //
@@ -927,15 +924,6 @@ bool DfgVertex::isZero() const {
 
 bool DfgVertex::isOnes() const {
     if (const DfgConst* const constp = cast<DfgConst>()) return constp->isOnes();
-    return false;
-}
-
-bool DfgVertex::inlined() const {
-    // Inline vertices that drive only a single node, or are special
-    if (!hasMultipleSinks()) return true;
-    if (is<DfgConst>()) return true;
-    if (is<DfgVertexVar>()) return true;
-    if (const DfgArraySel* const selp = cast<DfgArraySel>()) return selp->bitp()->is<DfgConst>();
     return false;
 }
 

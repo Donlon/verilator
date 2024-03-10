@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2009-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2009-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -45,7 +45,7 @@ enum V3ImportProperty : uint8_t { iprop_NONE, iprop_CONTEXT, iprop_PURE };
 //============================================================================
 // Member qualifiers
 
-struct VMemberQualifiers {
+struct VMemberQualifiers final {
     union {
         uint32_t m_flags;
         struct {
@@ -54,9 +54,8 @@ struct VMemberQualifiers {
             uint32_t m_rand : 1;  // Rand property/member qualifier
             uint32_t m_randc : 1;  // Randc property/member qualifier (ignored until supported)
             uint32_t m_virtual : 1;  // Virtual property/method qualifier
-            uint32_t m_automatic : 1;  // Automatic property/method qualifier
             uint32_t m_const : 1;  // Const property/method qualifier
-            uint32_t m_static : 1;  // Static class method
+            uint32_t m_static : 1;  // Static class member
         };
     };
     static VMemberQualifiers none() {
@@ -73,9 +72,8 @@ struct VMemberQualifiers {
         for (AstNodeFTask* nodep = nodesp; nodep; nodep = VN_AS(nodep->nextp(), NodeFTask)) {
             if (m_local) nodep->isHideLocal(true);
             if (m_protected) nodep->isHideProtected(true);
+            if (m_static) nodep->isStatic(true);
             if (m_virtual) nodep->isVirtual(true);
-            if (m_automatic) nodep->lifetime(VLifetime::AUTOMATIC);
-            if (m_static) nodep->lifetime(VLifetime::STATIC);
             if (m_const || m_rand || m_randc) {
                 nodep->v3error("Syntax error: 'const'/'rand'/'randc' not allowed before "
                                "function/task declaration");
@@ -88,7 +86,6 @@ struct VMemberQualifiers {
             if (m_randc) nodep->isRandC(true);
             if (m_local) nodep->isHideLocal(true);
             if (m_protected) nodep->isHideProtected(true);
-            if (m_automatic) nodep->lifetime(VLifetime::AUTOMATIC);
             if (m_static) nodep->lifetime(VLifetime::STATIC);
             if (m_const) nodep->isConst(true);
             if (m_virtual) {
@@ -102,7 +99,7 @@ struct VMemberQualifiers {
 // Parser YYSType, e.g. for parser's yylval
 // We can't use bison's %union as we want to pass the fileline with all tokens
 
-struct V3ParseBisonYYSType {
+struct V3ParseBisonYYSType final {
     FileLine* fl;
     AstNode* scp;  // Symbol table scope for future lookups
     int token;  // Read token, aka tok

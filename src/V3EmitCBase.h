@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -66,14 +66,16 @@ public:
     static string topClassName() VL_MT_SAFE {  // Return name of top wrapper module
         return v3Global.opt.prefix();
     }
-    static string prefixNameProtect(const AstNode* nodep) {  // C++ name with prefix
+    static string prefixNameProtect(const AstNode* nodep) VL_MT_STABLE {  // C++ name with prefix
         return v3Global.opt.modPrefix() + "_" + VIdProtect::protect(nodep->name());
     }
     static bool isAnonOk(const AstVar* varp) {
+        AstNodeDType* const dtp = varp->dtypep()->skipRefp();
         return v3Global.opt.compLimitMembers() != 0  // Enabled
                && !varp->isStatic()  // Not a static variable
                && !varp->isSc()  // Aggregates can't be anon
-               && !VN_IS(varp->dtypep()->skipRefp(), SampleQueueDType)  // Aggregates can't be anon
+               && !VN_IS(dtp, SampleQueueDType)  // Aggregates can't be anon
+               && !(VN_IS(dtp, NodeUOrStructDType) && !VN_CAST(dtp, NodeUOrStructDType)->packed())
                && (varp->basicp() && !varp->basicp()->isOpaque());  // Aggregates can't be anon
     }
     static bool isConstPoolMod(const AstNode* modp) {
@@ -89,10 +91,12 @@ public:
     // METHODS
     V3OutCFile* ofp() const VL_MT_SAFE { return m_ofp; }
     void puts(const string& str) { ofp()->puts(str); }
+    void putns(const AstNode* nodep, const string& str) { ofp()->putns(nodep, str); }
     void putsHeader() { ofp()->putsHeader(); }
     void putbs(const string& str) { ofp()->putbs(str); }
-    void putsDecoration(const string& str) {
-        if (v3Global.opt.decoration()) puts(str);
+    void putnbs(const AstNode* nodep, const string& str) { ofp()->putnbs(nodep, str); }
+    void putsDecoration(const AstNode* nodep, const string& str) {
+        if (v3Global.opt.decoration()) putns(nodep, str);
     }
     void putsQuoted(const string& str) { ofp()->putsQuoted(str); }
     void ensureNewLine() { ofp()->ensureNewLine(); }

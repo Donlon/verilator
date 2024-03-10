@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -34,6 +34,7 @@
 #include "V3LinkJump.h"
 
 #include "V3AstUserAllocator.h"
+#include "V3Error.h"
 
 #include <vector>
 
@@ -42,7 +43,6 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 //######################################################################
 
 class LinkJumpVisitor final : public VNVisitor {
-private:
     // NODE STATE
     //  AstNode::user1()    -> AstJumpLabel*, for this block if endOfIter
     //  AstNode::user2()    -> AstJumpLabel*, for this block if !endOfIter
@@ -56,6 +56,7 @@ private:
     bool m_loopInc = false;  // In loop increment
     bool m_inFork = false;  // Under fork
     int m_modRepeatNum = 0;  // Repeat counter
+    VOptionBool m_unrollFull;  // Pragma full, disable, or default unrolling
     std::vector<AstNodeBlock*> m_blockStack;  // All begin blocks above current node
 
     // METHODS
@@ -143,18 +144,18 @@ private:
             return labelp;
         }
     }
-    void addPrefixToBlocksRecurse(AstNode* nodep) {
-        // Add do_while_ prefix to blocks
+    void addPrefixToBlocksRecurse(const std::string& prefix, AstNode* const nodep) {
+        // Add a prefix to blocks
         // Used to not have blocks with duplicated names
         if (AstBegin* const beginp = VN_CAST(nodep, Begin)) {
-            if (beginp->name() != "") beginp->name("__Vdo_while_" + beginp->name());
+            if (beginp->name() != "") beginp->name(prefix + beginp->name());
         }
 
-        if (nodep->op1p()) addPrefixToBlocksRecurse(nodep->op1p());
-        if (nodep->op2p()) addPrefixToBlocksRecurse(nodep->op2p());
-        if (nodep->op3p()) addPrefixToBlocksRecurse(nodep->op3p());
-        if (nodep->op4p()) addPrefixToBlocksRecurse(nodep->op4p());
-        if (nodep->nextp()) addPrefixToBlocksRecurse(nodep->nextp());
+        if (nodep->op1p()) addPrefixToBlocksRecurse(prefix, nodep->op1p());
+        if (nodep->op2p()) addPrefixToBlocksRecurse(prefix, nodep->op2p());
+        if (nodep->op3p()) addPrefixToBlocksRecurse(prefix, nodep->op3p());
+        if (nodep->op4p()) addPrefixToBlocksRecurse(prefix, nodep->op4p());
+        if (nodep->nextp()) addPrefixToBlocksRecurse(prefix, nodep->nextp());
     }
 
     // VISITORS
@@ -176,12 +177,24 @@ private:
     void visit(AstNodeBlock* nodep) override {
         UINFO(8, "  " << nodep << endl);
         VL_RESTORER(m_inFork);
+        VL_RESTORER(m_unrollFull);
         m_blockStack.push_back(nodep);
         {
             m_inFork = m_inFork || VN_IS(nodep, Fork);
             iterateChildren(nodep);
         }
         m_blockStack.pop_back();
+    }
+    void visit(AstPragma* nodep) override {
+        if (nodep->pragType() == VPragmaType::UNROLL_DISABLE) {
+            m_unrollFull = VOptionBool::OPT_FALSE;
+            VL_DO_DANGLING(pushDeletep(nodep->unlinkFrBack()), nodep);
+        } else if (nodep->pragType() == VPragmaType::UNROLL_FULL) {
+            m_unrollFull = VOptionBool::OPT_TRUE;
+            VL_DO_DANGLING(pushDeletep(nodep->unlinkFrBack()), nodep);
+        } else {
+            iterateChildren(nodep);
+        }
     }
     void visit(AstRepeat* nodep) override {
         // So later optimizations don't need to deal with them,
@@ -206,14 +219,19 @@ private:
             nodep->fileline(), new AstVarRef{nodep->fileline(), varp, VAccess::READ}, zerosp};
         AstNode* const bodysp = nodep->stmtsp();
         if (bodysp) bodysp->unlinkFrBackWithNext();
-        AstNode* newp = new AstWhile{nodep->fileline(), condp, bodysp, decp};
-        initsp = initsp->addNext(newp);
-        newp = initsp;
-        nodep->replaceWith(newp);
+        AstWhile* const whilep = new AstWhile{nodep->fileline(), condp, bodysp, decp};
+        if (!m_unrollFull.isDefault()) whilep->unrollFull(m_unrollFull);
+        m_unrollFull = VOptionBool::OPT_DEFAULT_FALSE;
+        initsp = initsp->addNext(whilep);
+        nodep->replaceWith(initsp);
         VL_DO_DANGLING(nodep->deleteTree(), nodep);
     }
     void visit(AstWhile* nodep) override {
         // Don't need to track AstRepeat/AstFor as they have already been converted
+        if (!m_unrollFull.isDefault()) nodep->unrollFull(m_unrollFull);
+        if (m_modp->hasParameterList() || m_modp->hasGParam())
+            nodep->fileline()->modifyWarnOff(V3ErrorCode::UNUSEDLOOP, true);
+        m_unrollFull = VOptionBool::OPT_DEFAULT_FALSE;
         VL_RESTORER(m_loopp);
         VL_RESTORER(m_loopInc);
         {
@@ -237,15 +255,20 @@ private:
         AstNodeExpr* const condp = nodep->condp() ? nodep->condp()->unlinkFrBack() : nullptr;
         AstNode* const bodyp = nodep->stmtsp() ? nodep->stmtsp()->unlinkFrBack() : nullptr;
         AstWhile* const whilep = new AstWhile{nodep->fileline(), condp, bodyp};
+        if (!m_unrollFull.isDefault()) whilep->unrollFull(m_unrollFull);
+        m_unrollFull = VOptionBool::OPT_DEFAULT_FALSE;
+        // No unused warning for converted AstDoWhile, as body always executes once
+        nodep->fileline()->modifyWarnOff(V3ErrorCode::UNUSEDLOOP, true);
         nodep->replaceWith(whilep);
         VL_DO_DANGLING(nodep->deleteTree(), nodep);
         if (bodyp) {
             AstNode* const copiedBodyp = bodyp->cloneTree(false);
-            addPrefixToBlocksRecurse(copiedBodyp);
+            addPrefixToBlocksRecurse("__Vdo_while1_", copiedBodyp);
+            addPrefixToBlocksRecurse("__Vdo_while2_", bodyp);
             whilep->addHereThisAsNext(copiedBodyp);
         }
     }
-    void visit(AstForeach* nodep) override {
+    void visit(AstNodeForeach* nodep) override {
         VL_RESTORER(m_loopp);
         {
             m_loopp = nodep;
@@ -256,7 +279,7 @@ private:
         iterateChildren(nodep);
         const AstFunc* const funcp = VN_CAST(m_ftaskp, Func);
         if (m_inFork) {
-            nodep->v3error("Return isn't legal under fork (IEEE 1800-2017 9.2.3)");
+            nodep->v3error("Return isn't legal under fork (IEEE 1800-2023 9.2.3)");
             VL_DO_DANGLING(pushDeletep(nodep->unlinkFrBack()), nodep);
             return;
         } else if (!m_ftaskp) {
@@ -348,5 +371,5 @@ public:
 void V3LinkJump::linkJump(AstNetlist* nodep) {
     UINFO(2, __FUNCTION__ << ": " << endl);
     { LinkJumpVisitor{nodep}; }  // Destruct before checking
-    V3Global::dumpCheckGlobalTree("linkjump", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("linkjump", 0, dumpTreeEitherLevel() >= 3);
 }

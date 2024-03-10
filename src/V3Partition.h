@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -22,14 +22,12 @@
 
 #include "V3Graph.h"
 #include "V3OrderGraph.h"
-#include "V3OrderMoveGraph.h"
 #include "V3ThreadSafety.h"
 
 #include <list>
 #include <unordered_map>
 
 class LogicMTask;
-using Vx2MTaskMap = std::unordered_map<const MTaskMoveVertex*, LogicMTask*>;
 
 //*************************************************************************
 /// V3Partition takes the fine-grained logic graph from V3Order and
@@ -76,28 +74,6 @@ private:
     uint32_t setupMTaskDeps(V3Graph* mtasksp) VL_MT_DISABLED;
 
     VL_UNCOPYABLE(V3Partition);
-};
-
-//*************************************************************************
-// Map a pointer into a id, for e.g. nodep to mtask mappings
-
-class PartPtrIdMap final {
-private:
-    // TYPES
-    // MEMBERS
-    mutable uint64_t m_nextId = 0;
-    mutable std::unordered_map<const void*, uint64_t> m_id;
-
-public:
-    // CONSTRUCTORS
-    PartPtrIdMap() = default;
-    // METHODS
-    uint64_t findId(const void* ptrp) const {
-        const auto it = m_id.find(ptrp);
-        if (it != m_id.end()) return it->second;
-        m_id[ptrp] = m_nextId;
-        return m_nextId++;
-    }
 };
 
 #endif  // Guard

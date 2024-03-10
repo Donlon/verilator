@@ -3,7 +3,7 @@
 //
 // Code available from: https://verilator.org
 //
-// Copyright 2001-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2001-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -118,11 +118,11 @@ void VerilatedVcd::open(const char* filename) VL_MT_SAFE_EXCLUDES(m_mutex) {
     printStr(" $end\n");
 
     // Scope and signal definitions
-    assert(m_indent == 0);
+    assert(m_indent >= 0);
     ++m_indent;
     Super::traceInit();
     --m_indent;
-    assert(m_indent == 0);
+    assert(m_indent >= 0);
 
     printStr("$enddefinitions $end\n\n\n");
 
@@ -282,8 +282,7 @@ void VerilatedVcd::bufferFlush() VL_MT_UNSAFE_ONE {
             if (VL_UNCOVERABLE(errno != EAGAIN && errno != EINTR)) {
                 // LCOV_EXCL_START
                 // write failed, presume error (perhaps out of disk space)
-                const std::string msg
-                    = std::string{"VerilatedVcd::bufferFlush: "} + std::strerror(errno);
+                const std::string msg = "VerilatedVcd::bufferFlush: "s + std::strerror(errno);
                 VL_FATAL_MT("", 0, "", msg.c_str());
                 closeErr();
                 break;
@@ -301,7 +300,7 @@ void VerilatedVcd::bufferFlush() VL_MT_UNSAFE_ONE {
 
 void VerilatedVcd::printIndent(int level_change) {
     if (level_change < 0) m_indent += level_change;
-    for (int i = 0; i < m_indent; i++) printStr(" ");
+    for (int i = 0; i < m_indent; ++i) printStr(" ");
     if (level_change > 0) m_indent += level_change;
 }
 

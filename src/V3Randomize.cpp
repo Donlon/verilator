@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -36,7 +36,6 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 // Visitor that marks classes needing a randomize() method
 
 class RandomizeMarkVisitor final : public VNVisitorConst {
-private:
     // NODE STATE
     // Cleared on Netlist
     //  AstClass::user1()       -> bool.  Set true to indicate needs randomize processing
@@ -128,7 +127,6 @@ public:
 // Visitor that defines a randomize method where needed
 
 class RandomizeVisitor final : public VNVisitor {
-private:
     // NODE STATE
     // Cleared on Netlist
     //  AstClass::user1()       -> bool.  Set true to indicate needs randomize processing
@@ -175,15 +173,17 @@ private:
 
     AstCDType* findVlRandCDType(FileLine* fl, uint64_t items) {
         // For 8 items we need to have a 9 item LFSR so items is max count
-        const std::string type = AstCDType::typeToHold(items);
+        // width(items) = log2(items) + 1
+        const std::string type = AstCDType::typeToHold(V3Number::log2bQuad(items) + 1);
         const std::string name = "VlRandC<" + type + ", " + cvtToStr(items) + "ULL>";
         // Create or reuse (to avoid duplicates) randomization object dtype
-        auto it = m_randcDtypes.find(name);
-        if (it != m_randcDtypes.end()) return it->second;
-        AstCDType* newp = new AstCDType{fl, name};
-        v3Global.rootp()->typeTablep()->addTypesp(newp);
-        m_randcDtypes.emplace(std::make_pair(name, newp));
-        return newp;
+        const auto pair = m_randcDtypes.emplace(name, nullptr);
+        if (pair.second) {
+            AstCDType* newp = new AstCDType{fl, name};
+            v3Global.rootp()->typeTablep()->addTypesp(newp);
+            pair.first->second = newp;
+        }
+        return pair.first->second;
     }
 
     AstVar* newRandcVarsp(AstVar* varp) {
@@ -197,7 +197,7 @@ private:
             AstBasicDType* const basicp = varp->dtypep()->skipRefp()->basicp();
             UASSERT_OBJ(basicp, varp, "Unexpected randc variable dtype");
             if (basicp->width() > 32) {
-                varp->v3error("Maxiumum implemented width for randc is 32 bits, "
+                varp->v3error("Maximum implemented width for randc is 32 bits, "
                               << varp->prettyNameQ() << " is " << basicp->width() << " bits");
                 varp->isRandC(false);
                 varp->isRand(true);
@@ -357,6 +357,10 @@ private:
         addPrePostCall(nodep, funcp, "post_randomize");
         nodep->user1(false);
     }
+    void visit(AstConstraint* nodep) override {
+        nodep->v3warn(CONSTRAINTIGN, "Constraint ignored (unsupported)");
+        if (!v3Global.opt.xmlOnly()) VL_DO_DANGLING(pushDeletep(nodep->unlinkFrBack()), nodep);
+    }
     void visit(AstRandCase* nodep) override {
         // RANDCASE
         //   CASEITEM expr1 : stmt1
@@ -398,7 +402,7 @@ private:
             ifsp = newifp;
         }
         AstDisplay* dispp = new AstDisplay{
-            fl, VDisplayType::DT_ERROR, "All randcase items had 0 weights (IEEE 1800-2017 18.16)",
+            fl, VDisplayType::DT_ERROR, "All randcase items had 0 weights (IEEE 1800-2023 18.16)",
             nullptr, nullptr};
         UASSERT_OBJ(m_modp, nodep, "randcase not under module");
         dispp->fmtp()->timeunit(m_modp->timeunit());
@@ -432,7 +436,7 @@ void V3Randomize::randomizeNetlist(AstNetlist* nodep) {
         const RandomizeMarkVisitor markVisitor{nodep};
         RandomizeVisitor{nodep};
     }
-    V3Global::dumpCheckGlobalTree("randomize", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("randomize", 0, dumpTreeEitherLevel() >= 3);
 }
 
 AstFunc* V3Randomize::newRandomizeFunc(AstClass* nodep) {

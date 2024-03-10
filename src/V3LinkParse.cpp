@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -33,7 +33,6 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 // Link state, as a visitor of each AstNode
 
 class LinkParseVisitor final : public VNVisitor {
-private:
     // NODE STATE
     // Cleared on netlist
     //  AstNode::user1()        -> bool.  True if processed
@@ -57,6 +56,7 @@ private:
     AstNodeDType* m_dtypep = nullptr;  // Current data type
     AstNodeExpr* m_defaultInSkewp = nullptr;  // Current default input skew
     AstNodeExpr* m_defaultOutSkewp = nullptr;  // Current default output skew
+    int m_anonUdpId = 0;  // Counter for anonymous UDP instances
     int m_genblkAbove = 0;  // Begin block number of if/case/for above
     int m_genblkNum = 0;  // Begin block number, 0=none seen
     int m_beginDepth = 0;  // How many begin blocks above current node within current AstNodeModule
@@ -242,6 +242,10 @@ private:
         }
     }
     void visit(AstNodeDType* nodep) override { visitIterateNodeDType(nodep); }
+    void visit(AstConstraint* nodep) override {
+        v3Global.useRandomizeMethods(true);
+        iterateChildren(nodep);
+    }
     void visit(AstEnumDType* nodep) override {
         if (nodep->name() == "") {
             nodep->name(nameFromTypedef(nodep));  // Might still remain ""
@@ -292,19 +296,10 @@ private:
             nodep->v3warn(STATICVAR, "Static variable with assignment declaration declared in a "
                                      "loop converted to automatic");
         }
-        if (m_ftaskp) {
-            bool classMethod = m_ftaskp->classMethod();
-            if (!classMethod) {
-                AstClassOrPackageRef* const pkgrefp
-                    = VN_CAST(m_ftaskp->classOrPackagep(), ClassOrPackageRef);
-                if (pkgrefp && VN_IS(pkgrefp->classOrPackagep(), Class)) classMethod = true;
-            }
-            if (classMethod && nodep->lifetime().isNone()) {
-                nodep->lifetime(VLifetime::AUTOMATIC);
-            }
-        }
-        if (nodep->lifetime().isNone() && nodep->varType() != VVarType::PORT) {
-            nodep->lifetime(m_lifetime);
+        if (nodep->varType() != VVarType::PORT) {
+            if (nodep->lifetime().isNone()) nodep->lifetime(m_lifetime);
+        } else if (m_ftaskp) {
+            nodep->lifetime(VLifetime::AUTOMATIC);
         }
 
         if (nodep->isGParam() && !nodep->isAnsi()) {  // shadow some parameters into localparams
@@ -534,8 +529,7 @@ private:
             } else {
                 defp = new AstTypedef{nodep->fileline(), nodep->name(), nullptr, VFlagChildDType{},
                                       dtypep};
-                m_implTypedef.insert(
-                    std::make_pair(std::make_pair(nodep->containerp(), defp->name()), defp));
+                m_implTypedef.emplace(std::make_pair(nodep->containerp(), defp->name()), defp);
                 backp->addNextHere(defp);
             }
         }
@@ -543,7 +537,14 @@ private:
         VL_DO_DANGLING(nodep->deleteTree(), nodep);
     }
 
-    void visit(AstForeach* nodep) override {
+    void visit(AstDelay* nodep) override {
+        cleanFileline(nodep);
+        UASSERT_OBJ(m_modp, nodep, "Delay not under module");
+        nodep->timeunit(m_modp->timeunit());
+        iterateChildren(nodep);
+    }
+
+    void visit(AstNodeForeach* nodep) override {
         // FOREACH(array, loopvars, body)
         UINFO(9, "FOREACH " << nodep << endl);
         cleanFileline(nodep);
@@ -567,14 +568,14 @@ private:
             // Convert to AstSelLoopVars so V3LinkDot knows what's being defined
             AstNode* const newp
                 = new AstSelLoopVars{selp->fileline(), selp->fromp()->unlinkFrBack(),
-                                     selp->rhsp()->unlinkFrBackWithNext()};
+                                     selp->bitp()->unlinkFrBackWithNext()};
             selp->replaceWith(newp);
             VL_DO_DANGLING(selp->deleteTree(), selp);
         } else if (VN_IS(bracketp, SelLoopVars)) {
             // Ok
         } else {
             nodep->v3error("Syntax error; foreach missing bracketed loop variable"
-                           " (IEEE 1800-2017 12.7.3)");
+                           " (IEEE 1800-2023 12.7.3)");
             VL_DO_DANGLING(nodep->unlinkFrBack()->deleteTree(), nodep);
             return;
         }
@@ -621,6 +622,7 @@ private:
         V3Config::applyModule(nodep);
 
         VL_RESTORER(m_modp);
+        VL_RESTORER(m_anonUdpId);
         VL_RESTORER(m_genblkAbove);
         VL_RESTORER(m_genblkNum);
         VL_RESTORER(m_beginDepth);
@@ -631,6 +633,7 @@ private:
             // Classes inherit from upper package
             if (m_modp && nodep->timeunit().isNone()) nodep->timeunit(m_modp->timeunit());
             m_modp = nodep;
+            m_anonUdpId = 0;
             m_genblkAbove = 0;
             m_genblkNum = 0;
             m_beginDepth = 0;
@@ -638,6 +641,11 @@ private:
             m_lifetime = nodep->lifetime();
             if (m_lifetime.isNone()) {
                 m_lifetime = VN_IS(nodep, Class) ? VLifetime::AUTOMATIC : VLifetime::STATIC;
+            }
+            if (nodep->name() == "TOP") {
+                // May mess up scope resolution and cause infinite loop
+                nodep->v3warn(E_UNSUPPORTED, "Module cannot be named 'TOP' as conflicts with "
+                                             "Verilator top-level internals");
             }
             iterateChildren(nodep);
         }
@@ -684,7 +692,7 @@ private:
             if (nodep->stmtsp()) {
                 nodep->v3warn(GENUNNAMED,
                               "Unnamed generate block "
-                                  << nodep->prettyNameQ() << " (IEEE 1800-2017 27.6)\n"
+                                  << nodep->prettyNameQ() << " (IEEE 1800-2023 27.6)\n"
                                   << nodep->warnMore()
                                   << "... Suggest assign a label with 'begin : gen_<label_name>'");
             }
@@ -698,6 +706,19 @@ private:
             iterateChildren(nodep);
         } else {
             iterateChildren(nodep);
+        }
+    }
+    void visit(AstCell* nodep) override {
+        if (nodep->origName().empty()) {
+            if (!VN_IS(nodep->modp(), Primitive)) {  // Module/Program/Iface
+                nodep->modNameFileline()->v3error("Instance of " << nodep->modp()->verilogKwd()
+                                                                 << " must be named");
+            }
+            // UDPs can have empty instance names. Assigning unique names for them to prevent any
+            // conflicts
+            const string newName = "$unnamedudp" + cvtToStr(++m_anonUdpId);
+            nodep->name(newName);
+            nodep->origName(newName);
         }
     }
     void visit(AstGenCase* nodep) override {
@@ -750,7 +771,7 @@ private:
                 }
                 if (!VN_IS(scanp, NodeFTask)) {
                     nodep->rhsp()->v3error(
-                        "'super.new' not first statement in new function (IEEE 1800-2017 8.15)\n"
+                        "'super.new' not first statement in new function (IEEE 1800-2023 8.15)\n"
                         << nodep->rhsp()->warnContextPrimary() << scanp->warnOther()
                         << "... Location of earlier statement\n"
                         << scanp->warnContextSecondary());
@@ -801,7 +822,7 @@ private:
         AstAlways* const alwaysp = VN_CAST(nodep->backp(), Always);
         if (alwaysp && alwaysp->keyword() == VAlwaysKwd::ALWAYS_COMB) {
             alwaysp->v3error("Event control statements not legal under always_comb "
-                             "(IEEE 1800-2017 9.2.2.2.2)\n"
+                             "(IEEE 1800-2023 9.2.2.2.2)\n"
                              << nodep->warnMore() << "... Suggest use a normal 'always'");
             VL_DO_DANGLING(nodep->unlinkFrBack()->deleteTree(), nodep);
         } else if (alwaysp && !alwaysp->sensesp()) {
@@ -861,7 +882,7 @@ private:
                 if (m_defaultOutSkewp) {
                     nodep->skewp(m_defaultOutSkewp->cloneTree(false));
                 } else {
-                    // Default is 0 (IEEE 1800-2017 14.3)
+                    // Default is 0 (IEEE 1800-2023 14.3)
                     nodep->skewp(new AstConst{nodep->fileline(), 0});
                 }
             } else if (AstConst* const constp = VN_CAST(nodep->skewp(), Const)) {
@@ -874,7 +895,7 @@ private:
                 if (m_defaultInSkewp) {
                     nodep->skewp(m_defaultInSkewp->cloneTree(false));
                 } else {
-                    // Default is 1step (IEEE 1800-2017 14.3)
+                    // Default is 1step (IEEE 1800-2023 14.3)
                     nodep->skewp(new AstConst{nodep->fileline(), AstConst::OneStep{}});
                 }
             }
@@ -903,5 +924,5 @@ public:
 void V3LinkParse::linkParse(AstNetlist* rootp) {
     UINFO(4, __FUNCTION__ << ": " << endl);
     { LinkParseVisitor{rootp}; }  // Destruct before checking
-    V3Global::dumpCheckGlobalTree("linkparse", 0, dumpTreeLevel() >= 6);
+    V3Global::dumpCheckGlobalTree("linkparse", 0, dumpTreeEitherLevel() >= 6);
 }

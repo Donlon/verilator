@@ -3,7 +3,7 @@
 //
 // Code available from: https://verilator.org
 //
-// Copyright 2009-2023 by Wilson Snyder. This program is free software; you can
+// Copyright 2009-2024 by Wilson Snyder. This program is free software; you can
 // redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -30,7 +30,7 @@
 #include "verilated_syms.h"
 
 //======================================================================
-// From IEEE 1800-2017 annex M
+// From IEEE 1800-2023 annex M
 
 #include "vltstd/sv_vpi_user.h"
 

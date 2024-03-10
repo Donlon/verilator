@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -122,7 +122,7 @@
 
 VL_DEFINE_DEBUG_FUNCTIONS;
 
-struct SplitVarImpl {
+struct SplitVarImpl VL_NOT_FINAL {
     // NODE STATE
     //  AstNodeModule::user1()  -> Block number counter for generating unique names
     const VNUser1InUse m_user1InUse;  // Only used in SplitUnpackedVarVisitor
@@ -239,7 +239,7 @@ static void warnNoSplit(const AstVar* varp, const AstNode* wherep, const char* r
 // AstSliceSel  -> Create a temporary variable and refer the variable
 
 // Compare AstNode* to get deterministic ordering when showing messages.
-struct AstNodeComparator {
+struct AstNodeComparator final {
     bool operator()(const AstNode* ap, const AstNode* bp) const {
         const int lineComp = ap->fileline()->operatorCompare(*bp->fileline());
         if (lineComp != 0) return lineComp < 0;
@@ -310,15 +310,14 @@ private:
         UASSERT_OBJ(varp->attrSplitVar(), varp, " no split_var metacomment");
         const MapIt it = m_map.find(varp);
         if (it == m_map.end()) return false;  // Not registered
-        const bool ok = m_map[varp].insert(ref).second;
+        const bool ok = it->second.insert(ref).second;
         return ok;
     }
 
 public:
     // Register a variable to split
     void registerVar(AstVar* varp) {
-        const bool inserted
-            = m_map.insert(std::make_pair(varp, MapType::value_type::second_type())).second;
+        const bool inserted = m_map.emplace(varp, MapType::value_type::second_type()).second;
         UASSERT_OBJ(inserted, varp, "already registered");
     }
     // Register the location where a variable is used.
@@ -347,7 +346,7 @@ public:
 };
 
 // Found nodes for SplitPackedVarVisitor
-struct RefsInModule {
+struct RefsInModule final {
     std::set<AstVar*, AstNodeComparator> m_vars;
     std::set<AstVarRef*, AstNodeComparator> m_refs;
     std::set<AstSel*, AstNodeComparator> m_sels;
@@ -357,7 +356,7 @@ public:
     void add(AstVarRef* nodep) { m_refs.insert(nodep); }
     void add(AstSel* nodep) { m_sels.insert(nodep); }
     void remove(AstNode* nodep) {
-        struct Visitor : public VNVisitor {
+        struct Visitor final : public VNVisitor {
             RefsInModule& m_parent;
             void visit(AstNode* nodep) override { iterateChildren(nodep); }
             void visit(AstVar* nodep) override { m_parent.m_vars.erase(nodep); }
@@ -813,7 +812,7 @@ public:
     }
     AstVar* varp() const { return m_varp; }
 
-    struct Match {
+    struct Match final {
         bool operator()(int bit, const SplitNewVar& a) const {
             return bit < a.m_lsb + a.m_bitwidth;
         }
@@ -855,7 +854,7 @@ public:
 
 // How a variable is used
 class PackedVarRef final {
-    struct SortByFirst {
+    struct SortByFirst final {
         bool operator()(const std::pair<int, bool>& a, const std::pair<int, bool>& b) const {
             if (a.first == b.first) return a.second < b.second;
             return a.first < b.first;
@@ -907,8 +906,8 @@ public:
         std::vector<std::pair<int, bool>> points;  // <bit location, is end>
         points.reserve(m_lhs.size() * 2 + 2);  // 2 points will be added per one PackedVarRefEntry
         for (const PackedVarRefEntry& ref : m_lhs) {
-            points.emplace_back(std::make_pair(ref.lsb(), false));  // Start of a region
-            points.emplace_back(std::make_pair(ref.msb() + 1, true));  // End of a region
+            points.emplace_back(ref.lsb(), false);  // Start of a region
+            points.emplace_back(ref.msb() + 1, true);  // End of a region
         }
         if (skipUnused && !m_rhs.empty()) {  // Range to be read must be kept, so add points here
             int lsb = m_basicp->hi() + 1;
@@ -918,12 +917,12 @@ public:
                 msb = std::max(msb, ref.msb());
             }
             UASSERT_OBJ(lsb <= msb, m_basicp, "lsb:" << lsb << " msb:" << msb << " are wrong");
-            points.emplace_back(std::make_pair(lsb, false));
-            points.emplace_back(std::make_pair(msb + 1, true));
+            points.emplace_back(lsb, false);
+            points.emplace_back(msb + 1, true);
         }
         if (!skipUnused) {  // All bits are necessary
-            points.emplace_back(std::make_pair(m_basicp->lo(), false));
-            points.emplace_back(std::make_pair(m_basicp->hi() + 1, true));
+            points.emplace_back(m_basicp->lo(), false);
+            points.emplace_back(m_basicp->hi() + 1, true);
         }
         std::sort(points.begin(), points.end(), SortByFirst());
 
@@ -960,7 +959,7 @@ class SplitPackedVarVisitor final : public VNVisitor, public SplitVarImpl {
             warnNoSplit(nodep, nodep, reason);
             nodep->attrSplitVar(false);
         } else {  // Finally find a good candidate
-            const bool inserted = m_refs.insert(std::make_pair(nodep, PackedVarRef{nodep})).second;
+            const bool inserted = m_refs.emplace(nodep, PackedVarRef{nodep}).second;
             if (inserted) UINFO(3, nodep->prettyNameQ() << " is added to candidate list.\n");
         }
     }
@@ -1243,9 +1242,9 @@ void V3SplitVar::splitVariable(AstNetlist* nodep) {
         const SplitUnpackedVarVisitor visitor{nodep};
         refs = visitor.getPackedVarRefs();
     }
-    V3Global::dumpCheckGlobalTree("split_var", 0, dumpTreeLevel() >= 9);
+    V3Global::dumpCheckGlobalTree("split_var", 0, dumpTreeEitherLevel() >= 9);
     { SplitPackedVarVisitor{nodep, refs}; }
-    V3Global::dumpCheckGlobalTree("split_var", 0, dumpTreeLevel() >= 9);
+    V3Global::dumpCheckGlobalTree("split_var", 0, dumpTreeEitherLevel() >= 9);
 }
 
 bool V3SplitVar::canSplitVar(const AstVar* varp) {

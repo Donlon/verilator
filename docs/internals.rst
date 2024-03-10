@@ -224,7 +224,7 @@ Scheduling
 ----------
 
 Verilator implements the Active and NBA regions of the SystemVerilog scheduling
-model as described in IEEE 1800-2017 chapter 4, and in particular sections
+model as described in IEEE 1800-2023 chapter 4, and in particular sections
 4.5 and Figure 4.1. The static (Verilation time) scheduling of SystemVerilog
 processes is performed by code in the ``V3Sched`` namespace. The single
 entry point to the scheduling algorithm is ``V3Sched::schedule``. Some
@@ -312,7 +312,7 @@ Scheduling of clocked and combinational logic
 For performance, clocked and combinational logic needs to be ordered.
 Conceptually this minimizes the iterations through the evaluation loop
 presented in the reference algorithm in the SystemVerilog standard (IEEE
-1800-2017 section 4.5), by evaluating logic constructs in data-flow order.
+1800-2023 section 4.5), by evaluating logic constructs in data-flow order.
 Without going into a lot of detail here, accept that well thought out ordering
 is crucial to good simulation performance, and also enables further
 optimizations later on.
@@ -407,7 +407,7 @@ triggered due to a combinational signal change from the previous evaluation
 pass, and a combinational loop settling due to hybrid logic, if the clocked
 logic reads the not yet settled combinationally driven signal. Such a race
 is indeed possible, but our evaluation is consistent with the SystemVerilog
-scheduling semantics (IEEE 1800-2017 chapter 4), and therefore any program
+scheduling semantics (IEEE 1800-2023 chapter 4), and therefore any program
 that exhibits such a race has non-deterministic behavior according to the
 SystemVerilog semantics, so we accept this.
 
@@ -1035,11 +1035,11 @@ Coding Conventions
 ==================
 
 
-Compiler Version and C++11
+Compiler Version and C++14
 --------------------------
 
-Verilator requires C11. Verilator does not require any newer versions, but
-is maintained to build successfully with C14/C17/C20.
+Verilator requires C14. Verilator does not require any newer versions, but
+is maintained to build successfully with C17/C20.
 
 
 Indentation and Naming Style
@@ -1222,9 +1222,9 @@ There are three ways data is passed between visitor functions.
 
 2. User attributes. Each ``AstNode`` (**Note.** The AST node, not the
    visitor) has five user attributes, which may be accessed as an
-   integer using the ``user1()`` through ``user5()`` methods, or as a
+   integer using the ``user1()`` through ``user4()`` methods, or as a
    pointer (of type ``AstNUser``) using the ``user1p()`` through
-   ``user5p()`` methods (a common technique lifted from graph traversal
+   ``user4p()`` methods (a common technique lifted from graph traversal
    packages).
 
    A visitor first clears the one it wants to use by calling
@@ -1462,6 +1462,19 @@ There are some traps to avoid when running regression tests
   system-dependent, but on Fedora Linux it would require editing the
   ``/etc/security/limits.conf`` file as root.
 
+Diffing generated code after changes
+------------------------------------
+
+When making a change in the code generation area that should not change the
+actual emitted code, it is useful to perform a diff to make sure the emitted
+code really did not change. To do this, the top level Makefile provides the
+*test-snap* and *test-diff* targets:
+
+- Run the test suite with ``make test``
+- Take a snapshot with ``make test-snap``
+- Apply your changes
+- Run the test suite again with ``make test``
+- See the changes in the output with ``make test-diff``
 
 Continuous Integration
 ----------------------
@@ -1640,7 +1653,7 @@ Source file and line
    file is ``a``, the 26th is ``z``, the 27th is ``aa``, and so on.
 
 User pointers
-   Shows the value of the node's user1p...user5p, if non-NULL.
+   Shows the value of the node's user1p...user4p, if non-NULL.
 
 Data type
    Many nodes have an explicit data type. "@dt=0x..." indicates the
@@ -1681,6 +1694,84 @@ The ``MODULE`` has a list of ``CELLINLINE`` nodes referred to by its
 
 Similarly, the ``NETLIST`` has a list of modules referred to by its
 ``op1p()`` pointer.
+
+
+.tree.json Output
+-----------------
+
+``.tree.json``` is an alternative dump format to ``.tree`` that is meant for
+programmatic processing (e.g. with `astsee <https://github.com/antmicro/astsee>`_).
+To enable this dump format, use :vlopt:`--json-only`.
+
+Structure:
+::
+
+  {
+    /* Attributes that are common to all types of nodes */
+    "type": "VAR",
+    "name": "cyc",
+    /* By default addresses and filenames use short/stable ids rather than real value */
+    "addr": "(H)",
+    "loc": "a,25:12,26:15", /* "fileid,firstLine:firstCol,lastLine:endCol" (endCol is right exclusive) */
+    "editNum": 602,
+    /* Fields that are specific to AstVar nodes:  */
+    "origName": "cyc",
+    "isSc": false,
+    "ioDirection": "NONE",
+    "isConst": false,
+    "isPullup": false,
+    "isPulldown": false,
+    "isUsedClock": false,
+    "isSigPublic": false,
+    "isLatched": false,
+    "isUsedLoopIdx": false,
+    "noReset": false,
+    "attrIsolateAssign": false,
+    "attrFileDescr": false,
+    "isDpiOpenArray": false,
+    "isFuncReturn": false,
+    "isFuncLocal": false,
+    "attrClocker": "UNKNOWN",
+    "lifetime": "NONE",
+    "varType": "VAR",
+    /* Lists of child nodes (which use similar structure as their parent): */
+    "childDTypep": [ /* ... */ ],
+    "delayp": [ /* ... */ ],
+    "valuep": [ /* ... */ ],
+    "attrsp": [ /* ... */ ]
+  }
+
+.tree.meta.json Output
+----------------
+
+.tree.meta.json contains metadata that is common across the whole AST tree.
+
+Besides de-duplication of data shared between multiple stages, .meta.json enables offloading
+unstable data (that can vary from machine-to-machine or run-to-run) from main .tree.json.
+This offloading allows, for example, to use byte-to-byte comparisons of AST dumps in tests.
+
+::
+
+  {"files": {
+    /* Map id to filename, and other metadata */
+    "d": {"filename":"/home/ant/tmp/verilator/include/verilated_std.sv", "realpath":"/home/ant/tmp/verilator/include/verilated_std.sv", "language":"1800-2023"},
+    "a": {"filename":"<built-in>", "realpath":"<built-in>", "language":"1800-2023"},
+    "b": {"filename":"<command-line>", "realpath":"<command-line>", "language":"1800-2023"},
+    "c": {"filename":"input.vc", "realpath":"/home/ant/tmp/verilator/test_regress/input.vc", "language":"1800-2023"},
+    "e": {"filename":"t/t_EXAMPLE.v", "realpath":"/home/ant/tmp/verilator/test_regress/t/t_EXAMPLE.v", "language":"1800-2023"}
+   },"pointers": {
+    /* Map id to real address */
+    "(AG)": "0x562997289180",
+    "(YF)": "0x5629971c50b0",
+    "(WF)": "0x5629971e7ae0",
+    /* ... /*
+   },"ptrFieldNames": [
+    /* List of fields that are used for storing pointers */
+    "aboveScopep",
+    "voidp",
+    "addr",
+    /* ... */
+ ]}
 
 
 .tree.dot Output
@@ -1816,21 +1907,21 @@ Verilator ideally would support all of IEEE, and has the goal to get close
 to full support. However the following IEEE sections and features are not
 anticipated to be ever implemented for the reasons indicated.
 
-IEEE 1800-2017 3.3 modules within modules
+IEEE 1800-2023 3.3 modules within modules
     Little/no tool support, and arguably not a good practice.
-IEEE 1800-2017 6.12 "shortreal"
+IEEE 1800-2023 6.12 "shortreal"
     Little/no tool support, and easily promoted to real.
-IEEE 1800-2017 11.11 Min, typ, max
+IEEE 1800-2023 11.11 Min, typ, max
     No SDF support, so will always use typical.
-IEEE 1800-2017 20.16 Stochastic analysis
+IEEE 1800-2023 20.16 Stochastic analysis
     Little industry use.
-IEEE 1800-2017 20.17 PLA modeling
+IEEE 1800-2023 20.17 PLA modeling
     Little industry use and outdated technology.
-IEEE 1800-2017 31 Timing checks
+IEEE 1800-2023 31 Timing checks
     No longer relevant with static timing analysis tools.
-IEEE 1800-2017 32 SDF annotation
+IEEE 1800-2023 32 SDF annotation
     No longer relevant with static timing analysis tools.
-IEEE 1800-2017 33 Config
+IEEE 1800-2023 33 Config
     Little industry use.
 
 
@@ -1924,6 +2015,9 @@ driver.pl Non-Scenario Arguments
 --trace
   Set the simulator specific flags to request waveform tracing.
 
+--valgrind
+  Same as ``verilator --valgrind``: Run Verilator under `Valgrind <https://valgrind.org/>`_.
+
 --verbose
   Compile and run the test in verbose mode. This means ``TEST_VERBOSE``
   will be defined for the test (Verilog and any C++/SystemC wrapper).
@@ -1966,6 +2060,9 @@ simultaneously.
 
 --vltmt
   Run Verilator tests in multithreaded mode.
+
+--xrun
+  Run Cadence Xcelium simulator tests.
 
 --xsim
   Run Xilinx XSim simulator tests.
@@ -2224,7 +2321,7 @@ xsim_flags / xsim_flags2 / xsim_run_flags
 Distribution
 ============
 
-Copyright 2008-2023 by Wilson Snyder. Verilator is free software; you can
+Copyright 2008-2024 by Wilson Snyder. Verilator is free software; you can
 redistribute it and/or modify it under the terms of either the GNU Lesser
 General Public License Version 3 or the Perl Artistic License Version 2.0.
 

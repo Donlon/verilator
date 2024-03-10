@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -31,12 +31,11 @@ class VlcPoint;
 // VlcColumnCount - count at specific source file, line and column
 
 class VlcSourceCount final {
-private:
     // TYPES
     using PointsSet = std::set<const VlcPoint*>;
 
     // MEMBERS
-    int m_lineno;  ///< Line number
+    const int m_lineno;  ///< Line number
     uint64_t m_count = 0;  ///< Count
     bool m_ok = false;  ///< Coverage is above threshold
     PointsSet m_points;  // Points on this line
@@ -94,10 +93,7 @@ public:
 
     // METHODS
     void lineIncCount(int lineno, uint64_t count, bool ok, const VlcPoint* pointp) {
-        auto lit = m_lines.find(lineno);
-        if (lit == m_lines.end())
-            lit = m_lines.emplace(std::make_pair(lineno, VlcSourceCount{lineno})).first;
-        VlcSourceCount& sc = lit->second;
+        VlcSourceCount& sc = m_lines.emplace(lineno, lineno).first->second;
         sc.incCount(count, ok);
         sc.insertPoint(pointp);
     }
@@ -131,7 +127,7 @@ public:
         if (iter != m_sources.end()) {
             return iter->second;
         } else {
-            iter = m_sources.insert(std::make_pair(name, VlcSource{name})).first;
+            iter = m_sources.emplace(name, VlcSource{name}).first;
             return iter->second;
         }
     }

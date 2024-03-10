@@ -1,4 +1,4 @@
-.. Copyright 2003-2023 by Wilson Snyder.
+.. Copyright 2003-2024 by Wilson Snyder.
 .. SPDX-License-Identifier: LGPL-3.0-only OR Artistic-2.0
 
 ******************************
@@ -128,10 +128,13 @@ How do I generate waveforms (traces) in C++?
 
 See also the next question for tracing in SystemC mode.
 
-A. Pass the :vlopt:`--trace` option to Verilator, and in your top-level C
-   code, call ``Verilated::traceEverOn(true)``.  Then you may use
-   ``$dumpfile`` and ``$dumpvars`` to enable traces, the same as with any
-   Verilog simulator. See ``examples/make_tracing_c`` in the distribution.
+A. Pass the :vlopt:`--trace` option to Verilator.  Then you may use ``$dumpfile`` and
+   ``$dumpvars`` to enable traces, the same as with any Verilog simulator,
+   although Verilator ignores the arguments to ``$dumpvars``. See
+   ``examples/make_tracing_c`` in the distribution.
+
+   If writing the top-level C code, call ``Verilated::traceEverOn(true)``;
+   this is done for you if using :vlopt:`--binary`.
 
 B. Or, for finer-grained control, or C++ files with multiple Verilated
    modules, you may also create the trace purely from C++.  Create a
@@ -220,24 +223,20 @@ This is done for you if you are using the Verilator :vlopt:`--binary` or
 You can call :code:`->trace()` on multiple Verilated objects with the same
 trace file if you want all data to land in the same output file.
 
-When using SystemC 2.3, the SystemC library must have been built with the
-experimental simulation phase callback-based tracing disabled. This is
-disabled by default when building SystemC with its configure based build
-system, but when building SystemC with CMake, you must pass
-``-DENABLE_PHASE_CALLBACKS_TRACING=OFF`` to disable this feature.
-
 
 How do I generate FST waveforms (traces) in C++ or SystemC?
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 FST is a trace file format developed by GTKWave.  Verilator provides basic
 FST support.  To dump traces in FST format, add the :vlopt:`--trace-fst`
-option to Verilator and either A. use :code:`$dumpfile & $dumpvars` in
-Verilog as described in the VCD example above,
+option to Verilator and either:
+
+Use :code:`$dumpfile & $dumpvars` in Verilog as described in the VCD
+example above,
 
 Or, in C++ change the include described in the VCD example above:
 
-.. code-block:: C++
+  .. code-block:: C++
 
       #include "verilated_fst_c.h"
       VerilatedFstC* tfp = new VerilatedFstC;
@@ -245,14 +244,14 @@ Or, in C++ change the include described in the VCD example above:
 
 Or, in SystemC, change the include described in the VCD example above:
 
-.. code-block:: C++
+  .. code-block:: C++
 
       #include "verilated_fst_sc.h"
       VerilatedFstC* tfp = new VerilatedFstSc;
 
 
-Currently, supporting FST and VCD in a single simulation is impossible, but
-such requirement should be rare.  You can however ifdef around the trace
+Currently, supporting FST and VCD in a single simulation is not supported,
+but such usage should be unlikely.  You can however ifdef around the trace
 format in your C++ main loop, and select VCD or FST at compile time.
 
 
@@ -401,7 +400,7 @@ How do I get faster build times?
 * Use a recent compiler.  Newer compilers tend to be faster.
 
 * Compile in parallel on many machines and use caching; see the web for the
-  ccache, distcc, and icecream packages. ccache will skip GCC runs between
+  ccache, sccache, distcc, or icecream packages. ccache will skip GCC runs between
   identical source builds, even across different users.  If ccache was
   installed when Verilator was built, it is used, or see OBJCACHE
   environment variable to override this. Also see the

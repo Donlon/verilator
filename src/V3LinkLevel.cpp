@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -30,7 +30,7 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 //######################################################################
 // Levelizing class functions
 
-struct CmpLevel {
+struct CmpLevel final {
     bool operator()(const AstNodeModule* lhsp, const AstNodeModule* rhsp) const {
         return lhsp->level() < rhsp->level();
     }
@@ -82,7 +82,7 @@ void V3LinkLevel::modSortByLevel() {
     UASSERT_OBJ(!v3Global.rootp()->modulesp(), v3Global.rootp(), "Unlink didn't work");
     for (AstNodeModule* nodep : mods) v3Global.rootp()->addModulesp(nodep);
     UINFO(9, "modSortByLevel() done\n");  // Comment required for gcc4.6.3 / bug666
-    V3Global::dumpCheckGlobalTree("cells", false, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("cells", false, dumpTreeEitherLevel() >= 3);
 }
 
 void V3LinkLevel::timescaling(const ModVec& mods) {
@@ -117,7 +117,7 @@ void V3LinkLevel::timescaling(const ModVec& mods) {
                 && nodep->timescaleMatters()) {
                 nodep->v3warn(TIMESCALEMOD,
                               "Timescale missing on this module as other modules have "
-                              "it (IEEE 1800-2017 3.14.2.3)\n"
+                              "it (IEEE 1800-2023 3.14.2.3)\n"
                                   << nodep->warnContextPrimary() << '\n'
                                   << modTimedp->warnOther()
                                   << "... Location of module with timescale\n"
@@ -178,7 +178,7 @@ void V3LinkLevel::wrapTop(AstNetlist* rootp) {
         }
     }
 
-    V3Global::dumpCheckGlobalTree("wraptop", 0, dumpTreeLevel() >= 6);
+    V3Global::dumpCheckGlobalTree("wraptop", 0, dumpTreeEitherLevel() >= 6);
 }
 
 void V3LinkLevel::wrapTopCell(AstNetlist* rootp) {
@@ -195,12 +195,39 @@ void V3LinkLevel::wrapTopCell(AstNetlist* rootp) {
         for (AstNode* subnodep = oldmodp->stmtsp(); subnodep; subnodep = subnodep->nextp()) {
             if (AstVar* const oldvarp = VN_CAST(subnodep, Var)) {
                 if (oldvarp->isIO()) {
-                    if (ioNames.find(oldvarp->name()) != ioNames.end()) {
+                    if (!ioNames.insert(oldvarp->name()).second) {
                         // UINFO(8, "Multitop dup I/O found: " << oldvarp << endl);
                         dupNames.insert(oldvarp->name());
-                    } else {
-                        ioNames.insert(oldvarp->name());
                     }
+<<<<<<< HEAD
+=======
+                } else if (v3Global.opt.topIfacesSupported() && oldvarp->isIfaceRef()) {
+                    const AstNodeDType* const subtypep = oldvarp->subDTypep();
+                    if (VN_IS(subtypep, IfaceRefDType)) {
+                        const AstIfaceRefDType* const ifacerefp = VN_AS(subtypep, IfaceRefDType);
+                        if (!ifacerefp->cellp()) {
+                            if (!ioNames.insert(oldvarp->name()).second) {
+                                // UINFO(8, "Multitop dup interface found: " << oldvarp << endl);
+                                dupNames.insert(oldvarp->name());
+                            }
+                        }
+                    }
+                    if (VN_IS(subtypep, UnpackArrayDType)) {
+                        const AstUnpackArrayDType* const arrp = VN_AS(subtypep, UnpackArrayDType);
+                        const AstNodeDType* const arrsubtypep = arrp->subDTypep();
+                        if (VN_IS(arrsubtypep, IfaceRefDType)) {
+                            const AstIfaceRefDType* const ifacerefp
+                                = VN_AS(arrsubtypep, IfaceRefDType);
+                            if (!ifacerefp->cellp()) {
+                                if (!ioNames.insert(oldvarp->name()).second) {
+                                    // UINFO(8, "Multitop dup interface array found: " << oldvarp
+                                    // << endl);
+                                    dupNames.insert(oldvarp->name());
+                                }
+                            }
+                        }
+                    }
+>>>>>>> upstream/master
                 }
             }
         }

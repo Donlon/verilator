@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -636,7 +636,7 @@ void V3ParseImp::tokenPipelineSym() {
                     if (!warned++) {
                         yylval.fl->v3warn(PKGNODECL, "Package/class '" + *yylval.strp
                                                          + "' not found, and needs to be "
-                                                           "predeclared (IEEE 1800-2017 26.3)");
+                                                           "predeclared (IEEE 1800-2023 26.3)");
                     }
                 }
             } else if (token == yaID__LEX) {

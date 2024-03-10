@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -36,7 +36,6 @@ VL_DEFINE_DEBUG_FUNCTIONS;
 // Establish mtask variable sort order in mtasks mode
 
 class VarTspSorter final : public V3TSP::TspStateBase {
-private:
     // MEMBERS
     const MTaskIdSet& m_mtaskIds;  // Mtask we're ordering
     static unsigned s_serialNext;  // Unique ID to establish serial order
@@ -79,7 +78,7 @@ class VariableOrder final {
     //  AstVar::user1()    -> attributes, via m_attributes
     const VNUser1InUse m_user1InUse;  // AstVar
 
-    struct VarAttributes {
+    struct VarAttributes final {
         uint32_t stratum;  // Roughly equivalent to alignment requirement, to avoid padding
         bool anonOk;  // Can be emitted as part of anonymous structure
     };
@@ -108,7 +107,7 @@ class VariableOrder final {
     void tspSortVars(std::vector<AstVar*>& varps) {
         // Map from "MTask affinity" -> "variable list"
         std::map<const MTaskIdSet, std::vector<AstVar*>> m2v;
-        for (AstVar* const varp : varps) { m2v[varp->mtaskIds()].push_back(varp); }
+        for (AstVar* const varp : varps) m2v[varp->mtaskIds()].push_back(varp);
 
         // Create a TSP sort state for each unique MTaskIdSet, except for the empty set
         V3TSP::StateVec states;
@@ -126,7 +125,7 @@ class VariableOrder final {
         // Helper function to sort given vector, then append to 'varps'
         const auto sortAndAppend = [this, &varps](std::vector<AstVar*>& subVarps) {
             simpleSortVars(subVarps);
-            for (AstVar* const varp : subVarps) { varps.push_back(varp); }
+            for (AstVar* const varp : subVarps) varps.push_back(varp);
         };
 
         // Enumerate by sorted MTaskIdSet, sort within the set separately
@@ -203,5 +202,5 @@ void V3VariableOrder::orderAll() {
          modp = VN_AS(modp->nextp(), NodeModule)) {
         VariableOrder::processModule(modp);
     }
-    V3Global::dumpCheckGlobalTree("variableorder", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("variableorder", 0, dumpTreeEitherLevel() >= 3);
 }

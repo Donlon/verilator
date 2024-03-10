@@ -1,4 +1,4 @@
-.. Copyright 2003-2023 by Wilson Snyder.
+.. Copyright 2003-2024 by Wilson Snyder.
 .. SPDX-License-Identifier: LGPL-3.0-only OR Artistic-2.0
 
 *******************
@@ -23,7 +23,8 @@ or "`ifdef`"'s may break other tools.
 
 .. option:: `error [string]
 
-   This will report an error when encountered, like C++'s #error.
+   This will report an error when the preprocessor emits it, similar to
+   C++'s #error.
 
 .. option:: `line
 
@@ -35,8 +36,7 @@ or "`ifdef`"'s may break other tools.
 .. option:: """ [string] """
 
    A triple-quoted block specifies a string that may include newlines and
-   single quotes.  This extension is experimental and may be removed
-   without deprecation.
+   single quotes.  This extension was standardized in IEEE 1800-2023.
 
 .. option:: $c([string], ...);
 
@@ -593,6 +593,23 @@ or "`ifdef`"'s may break other tools.
    Re-enable waveform tracing for all future signals or instances that are
    declared.
 
+.. option:: /*verilator&32;unroll_disable*/
+
+   Used in a statement position to indicate the immediately following loop
+   at the same statement level should not be unrolled by Verilator,
+   ignoring :vlopt:`--unroll-count`.  This is similar to clang's ``#pragma
+   clang loop unroll(disable)``.
+
+   This option does not currently disable the C++ compiler's unrolling (or
+   not) of any loops that make it through to the Verilated C++ code.
+
+.. option:: /*verilator&32;unroll_full*/
+
+   Rarely needed. Used in a statement position to indicate the immediately
+   following loop at the same statement level should always be fully
+   unrolled by Verilator, ignoring :vlopt:`--unroll-count`.  This is
+   similar to clang's ``#pragma clang loop unroll(full)``.
+
 .. option:: $stacktrace
 
    Called as a task, print a stack trace.  Called as a function, return a
@@ -601,4 +618,4 @@ or "`ifdef`"'s may break other tools.
    symbols.  Also, the data represents the C++ stack; the SystemVerilog
    functions/tasks involved may be renamed and/or inlined before becoming
    the C++ functions that may be visible in the stack trace.  This
-   extension is experimental and may be removed without deprecation.
+   extension was standardized in IEEE 1800-2023.

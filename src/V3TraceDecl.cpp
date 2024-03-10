@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -90,7 +90,6 @@ public:
 // TraceDecl state, as a visitor of each AstNode
 
 class TraceDeclVisitor final : public VNVisitor {
-private:
     // NODE STATE
 
     // STATE
@@ -241,7 +240,7 @@ private:
 
     void addIgnore(const char* why) {
         ++m_statIgnSigs;
-        std::string cmt = std::string{"Tracing: "} + m_traName + " // Ignored: " + why;
+        std::string cmt = "Tracing: "s + m_traName + " // Ignored: " + why;
         if (debug() > 3 && m_traVscp) std::cout << "- " << m_traVscp->fileline() << cmt << endl;
     }
 
@@ -259,11 +258,12 @@ private:
             const size_t pos = path.rfind('.');
             const std::string name = path.substr(pos == string::npos ? 0 : pos + 1);
 
-            // Compute the type of the scope beign fixed up
-            AstNodeModule* const modp = scopep->aboveCellp()->modp();
-            const VTracePrefixType scopeType = VN_IS(modp, Iface)
-                                                   ? VTracePrefixType::SCOPE_INTERFACE
-                                                   : VTracePrefixType::SCOPE_MODULE;
+            // Compute the type of the scope being fixed up
+            const AstCell* const cellp = scopep->aboveCellp();
+            const VTracePrefixType scopeType
+                = cellp ? (VN_IS((cellp->modp()), Iface) ? VTracePrefixType::SCOPE_INTERFACE
+                                                         : VTracePrefixType::SCOPE_MODULE)
+                        : VTracePrefixType::SCOPE_MODULE;
 
             // Push the scope prefix
             AstNodeStmt* const pushp = new AstTracePushPrefix{flp, name, scopeType};
@@ -391,9 +391,8 @@ private:
                 } else {
                     // This is a subscope: insert a placeholder to be fixed up later
                     AstCell* const cellp = entry.cellp();
-                    FileLine* const flp = cellp->fileline();
-                    AstNodeStmt* const stmtp
-                        = new AstComment{flp, "Cell init for: " + cellp->prettyName()};
+                    AstNodeStmt* const stmtp = new AstComment{
+                        cellp->fileline(), "Cell init for: " + cellp->prettyName()};
                     addToSubFunc(stmtp);
                     m_cellInitPlaceholders.emplace_back(nodep, cellp, stmtp);
                 }
@@ -427,7 +426,7 @@ private:
 
                 // Assume only references under the same parent scope reference
                 // the same interface.
-                // TODO: This is not actually correct. An inteface can propagate
+                // TODO: This is not actually correct. An interface can propagate
                 //       upwards and sideways when passed to a port via a downward
                 //       hierarchical reference, which we will miss here.
                 if (!VString::startsWith(refName, parentPath)) continue;
@@ -692,5 +691,5 @@ public:
 void V3TraceDecl::traceDeclAll(AstNetlist* nodep) {
     UINFO(2, __FUNCTION__ << ": " << endl);
     { TraceDeclVisitor{nodep}; }  // Destruct before checking
-    V3Global::dumpCheckGlobalTree("tracedecl", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("tracedecl", 0, dumpTreeEitherLevel() >= 3);
 }

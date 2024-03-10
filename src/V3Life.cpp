@@ -6,7 +6,7 @@
 //
 //*************************************************************************
 //
-// Copyright 2003-2023 by Wilson Snyder. This program is free software; you
+// Copyright 2003-2024 by Wilson Snyder. This program is free software; you
 // can redistribute it and/or modify it under the terms of either the GNU
 // Lesser General Public License Version 3 or the Perl Artistic License
 // Version 2.0.
@@ -137,7 +137,7 @@ public:
     void checkRemoveAssign(const LifeMap::iterator& it) {
         const AstVar* const varp = it->first->varp();
         LifeVarEntry* const entp = &(it->second);
-        if (!varp->isSigPublic() && !varp->isUsedVirtIface()) {
+        if (!varp->isSigPublic() && !varp->sensIfacep()) {
             // Rather than track what sigs AstUCFunc/AstUCStmt may change,
             // we just don't optimize any public sigs
             // Check the var entry, and remove if appropriate
@@ -157,32 +157,28 @@ public:
         // Do we have a old assignment we can nuke?
         UINFO(4, "     ASSIGNof: " << nodep << endl);
         UINFO(7, "       new: " << assp << endl);
-        const auto it = m_map.find(nodep);
-        if (it != m_map.end()) {
-            checkRemoveAssign(it);
-            it->second.simpleAssign(assp);
-        } else {
-            m_map.emplace(nodep, LifeVarEntry{LifeVarEntry::SIMPLEASSIGN{}, assp});
+        const auto pair = m_map.emplace(std::piecewise_construct,  //
+                                        std::forward_as_tuple(nodep),
+                                        std::forward_as_tuple(LifeVarEntry::SIMPLEASSIGN{}, assp));
+        if (!pair.second) {
+            checkRemoveAssign(pair.first);
+            pair.first->second.simpleAssign(assp);
         }
         // lifeDump();
     }
     void complexAssign(AstVarScope* nodep) {
         UINFO(4, "     clearof: " << nodep << endl);
-        const auto it = m_map.find(nodep);
-        if (it != m_map.end()) {
-            it->second.complexAssign();
-        } else {
-            m_map.emplace(nodep, LifeVarEntry{LifeVarEntry::COMPLEXASSIGN{}});
-        }
+        const auto pair = m_map.emplace(nodep, LifeVarEntry::COMPLEXASSIGN{});
+        if (!pair.second) pair.first->second.complexAssign();
     }
     void clearReplaced() { m_replacedVref = false; }
     bool replaced() const { return m_replacedVref; }
     void varUsageReplace(AstVarScope* nodep, AstVarRef* varrefp) {
         // Variable rvalue.  If it references a constant, we can replace it
-        const auto it = m_map.find(nodep);
-        if (it != m_map.end()) {
-            if (AstConst* const constp = it->second.constNodep()) {
-                if (!varrefp->varp()->isSigPublic() && !varrefp->varp()->isUsedVirtIface()) {
+        const auto pair = m_map.emplace(nodep, LifeVarEntry::CONSUMED{});
+        if (!pair.second) {
+            if (AstConst* const constp = pair.first->second.constNodep()) {
+                if (!varrefp->varp()->isSigPublic() && !varrefp->varp()->sensIfacep()) {
                     // Aha, variable is constant; substitute in.
                     // We'll later constant propagate
                     UINFO(4, "     replaceconst: " << varrefp << endl);
@@ -194,31 +190,23 @@ public:
                 }
             }
             UINFO(4, "     usage: " << nodep << endl);
-            it->second.consumed();
-        } else {
-            m_map.emplace(nodep, LifeVarEntry{LifeVarEntry::CONSUMED{}});
+            pair.first->second.consumed();
         }
     }
     void complexAssignFind(AstVarScope* nodep) {
-        const auto it = m_map.find(nodep);
-        if (it != m_map.end()) {
-            UINFO(4, "     casfind: " << it->first << endl);
-            it->second.complexAssign();
-        } else {
-            m_map.emplace(nodep, LifeVarEntry{LifeVarEntry::COMPLEXASSIGN{}});
+        const auto pair = m_map.emplace(nodep, LifeVarEntry::COMPLEXASSIGN{});
+        if (!pair.second) {
+            UINFO(4, "     casfind: " << pair.first->first << endl);
+            pair.first->second.complexAssign();
         }
     }
     void consumedFind(AstVarScope* nodep) {
-        const auto it = m_map.find(nodep);
-        if (it != m_map.end()) {
-            it->second.consumed();
-        } else {
-            m_map.emplace(nodep, LifeVarEntry{LifeVarEntry::CONSUMED{}});
-        }
+        const auto pair = m_map.emplace(nodep, LifeVarEntry::CONSUMED{});
+        if (!pair.second) pair.first->second.consumed();
     }
     void lifeToAbove() {
         // Any varrefs under a if/else branch affect statements outside and after the if/else
-        if (!m_aboveLifep) v3fatalSrc("Pushing life when already at the top level");
+        UASSERT(m_aboveLifep, "Pushing life when already at the top level");
         for (auto& itr : m_map) {
             AstVarScope* const nodep = itr.first;
             m_aboveLifep->complexAssignFind(nodep);
@@ -270,7 +258,6 @@ public:
 // Life state, as a visitor of each AstNode
 
 class LifeVisitor final : public VNVisitor {
-private:
     // STATE
     LifeState* const m_statep;  // Current state
     bool m_sideEffect = false;  // Side effects discovered in assign RHS
@@ -313,6 +300,7 @@ private:
         }
         // Collect any used variables first, as lhs may also be on rhs
         // Similar code in V3Dead
+        VL_RESTORER(m_sideEffect);
         m_sideEffect = false;
         m_lifep->clearReplaced();
         iterateAndNextNull(nodep->rhsp());
@@ -419,7 +407,9 @@ private:
         iterateChildren(nodep);
         // Enter the function and trace it
         // else is non-inline or public function we optimize separately
-        if (!nodep->funcp()->entryPoint()) {
+        if (nodep->funcp()->entryPoint()) {
+            setNoopt();
+        } else {
             m_tracingCall = true;
             iterate(nodep->funcp());
         }
@@ -428,6 +418,7 @@ private:
         // UINFO(4, "  CFUNC " << nodep << endl);
         if (!m_tracingCall && !nodep->entryPoint()) return;
         m_tracingCall = false;
+        if (nodep->recursive()) setNoopt();
         if (nodep->dpiImportPrototype() && !nodep->dpiPure()) {
             m_sideEffect = true;  // If appears on assign RHS, don't ever delete the assignment
         }
@@ -512,5 +503,5 @@ void V3Life::lifeAll(AstNetlist* nodep) {
         LifeTopVisitor{nodep, &state};
     }  // Destruct before checking
     VIsCached::clearCacheTree();  // Removing assignments may affect isPure
-    V3Global::dumpCheckGlobalTree("life", 0, dumpTreeLevel() >= 3);
+    V3Global::dumpCheckGlobalTree("life", 0, dumpTreeEitherLevel() >= 3);
 }
