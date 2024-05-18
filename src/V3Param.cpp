@@ -1459,9 +1459,7 @@ public:
             for (AstNodeModule* const modp : modps) {
                 // Only add processed modules - the others are unreferenced and
                 // should be removed from the netlist, just like unreferenced classes.
-                if (modp->user2()) {
-                    netlistp->addModulesp(modp);
-                }
+                if (modp->user2()) { netlistp->addModulesp(modp); }
             }
             for (AstClass* const classp : m_paramClasses) {
                 if (!classp->user3p()) {
