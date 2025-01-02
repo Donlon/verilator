@@ -638,7 +638,7 @@ public:
         case DOUBLE: return 64;  // opaque
         case SHORTINT: return 16;
         case TIME: return 64;
-        case STRING: return 64;  // opaque  // Just the pointer, for today
+        case STRING: return 0;  // opaque  // Just the pointer, for today
         case SCOPEPTR: return 0;  // opaque
         case CHARPTR: return 0;  // opaque
         case MTASKSTATE: return 0;  // opaque
